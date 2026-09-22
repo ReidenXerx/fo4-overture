@@ -60,11 +60,19 @@ ALIAS_INDEX = 0
 ALIAS_NAME = 'Target'
 
 # O-4, tone-faithful. The slot is the SCEN field, so this mapping IS the design.
+#
+# NTOP IS NEGATIVE AND NETO IS NEUTRAL, not the other way round. The names read
+# like "Neutral TOPic" and "NEgative TOpic" and that reading is wrong. MEASURED
+# 2026-09-23 through XDI: our four topics came back with optionIDs
+# charm 0, offer 1, blunt 2, linger 3, against the vanilla slot numbering
+# Positive 0, Negative 1, Neutral 2, Question 3. The first build had offer in
+# the negative slot and blunt in the neutral one -- the exact opposite of O-4 --
+# and nothing in the record would ever have shown it.
 SLOTS = [
-    ('PTOP', 'charm'),
-    ('NTOP', 'offer'),
-    ('NETO', 'blunt'),
-    ('QTOP', 'linger'),
+    ('PTOP', 'charm'),    # positive
+    ('NETO', 'offer'),    # NEutral
+    ('NTOP', 'blunt'),    # Negative
+    ('QTOP', 'linger'),   # question
 ]
 
 

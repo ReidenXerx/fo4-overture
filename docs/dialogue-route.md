@@ -199,6 +199,49 @@ written straight to disk by the Creation Kit. We write zeros.
   base-game ids). The template's greeting uses it to name Daisy specifically.
 - **Function 70** takes 0 or 1 and runs on the target, which is the shape of a sex check.
 
+## IT WORKS — 2026-09-23, measured through XDI
+
+```
+dialogue with Whitechapel Charlie (00022688): 4 option(s)
+  [0] (prompt "(Say nothing. Stay where you are.)")
+  [1] (prompt "Nobody out here looks at you properly, do they.")
+  [2] (prompt "I brought you something.")
+  [3] (prompt "I want to fuck you. Here, against that wall, I don't care.")
+```
+
+Every record derived in this document is correct: the quest, the script-filled alias, the four `SCEN`
+topics, the `GREE` topic whose `TSCE` starts the scene, the two-phase two-action structure, and the
+scene living inside the quest's child group. The dialogue loop is real.
+
+### And the first read of it found a bug nothing in the record would show
+
+`optionID` is the vanilla wheel slot: **Positive 0, Negative 1, Neutral 2, Question 3.** Ours came
+back:
+
+| register | our SCEN field | optionID | the slot it actually landed in |
+| --- | --- | --- | --- |
+| charm | `PTOP` | 0 | positive — correct |
+| offer | `NTOP` | **1** | **negative** — wrong |
+| blunt | `NETO` | **2** | **neutral** — wrong |
+| linger | `QTOP` | 3 | question — correct |
+
+**`NTOP` is NEGATIVE and `NETO` is NEUTRAL.** The names read like "Neutral TOPic" and "NEgative
+TOpic"; that reading is wrong, and this document asserted it for two days. O-4 wants offer in neutral
+and blunt in negative, so the first working build had them exactly swapped — the crude line sitting
+in the neutral slot and the gift in the aggressive one.
+
+Nothing in the plugin would ever have shown this. The record is valid either way, the options appear
+either way, and only the slot NUMBER the engine hands back distinguishes them. It took a tool that
+prints what the engine holds rather than what the author intended.
+
+### Two other things worth carrying
+
+- **The response text is re-rolled on every read.** XDI hands back a fresh variant each time it is
+  asked, so match a line by its **prompt or its position**, never by its response text.
+- **`choose` is refused while the NPC is still speaking.** XDI returns false until the engine is
+  awaiting player input — roughly 6s after the list appears. Retry rather than treating the first
+  refusal as a failure.
+
 ## Status
 
 | | |
