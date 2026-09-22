@@ -1,0 +1,6 @@
+build/
+voice/out/
+*.pex
+*.esp
+__pycache__/
+.gitnexus/

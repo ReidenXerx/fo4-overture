@@ -1,0 +1,99 @@
+# The dialogue route
+
+The three things that decided whether Overture is buildable at all, each settled on 2026-09-22.
+`fo4-rapport/docs/relationship-and-personas.md` N-2 called dialogue "the only part of the roadmap
+that could fail outright". It does not fail. Here is why, and what is still unproven.
+
+---
+
+## 1. The player's half — solved by XDI, not by us
+
+**N-5 open question 5** asked whether the player's side of a custom conversation should be silent,
+text-only, or scavenged from vanilla. Fallout 4 voices its protagonist and we cannot match that
+actor, so a custom topic would leave the player mute mid-conversation with the camera pointed at
+their still face.
+
+**XDI (Extended Dialogue Interface) exists for exactly this.** It:
+
+- removes the hard-coded four-option limit, so any number of player options can be offered — which
+  our four registers want anyway, plus whatever a later stage adds;
+- lets a mod add **unvoiced player lines** as a first-class case, with no empty voice files to fake;
+- **hot-patches the dialogue camera to stay on the NPC** rather than cutting to the silent player.
+
+Authoring is otherwise identical to vanilla dialogue. There is no XDI API to code against: you
+author normal `DIAL`/`INFO` records and XDI changes how they are presented.
+
+**The trap.** `XDI.esm` ships exactly two keywords — `XDI` and `XDI_AllowPlayerVoice`. The second
+one **does not work**; mods that depended on it had to ship a patched DLL. Do not build on it.
+
+**Dependency.** XDI is a hard requirement for Overture's dialogue to present correctly. It is
+already in this machine's load order at index 4. Link to its Nexus page rather than bundling it —
+that is what its author asks for.
+
+## 2. Lip sync — Bethesda's own tool, already on disk
+
+**N-5 open question 6** asked whether `.lip` files can be generated outside the Creation Kit, and
+noted it "stands harder for Overture than it did for R-9": a scene bark blocks the face anyway, but
+an actor in conversation with a still mouth is conspicuous.
+
+**The game ships the tool.** `<game>/Tools/LipGen/LipGenerator/LipGenerator.exe`, with
+`FonixData.cdf` beside it and `LIPFuzer.exe` next door for the fuz step.
+
+```
+LipGenerator <wav> "<spoken text>" [-Language:USEnglish] [-GestureExaggeration:1.0]
+             [-OutputFileName:...] [-LipAnimDelay:..] [-LipAnimSpeed:..]
+```
+
+`scripts/make-lip.py` wraps it over the whole line bank.
+
+**Measured**, because neither of these is documented anywhere:
+
+- It accepts a **44.1kHz mono 16-bit** wav directly. The widely-cited alternative — Nukem9's
+  `FaceFXWrapper` — demands 16kHz and a resample step first. Ours do not need one. `FaceFXWrapper`
+  remains a viable fallback and we already have the `FonixData.cdf` it needs.
+- The `Tools/LipGen/Readme.txt` tells you to move the 32-bit Creation Kit to the game root and
+  generate lip sync through its GUI. **That advice is for the CK; `LipGenerator.exe` beside it is a
+  plain CLI and needs none of it.** Reading only the readme would have concluded the opposite.
+
+**What is NOT yet proven.** A `.lip` has been *produced* — 1,741 bytes from a real line, and 1,981
+from another. Whether the game **accepts** it and the mouth actually moves is untested, because it
+needs the game. Until somebody watches a face, this is an untested output rather than a working
+pipeline. It is written down this way on purpose: the same project has twice had a confident static
+count contradicted by the running game.
+
+## 3. The topic records — prior art exists, and it is NOT the same shape
+
+`fo4-rapport/tools/make_dialogue.py` builds voiced topics and its scars carry over:
+
+- **The nesting.** A `DIAL` never sits at a plugin's top level. It lives inside the owning quest's
+  children: `GRUP type 0 QUST > QUST > GRUP type 10 <quest> > DIAL > GRUP type 7 <topic> > INFO`.
+  A top-level `DIAL` is a record the engine never looks at.
+- **A topic is inert without a Dialogue Branch.** 211 topics resolved, their quest ran, `Say` was
+  called, and nothing was ever spoken — until one `DLBR` existed and every topic pointed at it
+  through `BNAM`. Four confident theories were wrong before a field-by-field diff against a line the
+  game really speaks found it first time.
+- **Not localized.** `Fallout4.esm` sets TES4 flag `0x80` so its `NAM1` holds a string-table id.
+  Ours does not, so `NAM1` takes the literal text. Copying the base game's `NAM1` puts four bytes of
+  garbage in every subtitle.
+- **No voice-type condition.** With no `CTDA`, any speaker may say the line and the engine looks the
+  audio up under *their* voice type — so one line serves all 32 types, and a type with no file
+  degrades to **subtitle**, never to silence or to the wrong voice. This is what makes shipping six
+  voices safe.
+
+**The part that does not carry over:** Rapport's topics are `Say`-driven barks. Overture needs
+**player dialogue** — topics the player selects from a menu — which is a different `INFO` shape and
+a different relationship to the quest. Per this project's own rule, that shape gets established by
+**diffing a real player topic out of `Fallout4.esm`**, not by extending the bark builder and hoping.
+That diff is the next piece of work and it is deliberately not guessed at here.
+
+---
+
+## Status
+
+| | |
+| --- | --- |
+| Player's unvoiced half | **Solved** — XDI, verified in its own docs and its shipped keywords |
+| Lip generation | **Tool proven, output unverified in game** |
+| Bark topic records | Prior art, working, in `fo4-rapport` |
+| Player topic records | **Not started** — needs a diff against a real one |
+| The lines | 128 authored, 6,177 characters, matrix complete |
