@@ -89,6 +89,53 @@ looks at, which is the same class of mistake as putting a `DIAL` at the top leve
 
 ---
 
+## First in-game run, 2026-09-23
+
+The plugin loads and the scene runs. The options do not appear yet.
+
+**What is verified working:**
+
+| | |
+| --- | --- |
+| `Overture.esp` loads, no missing-content box | yes |
+| The quest starts itself and `OnQuestInit` fires | yes |
+| The script resolves `F4MCP.esp` and registers as an addon | yes — `addons` lists `overture: approach` |
+| `Game.GetFormFromFile(0x801, "Overture.esp")` resolves the scene | yes |
+| `Scene.GetOwningQuest()` returns our quest | **yes — the scene's `PNAM` wired correctly** |
+| `ReferenceAlias.ForceRefTo()` on the script-filled alias | yes |
+| `Scene.IsPlaying()` after `Start()` | **yes** |
+
+So every record this repo generates is accepted by the engine, the alias shape is right, and the
+scene is genuinely running. That is the whole structural question answered.
+
+**What does not work:** talking to the aliased actor shows no Overture options. The scene plays and
+its dialogue action presents nothing.
+
+**A wrong conclusion, corrected in the same session.** The first run reported
+`state <actor> scene=False` and I read that as "the scene did not start". It means the *actor* is not
+in a scene, which is a different fact. Adding `Scene.IsPlaying()` and `GetOwningQuest()` to the verb
+showed the scene was playing the whole time. **`Scene.Start()` is void, so "scene started" was never
+something the code could know** — the first version of the verb said it anyway, which is exactly the
+kind of claim that sends you debugging the wrong thing.
+
+**Also learned:** Magnolia is a useless test subject. She is a singer and permanently inside a vanilla
+performance scene (`sceneForm=00074D26`, a `Fallout4.esm` form). Check `state <id>` for
+`scene=False` before choosing anybody.
+
+**The next suspects**, in order, none of them tested:
+
+1. **The scene has one phase and one action; the template has two of each.** The second action is
+   type 4 with `STSC`/`HTID`, and what it does is unknown. A dialogue action may need it.
+2. **There is no Player alias.** `FFGoodneighbor02` carries `Player` as alias index 2. A dialogue
+   action plausibly needs both ends, and ours only has the target.
+3. **`DTGT`** is set to the target alias, copied from the template where `ALID` and `DTGT` were both
+   alias 3. If `DTGT` means "who is spoken to", that reading cannot be right and the template needs
+   re-reading rather than copying.
+4. The verbatim action `FNAM` (`0x00228000`) may encode something specific to that scene.
+
+The honest position is that the record layer is proven and the scene *semantics* are not understood
+yet. That is a smaller and better-defined problem than the one this file started with.
+
 ## Status
 
 | | |

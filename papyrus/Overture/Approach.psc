@@ -109,6 +109,27 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		(Self as Quest).Start()
 	EndIf
 	target.ForceRefTo(who)
+
+	; Report what the engine THINKS, not what we asked for. Scene.Start() is void,
+	; so "started" was never a fact - the first version said it anyway and the
+	; actor's state said scene=False.
+	String note = "approach: quest running=" + (Self as Quest).IsRunning()
+	Quest owner = sc.GetOwningQuest()
+	If owner == None
+		note = note + " | scene owner=None (the scene's PNAM did not resolve)"
+	ElseIf owner == (Self as Quest)
+		note = note + " | scene owner=this quest"
+	Else
+		note = note + " | scene owner=SOMEONE ELSE"
+	EndIf
+
 	sc.Start()
-	MCP:Core.Reply(tag, "approach: alias filled, scene started - talk to them and four options should be on the wheel")
+	Utility.Wait(0.5)
+	note = note + " | playing after Start=" + sc.IsPlaying()
+	If !sc.IsPlaying()
+		sc.ForceStart()
+		Utility.Wait(0.5)
+		note = note + " | after ForceStart=" + sc.IsPlaying()
+	EndIf
+	MCP:Core.Reply(tag, note)
 EndEvent
