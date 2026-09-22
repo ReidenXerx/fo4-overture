@@ -81,6 +81,16 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	String tag = akArgs[2] as String
 	Int count = akArgs[3] as Int
 
+	; Second token "noscene" fills the alias and does NOT start the scene.
+	; The hypothesis it tests: in vanilla you ENTER a dialogue scene by talking to
+	; the actor, rather than starting it first. An actor already inside a scene is
+	; not activatable -- measured, the "Talk to" prompt disappears -- so starting
+	; it by hand may be exactly backwards.
+	Bool startScene = true
+	If count > 1 && (akArgs[6] as String) == "noscene"
+		startScene = false
+	EndIf
+
 	Actor who = None
 	If count > 0
 		Int formID = akArgs[5] as Int
@@ -121,6 +131,11 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		note = note + " | scene owner=this quest"
 	Else
 		note = note + " | scene owner=SOMEONE ELSE"
+	EndIf
+
+	If !startScene
+		MCP:Core.Reply(tag, note + " | scene NOT started (noscene) - alias filled only, now talk to them")
+		Return
 	EndIf
 
 	sc.Start()

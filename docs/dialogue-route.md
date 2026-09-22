@@ -136,6 +136,40 @@ performance scene (`sceneForm=00074D26`, a `Fallout4.esm` form). Check `state <i
 The honest position is that the record layer is proven and the scene *semantics* are not understood
 yet. That is a smaller and better-defined problem than the one this file started with.
 
+## The greeting is what starts the scene (2026-09-23)
+
+The first run left four suspects. Two of them were right, and both were sitting in the template I had
+already dumped and not read far enough down.
+
+**1. A `GREE` topic whose INFO carries `TSCE`.** `FFGoodneighbor02`'s greeting INFO holds
+`TSCE = 0x0010BECF` — the form id of its own scene. **`TSCE` is what starts the scene when the player
+talks to the actor.** Without it, a filled alias and a running scene publish nothing, which is exactly
+what the first run showed: quest running, alias filled, `IsPlaying` true, and not one option.
+
+**2. The `SCEN` belongs INSIDE the quest's child group**, as a sibling of the topics. Ours was in a
+top-level `GRUP 'SCEN'`. Measured: `SCEN 0010BECF` sits in `FFGoodneighbor02`'s `GRUP type 10`.
+
+**3. One phase and one action were not enough.** With both fixes in, the owner reported the actor
+**stopping his idle for about a second and then resuming it** — a scene starting and immediately
+ending. The template has two phases and two actions; ours had one of each. With the second phase and
+the type-4 action added, our scene's field sequence is **identical to the template's** apart from a
+single `CTDA` that is deliberately absent (see below).
+
+Still unproven in game: whether the options now appear. The test was interrupted by an unrelated
+crash — see `Documents/FO4-Investigations/backpacks-perk-crash/`, which is a pre-existing fault whose
+earliest instance predates this repo by two days.
+
+### The greeting is UNCONDITIONED, and must not ship that way
+
+The template's greeting carries four `CTDA` conditions — three quest-stage checks and one naming the
+actor. Ours carries none, because decoding FO4's 32-byte `CTDA` well enough to write one is a
+separate job and copying the template's verbatim would put its quest and actor form ids into our
+plugin.
+
+The cost: **while Overture's quest runs, every actor may offer the greeting.** For a dev test that is
+convenient — talk to anybody. For anything shipped it is unacceptable, and O-7 (the registers appear
+when you talk to an eligible NPC) cannot be built until the condition exists.
+
 ## Status
 
 | | |

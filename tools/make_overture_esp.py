@@ -47,6 +47,8 @@ QUEST_FORMID = 0x01000800
 SCENE_FORMID = 0x01000801
 TOPIC_BASE = 0x01000810   # one DIAL per register
 INFO_BASE = 0x01000820    # one INFO per topic
+GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
+GREET_INFO = 0x01000831
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
@@ -184,6 +186,48 @@ def line(info_id, player_prompt, npc_response):
     return record('INFO', info_id, f)
 
 
+def greeting():
+    """The GREE topic, and the line that starts the scene.
+
+    THIS IS THE PIECE THAT MAKES IT WORK. Measured on FFGoodneighbor02: its
+    greeting INFO carries `TSCE` holding the SCEN's form id, and that is what
+    starts the scene when the player talks to the actor. A filled alias alone
+    publishes nothing -- the first in-game run proved that, with the quest
+    running, the alias filled and the scene playing, and not one option on the
+    wheel.
+
+    DATA is 00 07 73 00: [1]=7, [2]=0x73=115. Category 115 is what the
+    template's greeting carries, against 15 for the player topics.
+
+    NO CONDITIONS, deliberately and temporarily. The template's greeting has
+    four CTDAs -- three quest-stage checks and one naming the actor -- and
+    decoding FO4's 32-byte CTDA well enough to write one is a separate job. The
+    cost of leaving them out is that this greeting is offered by EVERY actor
+    while the quest runs, which for a dev test is convenient (talk to anybody)
+    and for anything shipped is unacceptable. It must not survive O-7.
+    """
+    f = field('EDID', zstring('OvertureGreeting'))
+    f += field('PNAM', struct.pack('<f', 50.0))
+    f += field('QNAM', struct.pack('<I', QUEST_FORMID))
+    f += field('DATA', bytes([0x00, 0x07, 0x73, 0x00]))
+    f += field('SNAM', b'GREE')
+    f += field('TIFC', struct.pack('<I', 1))
+    topic = record('DIAL', GREET_TOPIC, f)
+
+    trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
+    g = field('ENAM', struct.pack('<I', 4))      # 4 on the template's greeting
+    g += field('TRDA', trda)
+    g += field('NAM1', zstring('...'))           # the NPC's greeting line
+    g += field('NAM2', b'\0')
+    g += field('NAM3', b'\0')
+    g += field('NAM4', b'\0')
+    g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
+    g += field('NAM0', b'\0')
+    g += field('INAM', struct.pack('<I', 1))
+    line_rec = record('INFO', GREET_INFO, g)
+    return topic + child_group(GREET_TOPIC, 7, line_rec)
+
+
 def scene(topic_ids):
     """The SCEN. Transcribed field for field from SCEN 0010BECF.
 
@@ -202,13 +246,21 @@ def scene(topic_ids):
     f = field('EDID', zstring(SCENE_EDID))
     f += field('FNAM', struct.pack('<I', 0x00000024))   # verbatim: scene flags
 
-    # --- phase 0: the only phase --------------------------------------------
-    f += field('HNAM', b'')
-    f += field('NAM0', b'\0')
-    f += field('NEXT', b'')
-    f += field('NEXT', b'')
-    f += field('WNAM', struct.pack('<I', 500))          # verbatim
-    f += field('HNAM', b'')
+    # --- TWO phases, as the template has ------------------------------------
+    # One phase was not enough: the scene started and ended inside a second,
+    # visible in game as the actor dropping his idle and picking it straight
+    # back up. A phase block runs HNAM .. HNAM.
+    #
+    # The template's SECOND phase carries a CTDA. Ours does not: that condition
+    # names the template's own quest and actor form ids, and copying foreign ids
+    # into this plugin would be worse than having no condition at all.
+    for _phase in (0, 1):
+        f += field('HNAM', b'')
+        f += field('NAM0', b'\0')
+        f += field('NEXT', b'')
+        f += field('NEXT', b'')
+        f += field('WNAM', struct.pack('<I', 500))      # verbatim
+        f += field('HNAM', b'')
 
     # --- the dialogue action -------------------------------------------------
     f += field('ALID', struct.pack('<I', ALIAS_INDEX))
@@ -226,6 +278,21 @@ def scene(topic_ids):
     for slot in ('NPOT', 'NNGT', 'NNUT', 'NQUT'):
         f += field(slot, struct.pack('<I', 0))          # nowhere to lead yet
     f += field('DTGT', struct.pack('<I', ALIAS_INDEX))
+    f += field('ANAM', b'')
+
+    # --- the second action, type 4 -------------------------------------------
+    # Verbatim in shape from the template, which runs it in phase 1 while the
+    # dialogue action runs in phase 0. What type 4 does is not established, and
+    # STSC/HTID with it; it is here because the difference between a scene that
+    # holds and one that does not is the only thing still untested.
+    f += field('ANAM', struct.pack('<H', 4))
+    f += field('NAM0', b'\0')
+    f += field('ALID', struct.pack('<I', ALIAS_INDEX))
+    f += field('INAM', struct.pack('<I', 2))
+    f += field('SNAM', struct.pack('<I', 1))            # start phase 1
+    f += field('ENAM', struct.pack('<I', 1))            # end phase 1
+    f += field('STSC', struct.pack('<I', 0))
+    f += field('HTID', b'')
     f += field('ANAM', b'')
 
     # --- the tail ------------------------------------------------------------
@@ -264,12 +331,18 @@ def build():
             '...'))
         count += 2
 
+    # The greeting, then the scene -- and the SCEN goes INSIDE the quest's child
+    # group, as a sibling of the topics. Measured: FFGoodneighbor02's
+    # SCEN 0010BECF sits in its GRUP type 10, not at the top level. Ours was
+    # top-level, which is one of the two reasons the first run showed nothing.
+    children += greeting()
+    children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('QUST', quest_blob) + group('SCEN', scene(topic_ids))
+    blob = group('QUST', quest_blob)
 
-    records = 1 + 1 + count      # quest, scene, and the topic/line pairs
+    records = 1 + 1 + 2 + count  # quest, scene, greeting topic+line, the pairs
     next_object = max(SCENE_FORMID, TOPIC_BASE + len(SLOTS),
-                      INFO_BASE + len(SLOTS)) + 1
+                      INFO_BASE + len(SLOTS), GREET_INFO) + 1
     hedr = struct.pack('<fiI', 1.0, records, next_object)
     head = field('HEDR', hedr)
     head += field('CNAM', zstring(AUTHOR))
