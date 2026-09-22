@@ -50,16 +50,16 @@
       "kind": "greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "You want something, or do you just like the view?",
-      "chars": 49
+      "text": "You going to keep staring at my tits, or say something?",
+      "chars": 55
     },
     {
       "id": "ov_vulgar_greet_02",
       "kind": "greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Come to talk, or come to do something about it?",
-      "chars": 47
+      "text": "Come to talk, or come to fuck? Only one of those interests me.",
+      "chars": 62
     },
     {
       "id": "ov_reticent_greet_01",
@@ -244,8 +244,8 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Caps? I was hoping for something more interesting.",
-      "chars": 50
+      "text": "Caps? I was hoping you wanted to fuck, not shop.",
+      "chars": 48
     },
     {
       "id": "ov_vulgar_offer_miss_02",
@@ -254,8 +254,8 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Put your money away and try that again.",
-      "chars": 39
+      "text": "Put your money away and tell me what you want to do to me.",
+      "chars": 58
     },
     {
       "id": "ov_vulgar_charm_miss_01",
@@ -264,8 +264,8 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "All that talking and you still have not said it.",
-      "chars": 48
+      "text": "All that talk and you still have not said the word fuck once.",
+      "chars": 61
     },
     {
       "id": "ov_vulgar_charm_miss_02",
@@ -274,8 +274,8 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "Very poetic. Now say what you actually mean.",
-      "chars": 44
+      "text": "Very pretty. Now say the filthy version and mean it.",
+      "chars": 52
     },
     {
       "id": "ov_vulgar_blunt_land_01",
@@ -284,8 +284,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Finally. Somebody who says it out loud.",
-      "chars": 39
+      "text": "Finally. Somebody who says fuck like it is not a swear word.",
+      "chars": 60
     },
     {
       "id": "ov_vulgar_blunt_land_02",
@@ -294,8 +294,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "That is exactly the right thing to say to me.",
-      "chars": 45
+      "text": "Say that again slower. I want to picture all of it.",
+      "chars": 51
     },
     {
       "id": "ov_vulgar_linger_miss_01",
@@ -304,8 +304,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Standing there is not going to get it done.",
-      "chars": 43
+      "text": "Standing there quiet is not going to get my legs open.",
+      "chars": 54
     },
     {
       "id": "ov_vulgar_linger_miss_02",
@@ -314,8 +314,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "You could be using your mouth for something.",
-      "chars": 44
+      "text": "You have got a mouth. Use it for words or use it on me.",
+      "chars": 55
     },
     {
       "id": "ov_reticent_offer_miss_01",
@@ -444,8 +444,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "I like it, but half the settlement is listening.",
-      "chars": 48
+      "text": "I want your hands on me and there are twelve people watching.",
+      "chars": 61
     },
     {
       "id": "ov_vulgar_recoil_02",
@@ -454,8 +454,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "Find me somewhere with a door and ask me again.",
-      "chars": 47
+      "text": "Say that again somewhere with a door. Loud as you like, then.",
+      "chars": 61
     },
     {
       "id": "ov_reticent_recoil_01",
@@ -644,8 +644,8 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Caps again. You have no imagination at all.",
-      "chars": 43
+      "text": "Caps again? I do not want paying, I want fucking.",
+      "chars": 49
     },
     {
       "id": "ov2_vulgar_offer_miss_02",
@@ -654,7 +654,7 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Put it away and tell me what you want to do to me.",
+      "text": "Put it away and tell me where you want your hands.",
       "chars": 50
     },
     {
@@ -664,8 +664,8 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "That was very pretty and it did nothing for me.",
-      "chars": 47
+      "text": "Beautiful. Completely useless. Say the filthy version.",
+      "chars": 54
     },
     {
       "id": "ov2_vulgar_charm_miss_02",
@@ -674,7 +674,7 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "Less poetry. More detail about what happens next.",
+      "text": "Less poetry. More detail, and use the ugly words.",
       "chars": 49
     },
     {
@@ -684,8 +684,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Keep talking like that and we are not leaving this room.",
-      "chars": 56
+      "text": "Keep talking and I will have you against that wall.",
+      "chars": 51
     },
     {
       "id": "ov2_vulgar_blunt_land_02",
@@ -694,8 +694,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Now you are finally saying the right things to me.",
-      "chars": 50
+      "text": "Filthy mouth. I want it on me before you use it again.",
+      "chars": 54
     },
     {
       "id": "ov2_vulgar_linger_miss_01",
@@ -704,8 +704,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Standing there breathing at me is not a plan.",
-      "chars": 45
+      "text": "Breathing at me is not foreplay. Say something filthy.",
+      "chars": 54
     },
     {
       "id": "ov2_vulgar_linger_miss_02",
@@ -714,8 +714,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Use your mouth for words or use it for something better.",
-      "chars": 56
+      "text": "Still nothing? My own hand is more decisive than you are.",
+      "chars": 57
     },
     {
       "id": "ov2_reticent_offer_miss_01",
@@ -844,8 +844,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "You are killing me. Get me somewhere with a door on it.",
-      "chars": 55
+      "text": "You are killing me. Four walls and a door, right now.",
+      "chars": 53
     },
     {
       "id": "ov2_vulgar_recoil_02",
@@ -854,8 +854,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "I want to say yes and I want a wall between us and them.",
-      "chars": 56
+      "text": "Yes. Yes to all of it. Not in front of the whole settlement.",
+      "chars": 60
     },
     {
       "id": "ov2_reticent_recoil_01",
@@ -919,8 +919,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "accept",
-      "text": "Finally. Get me somewhere with a door and a bed.",
-      "chars": 48
+      "text": "Finally. Find us a door and I will show you what I meant.",
+      "chars": 57
     },
     {
       "id": "ov3_vulgar_accept_02",
@@ -928,8 +928,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "accept",
-      "text": "Yes, and I have been thinking about your mouth all afternoon.",
-      "chars": 61
+      "text": "Yes. And I have been thinking about your mouth since you walked in.",
+      "chars": 67
     },
     {
       "id": "ov3_reticent_accept_01",
@@ -991,8 +991,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "refuse",
-      "text": "No. You bored me, and that is worse than offending me.",
-      "chars": 54
+      "text": "No. You bored me, and boring me is worse than offending me.",
+      "chars": 59
     },
     {
       "id": "ov3_vulgar_refuse_02",
@@ -1000,8 +1000,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "refuse",
-      "text": "Not a chance. You could not even say it properly.",
-      "chars": 49
+      "text": "Not a chance. You could not even say what you wanted out loud.",
+      "chars": 62
     },
     {
       "id": "ov3_reticent_refuse_01",
@@ -1063,8 +1063,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notyet",
-      "text": "Keep going like that and you will get there. Not yet.",
-      "chars": 53
+      "text": "You are close. Say one more filthy thing and I am yours.",
+      "chars": 56
     },
     {
       "id": "ov3_vulgar_notyet_02",
@@ -1072,8 +1072,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notyet",
-      "text": "You are very close to getting exactly what you want.",
-      "chars": 52
+      "text": "Almost. One more filthy sentence and I am dragging you off.",
+      "chars": 59
     },
     {
       "id": "ov3_reticent_notyet_01",
@@ -1130,16 +1130,16 @@
       "kind": "farewell",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Go on. I will be thinking about it either way.",
-      "chars": 46
+      "text": "Go on. I will be thinking about fucking you either way.",
+      "chars": 55
     },
     {
       "id": "ov_vulgar_farewell_02",
       "kind": "farewell",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Leave, then. You know exactly where I sleep.",
-      "chars": 44
+      "text": "Leave, then. You know which bed is mine.",
+      "chars": 40
     },
     {
       "id": "ov_reticent_farewell_01",
@@ -1194,16 +1194,16 @@
       "kind": "returning",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Look who came back for more of it.",
-      "chars": 34
+      "text": "Look who came back. Thought about my mouth all week, then?",
+      "chars": 58
     },
     {
       "id": "ov_vulgar_returning_02",
       "kind": "returning",
       "stage": 0,
       "persona": "vulgar",
-      "text": "I knew you would be back. You have got that look about you.",
-      "chars": 59
+      "text": "Knew you would be back. You have got that desperate look.",
+      "chars": 57
     },
     {
       "id": "ov_reticent_returning_01",
