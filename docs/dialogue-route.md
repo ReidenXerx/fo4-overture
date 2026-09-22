@@ -159,16 +159,45 @@ Still unproven in game: whether the options now appear. The test was interrupted
 crash — see `Documents/FO4-Investigations/backpacks-perk-crash/`, which is a pre-existing fault whose
 earliest instance predates this repo by two days.
 
-### The greeting is UNCONDITIONED, and must not ship that way
+### The greeting is now conditioned on the alias
 
-The template's greeting carries four `CTDA` conditions — three quest-stage checks and one naming the
-actor. Ours carries none, because decoding FO4's 32-byte `CTDA` well enough to write one is a
-separate job and copying the template's verbatim would put its quest and actor form ids into our
-plugin.
+It was not, for one build, and every actor in the game offered it while the quest ran. That is fixed,
+and the fix is the condition format **measured rather than guessed**.
 
-The cost: **while Overture's quest runs, every actor may offer the greeting.** For a dev test that is
-convenient — talk to anybody. For anything shipped it is unacceptable, and O-7 (the registers appear
-when you talk to an eligible NPC) cannot be built until the condition exists.
+**Function 566 takes an alias index.** Of its 4,806 uses on dialogue INFOs in `Fallout4.esm`, **4,782
+have a `param1` inside the owning quest's own alias range** (`0 .. ANAM-1`). The 24 that do not are
+all `0xFFFFFFFE`, a sentinel. A number meaning anything else would have no reason to respect a
+per-quest bound that closely. `tools/ctda_alias_check.py` is the check, so it is re-runnable rather
+than a claim.
+
+The `CTDA` layout, derived from four real conditions and checked against every dialogue condition in
+the base game:
+
+```
+0       operator and flags (0x00 = equal to)
+1-3     unused
+4-7     comparison value, float
+8-9     function index, uint16
+10-11   padding
+12-15   parameter 1
+16-19   parameter 2
+20-23   run-on type (0 = Subject, the speaker)
+24-27   reference
+28-31   unused
+```
+
+Overture's greeting now carries exactly one: function **566**, `param1` = the Target alias index,
+value **1.0**, run on **Subject**. So it is offered only by the actor the quest has aliased.
+
+A detail worth recording: the real records carry non-zero bytes in both padding runs — `7a d2 96` and
+`d2 96`, *identical across unrelated conditions in unrelated quests*. That is uninitialised memory
+written straight to disk by the Creation Kit. We write zeros.
+
+### Two other things the survey settled
+
+- **Function 72 is `GetIsID`** — its `param1` is a real form id (11% small, and those are the small
+  base-game ids). The template's greeting uses it to name Daisy specifically.
+- **Function 70** takes 0 or 1 and runs on the target, which is the shape of a sex check.
 
 ## Status
 

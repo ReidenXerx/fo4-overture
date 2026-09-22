@@ -186,6 +186,45 @@ def line(info_id, player_prompt, npc_response):
     return record('INFO', info_id, f)
 
 
+def condition(func, param1, value=1.0, runon=0, op=0x00):
+    """One CTDA, 32 bytes.
+
+    Layout, derived from four real conditions on FFGoodneighbor02's greeting and
+    checked against every CTDA on every dialogue INFO in Fallout4.esm:
+
+        0       operator and flags (0x00 = equal to)
+        1-3     unused
+        4-7     comparison value, float
+        8-9     function index, uint16
+        10-11   padding
+        12-15   parameter 1
+        16-19   parameter 2
+        20-23   run-on type (0 = Subject, the speaker)
+        24-27   reference
+        28-31   unused
+
+    The real records carry non-zero bytes in the two padding runs -- `7a d2 96`
+    and `d2 96` -- identical across unrelated conditions, which is what
+    uninitialised memory written straight to disk looks like. Zeros here.
+    """
+    return (struct.pack('<B', op) + b'\0' * 3
+            + struct.pack('<f', value)
+            + struct.pack('<H', func) + b'\0' * 2
+            + struct.pack('<I', param1)
+            + struct.pack('<I', 0)
+            + struct.pack('<I', runon)
+            + struct.pack('<I', 0)
+            + struct.pack('<I', 0))
+
+
+# GetIsAliasRef. MEASURED: of this function's 4,806 uses on dialogue INFOs in
+# Fallout4.esm, 4,782 have a param1 inside the owning quest's own alias range,
+# and the 24 that do not are all the sentinel 0xFFFFFFFE. See
+# tools/ctda_alias_check.py, which is the check rather than the claim.
+FUNC_GET_IS_ALIAS_REF = 566
+RUNON_SUBJECT = 0
+
+
 def greeting():
     """The GREE topic, and the line that starts the scene.
 
@@ -199,12 +238,9 @@ def greeting():
     DATA is 00 07 73 00: [1]=7, [2]=0x73=115. Category 115 is what the
     template's greeting carries, against 15 for the player topics.
 
-    NO CONDITIONS, deliberately and temporarily. The template's greeting has
-    four CTDAs -- three quest-stage checks and one naming the actor -- and
-    decoding FO4's 32-byte CTDA well enough to write one is a separate job. The
-    cost of leaving them out is that this greeting is offered by EVERY actor
-    while the quest runs, which for a dev test is convenient (talk to anybody)
-    and for anything shipped is unacceptable. It must not survive O-7.
+    ONE CONDITION: the speaker must be our Target alias (function 566,
+    GetIsAliasRef, run on Subject). The first build had none, and was therefore
+    offered by every actor in the game while the quest ran.
     """
     f = field('EDID', zstring('OvertureGreeting'))
     f += field('PNAM', struct.pack('<f', 50.0))
@@ -221,6 +257,11 @@ def greeting():
     g += field('NAM2', b'\0')
     g += field('NAM3', b'\0')
     g += field('NAM4', b'\0')
+    # Only when the speaker IS our Target alias. Without this the greeting is
+    # offered by every actor while the quest runs, which is what the first
+    # build did and what O-7 cannot be built on top of.
+    g += field('CTDA', condition(FUNC_GET_IS_ALIAS_REF, ALIAS_INDEX,
+                                 value=1.0, runon=RUNON_SUBJECT))
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     g += field('NAM0', b'\0')
     g += field('INAM', struct.pack('<I', 1))
