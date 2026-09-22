@@ -134,9 +134,27 @@ than a reference one.
 `ALID = 3`, and alias 3 in that quest is `Daisy` (`ALUA 0x00022952`). So a scene names its speaker by
 the quest alias slot, and the quest decides at runtime who fills it.
 
-That is what Overture needs: a **script-filled** reference alias — no `ALUA`, no `ALFA` — that the
-quest points at whoever the player is talking to. The exact flag bits for "optional, script-filled"
-are the one part of this structure **not yet transcribed**, and the builder should not guess them.
+That is what Overture needs: a **script-filled** reference alias — no fill-type field at all — that
+the quest points at whoever the player is talking to. **Measured**, so nothing here is guessed:
+
+`Fallout4.esm` holds **1,069** reference aliases carrying none of the fourteen fill-type fields
+(`ALUA`, `ALFA`/`ALRT`, `ALFR`, `ALCO`/`ALCA`/`ALCL`, `ALEQ`/`ALEA`, `ALNA`/`ALNT`, `ALFE`/`ALFD`,
+`ALFI`). Their shape is exactly five fields:
+
+```
+ALST  4   alias index
+ALID  str name
+FNAM  4   0x00000002        <- the flags
+VTCK  4   0
+ALED  0
+```
+
+**`FNAM` is the alias flags field, not `ALFL`.** `ALFL` appears only on location aliases (`ALLS`).
+Among the 1,069, bit `0x02` is set in effectively all of them, and the plain value `0x00000002` is
+the single most common at 279. So `FNAM = 2` is the canonical script-filled reference alias, read off
+real records rather than inferred.
+
+Re-run with `python tools/find_script_alias.py`.
 
 ## What this means for Overture
 
