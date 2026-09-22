@@ -49,6 +49,7 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 INFO_BASE = 0x01000820    # one INFO per topic
 
 QUEST_EDID = 'OvertureDialogueQuest'
+SCRIPT_NAME = 'Overture:Approach'
 SCENE_EDID = 'OvertureApproachScene'
 
 # The alias the quest points at whoever the player is talking to. Index 0 is
@@ -119,7 +120,14 @@ def quest():
     all of them, with the plain 0x00000002 the most common at 279.
     """
     dnam = bytes.fromhex('110064670000000000000000')
+    # version 6, object format 2, one script, no properties. The script resolves
+    # everything else by file-relative id at runtime, so there is nothing to bind.
+    vmad = struct.pack('<hhH', 6, 2, 1)
+    vmad += struct.pack('<H', len(SCRIPT_NAME)) + SCRIPT_NAME.encode('ascii')
+    vmad += struct.pack('<B', 0)      # status: local
+    vmad += struct.pack('<H', 0)      # no properties
     f = field('EDID', zstring(QUEST_EDID))
+    f += field('VMAD', vmad)
     f += field('DNAM', dnam)
     f += field('NEXT', b'')
     # aliases

@@ -1,0 +1,48 @@
+<#
+.SYNOPSIS
+  Stage Overture into Vortex for a dev test.
+
+.DESCRIPTION
+  Builds nothing. Copies the already-built plugin and scripts into a Vortex mod
+  folder, then stops and tells you what it cannot do for you.
+
+  IT CANNOT ENABLE THE PLUGIN. Overture.esp is a NEW file, and Vortex only picks
+  a new file up when someone presses Deploy; until then the staging folder has it
+  and the game does not. Worse, Vortex can write a new plugin into plugins.txt
+  DISABLED, which produces Fallout 4's "content no longer present" box on the
+  next load of any save made while it was enabled. That happened on this machine
+  today with another mod's esp, so this script refuses to pretend otherwise.
+
+  The game must be closed. Vortex may stay open.
+#>
+[CmdletBinding()]
+param(
+    [string] $Staging = 'D:\Vortex\fallout4\mods\Overture-dev'
+)
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+
+if (Get-Process -Name 'Fallout4' -ErrorAction SilentlyContinue) {
+    throw 'Fallout4 is running. Close it first - a deploy over a running game is how you get a half-updated plugin.'
+}
+
+$esp = Join-Path $root 'build\Overture.esp'
+$pex = Join-Path $root 'build\papyrus'
+if (-not (Test-Path $esp)) { throw "No $esp. Run tools/make_overture_esp.py first." }
+if (-not (Test-Path $pex)) { throw "No $pex. Run scripts/build-papyrus.ps1 first." }
+
+New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture') | Out-Null
+Copy-Item $esp (Join-Path $Staging 'Overture.esp') -Force
+Copy-Item (Join-Path $pex 'Overture\*.pex') (Join-Path $Staging 'Scripts\Overture') -Force
+
+Get-ChildItem -Recurse -File $Staging |
+    ForEach-Object { '  {0}  {1} bytes  {2:HH:mm:ss}' -f $_.FullName, $_.Length, $_.LastWriteTime }
+
+Write-Host ''
+Write-Host 'Staged. THREE THINGS THIS SCRIPT CANNOT DO:'
+Write-Host '  1. Enable the mod in Vortex (it is new - it will not be listed until you refresh).'
+Write-Host '  2. Press Deploy, which is what puts Overture.esp where the game can see it.'
+Write-Host '  3. Tick Overture.esp in the plugins list. Vortex may add it DISABLED.'
+Write-Host ''
+Write-Host 'Requires XDI.esm and Fallout4.esm. Load order: after Rapport.esp is fine.'
