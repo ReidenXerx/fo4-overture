@@ -87,7 +87,7 @@ def dump_record(sig, formid, data, indent, full):
         elif name == 'DATA' and len(pay) >= 3:
             note = f'  bytes {list(pay[:4])}'
         if full or name not in ('VMAD', 'CTDA', 'TRDA'):
-            print(f'{indent}  {name:5} {len(pay):5}{note}')
+            print(f'{indent}  {name:5} {len(pay):5} {pay[:24].hex():<48}{note}')
 
 
 def walk_group(buf, indent, full, limit):

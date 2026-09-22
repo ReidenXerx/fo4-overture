@@ -113,6 +113,31 @@ SCEN  <scene>                       top level, NOT inside the quest
 That is the opposite of the bark case, where a missing `DLBR` left 211 topics silent, and it is worth
 stating plainly so nobody "fixes" a working scene topic by adding a branch it does not want.
 
+## The quest's aliases, and what the scene points at
+
+A reference alias inside `QUST`, measured from the same quest:
+
+```
+ALST  4   alias INDEX (0, 2, 3, 4 ...)   -- not a form id
+ALID  str the alias name ("Player", "Daisy")
+ALUA  4   a unique actor's form id       -- for an alias bound to one specific actor
+  or
+ALFA  4 + ALRT 4                         -- forced reference / by ref type
+VTCK  4   0
+ALED  0   end of this alias
+```
+
+`ANAM` at the head of the block is the next free alias index; `ALLS` marks a location alias rather
+than a reference one.
+
+**The scene's `ALID` is the alias INDEX, not a form id.** `FFGoodneighbor02RewardScene` carries
+`ALID = 3`, and alias 3 in that quest is `Daisy` (`ALUA 0x00022952`). So a scene names its speaker by
+the quest alias slot, and the quest decides at runtime who fills it.
+
+That is what Overture needs: a **script-filled** reference alias — no `ALUA`, no `ALFA` — that the
+quest points at whoever the player is talking to. The exact flag bits for "optional, script-filled"
+are the one part of this structure **not yet transcribed**, and the builder should not guess them.
+
 ## What this means for Overture
 
 - **Build a dialogue scene, not loose topics.** Quest → aliases → scene → `SCEN` topics.
