@@ -24,6 +24,7 @@ param(
     [string] $Base     = 'D:\F4CustomMods\PapyrusBase\Source\Base',
     [string] $Compiler = 'D:\GOGGames\Fallout 4 GOTY\Papyrus Compiler\PapyrusCompiler.exe',
     [string] $McpSrc   = 'C:\Users\DuduPhudu\Documents\Projects\fo4-mcp\papyrus',
+    [string] $RapportSrc = 'C:\Users\DuduPhudu\Documents\Projects\fo4-rapport\papyrus',
     [switch] $Quiet
 )
 
@@ -48,7 +49,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 # namespaced script (Overture:Approach) compiled without it fails with
 # "unable to locate script Overture:Approach" -- the namespace is resolved from
 # the imports, not from the file's path. fo4-rapport carries the same comment.
-$imports = @($Base, $sources, $McpSrc) -join ';'
+$imports = @($Base, $sources, $McpSrc, $RapportSrc) -join ';'
 $files = Get-ChildItem -Path $sources -Recurse -Filter *.psc
 Write-Host ("Compiling {0} script(s) against {1}" -f $files.Count, $imports)
 

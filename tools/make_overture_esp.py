@@ -49,6 +49,11 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 INFO_BASE = 0x01000820    # one INFO per topic
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
+PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
+
+# The order IS the global's value. Overture:Approach maps Rapport's persona name
+# onto these indices, so the two lists must not drift apart.
+PERSONAS = ['mercantile', 'romantic', 'vulgar', 'reticent']
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
@@ -150,7 +155,21 @@ def quest():
     return record('QUST', QUEST_FORMID, f)
 
 
-def topic(topic_id, edid):
+def persona_global():
+    """The global the script sets before starting the scene.
+
+    Shape copied from GameHour (GLOB 00000038), which is what the base game's
+    own GetGlobalValue conditions read: EDID, FNAM 'f' for float, FLTV. Some
+    GLOBs omit FNAM entirely; GameHour does not, and it is the one actually
+    exercised by this condition function.
+    """
+    f = field('EDID', zstring('OverturePersona'))
+    f += field('FNAM', b'f')
+    f += field('FLTV', struct.pack('<f', -1.0))   # -1: no persona chosen yet
+    return record('GLOB', PERSONA_GLOBAL, f)
+
+
+def topic(topic_id, edid, infos=1):
     """One DIAL. Transcribed from DIAL 0010BEB4.
 
     DATA is four bytes 00 02 0F 00: [1]=2 subtype, [2]=15 category. Category 15
@@ -163,11 +182,11 @@ def topic(topic_id, edid):
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
     f += field('DATA', bytes([0x00, 0x02, 0x0F, 0x00]))
     f += field('SNAM', b'SCEN')
-    f += field('TIFC', struct.pack('<I', 1))
+    f += field('TIFC', struct.pack('<I', infos))
     return record('DIAL', topic_id, f)
 
 
-def line(info_id, player_prompt, npc_response):
+def line(info_id, player_prompt, npc_response, persona_index=None):
     """One INFO. Transcribed from INFO 0010BEC4.
 
     RNAM is the PLAYER's menu text and NAM1 the NPC's spoken reply, both
@@ -188,6 +207,11 @@ def line(info_id, player_prompt, npc_response):
     f += field('NAM2', b'\0')
     f += field('NAM3', b'\0')
     f += field('NAM4', b'\0')
+    if persona_index is not None:
+        # Only when the global says this NPC is that persona. Four INFOs per
+        # topic, one per persona, and the engine takes the first that passes.
+        f += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, PERSONA_GLOBAL,
+                                     value=float(persona_index), runon=0))
     f += field('RNAM', zstring(player_prompt))
     f += field('NAM0', b'\0')
     f += field('INAM', struct.pack('<I', 1))
@@ -231,6 +255,12 @@ def condition(func, param1, value=1.0, runon=0, op=0x00):
 # tools/ctda_alias_check.py, which is the check rather than the claim.
 FUNC_GET_IS_ALIAS_REF = 566
 RUNON_SUBJECT = 0
+
+# GetGlobalValue. MEASURED: of its 7,258 uses on dialogue INFOs in
+# Fallout4.esm, 100% have a param1 resolving to a GLOB record, run-on is always
+# 0, and op 0x00 with a value means "equals". tools/ctda_param_types.py is the
+# check.
+FUNC_GET_GLOBAL_VALUE = 74
 
 
 def greeting():
@@ -365,20 +395,32 @@ def build():
     if missing:
         raise SystemExit(f'no player prompt for: {missing}')
 
+    # The reply for each (register, persona) cell: stage 1, kind "response".
+    # Four lines exist per cell in the bank; the first is used and the other
+    # three are variants for later.
+    bank = json.loads((ROOT / 'voice' / 'lines.json').read_text(encoding='utf-8'))
+    reply = {}
+    for l in bank['lines']:
+        if l['kind'] == 'response' and l['stage'] == 1:
+            reply.setdefault((l['register'], l['persona']), l['text'])
+
     topic_ids, children, count = {}, b'', 0
     for n, (slot, register) in enumerate(SLOTS):
         tid = TOPIC_BASE + n
-        iid = INFO_BASE + n
         topic_ids[slot] = tid
-        children += topic(tid, f'OvertureTopic{register.capitalize()}')
-        # The NPC's reply is a placeholder: which line it should be depends on
-        # the NPC's persona, which is not knowable at build time. Sixteen
-        # conditioned INFOs replace this once one option has been seen to
-        # appear (N-2: thinnest loop first).
-        children += child_group(tid, 7, line(
-            iid, by_register[register]['text'],
-            '...'))
-        count += 2
+        children += topic(tid, f'OvertureTopic{register.capitalize()}',
+                          infos=len(PERSONAS))
+        # One INFO per persona, each gated on the global. The engine takes the
+        # first whose condition passes, so exactly one reply is available.
+        block = b''
+        for k, persona in enumerate(PERSONAS):
+            text = reply.get((register, persona))
+            if text is None:
+                raise SystemExit(f'no stage-1 response for {register}/{persona}')
+            block += line(INFO_BASE + n * len(PERSONAS) + k,
+                          by_register[register]['text'], text, persona_index=k)
+        children += child_group(tid, 7, block)
+        count += 1 + len(PERSONAS)
 
     # The greeting, then the scene -- and the SCEN goes INSIDE the quest's child
     # group, as a sibling of the topics. Measured: FFGoodneighbor02's
@@ -387,11 +429,12 @@ def build():
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('QUST', quest_blob)
+    blob = group('GLOB', persona_global()) + group('QUST', quest_blob)
 
-    records = 1 + 1 + 2 + count  # quest, scene, greeting topic+line, the pairs
+    records = 1 + 1 + 1 + 2 + count  # glob, quest, scene, greeting pair, the rest
     next_object = max(SCENE_FORMID, TOPIC_BASE + len(SLOTS),
-                      INFO_BASE + len(SLOTS), GREET_INFO) + 1
+                      INFO_BASE + len(SLOTS) * len(PERSONAS),
+                      GREET_INFO, PERSONA_GLOBAL) + 1
     hedr = struct.pack('<fiI', 1.0, records, next_object)
     head = field('HEDR', hedr)
     head += field('CNAM', zstring(AUTHOR))
@@ -413,6 +456,8 @@ def main():
     print(f'  scene {SCENE_EDID} {SCENE_FORMID:08X}')
     for slot, register in SLOTS:
         print(f'  {slot}  {register:7} topic {topic_ids[slot]:08X}')
+    print(f'  persona global {PERSONA_GLOBAL:08X}: ' +
+          ', '.join(f'{k}={n}' for k, n in enumerate(PERSONAS)))
     print('  master', MASTER)
     return 0
 

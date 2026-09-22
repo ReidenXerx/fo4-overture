@@ -269,6 +269,35 @@ Before the `CTDA` every actor in the game offered the greeting. Now only the ali
 
 That is O-4 exactly. Before the swap, blunt was in neutral and offer in negative.
 
+## The matrix works — 2026-09-23
+
+Sixteen conditioned replies, four registers x four personas, gated on a global the script sets from
+Rapport's own persona before the scene starts.
+
+Whitechapel Charlie, whom Rapport calls **vulgar** (`persona=2`):
+
+| the player picks | he answers | |
+| --- | --- | --- |
+| *I want to fuck you. Here, against that wall, I don't care.* | "Finally. Somebody who says fuck like it is not a swear word." | **lands** |
+| *I brought you something.* | "Caps? I was hoping you wanted to fuck, not shop." | misses |
+| *Nobody out here looks at you properly, do they.* | "All that talk and you still have not said the word fuck once." | misses |
+| *(Say nothing. Stay where you are.)* | "Standing there quiet is not going to get my legs open." | misses |
+
+The register that lands is the one his persona wants, and he is never named as vulgar anywhere the
+player can see. That is the whole mechanic, running.
+
+**Function 74 is `GetGlobalValue`.** MEASURED: of its 7,258 uses on dialogue INFOs in
+`Fallout4.esm`, **100% have a `param1` resolving to a `GLOB` record**, run-on is always 0, and op
+`0x00` with a value means equals. `tools/ctda_param_types.py` builds a form-id-to-record-type map of
+the whole master and is the check.
+
+**The global is set BEFORE the scene starts**, and that ordering is load-bearing: the conditions are
+read when the options are built, so a global set afterwards is a global set too late.
+
+**One coupling to watch.** The persona order lives in two places — `PERSONAS` in
+`tools/make_overture_esp.py` and the name-to-index mapping in `Overture:Approach`. If they drift,
+every NPC gets somebody else's reply **and nothing errors**. Both carry a comment saying so.
+
 ## Status
 
 | | |

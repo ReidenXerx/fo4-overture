@@ -26,6 +26,7 @@ find which one it means.}
 ; Form-relative ids, resolved by FILE. The runtime index is the player's load
 ; order and is not ours to predict.
 Int Property SCENE_ID  = 0x00000801 AutoReadOnly
+Int Property PERSONA_GLOBAL_ID = 0x00000840 AutoReadOnly
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
 
@@ -39,6 +40,30 @@ EndFunction
 
 ReferenceAlias Function TargetAlias()
 	Return (Self as Quest).GetAlias(TARGET_ALIAS) as ReferenceAlias
+EndFunction
+
+GlobalVariable Function PersonaGlobal()
+	Return Game.GetFormFromFile(PERSONA_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+; Rapport owns the persona; Overture only reads it (O-1). The order here IS the
+; global's value and it must match PERSONAS in tools/make_overture_esp.py -- if
+; the two drift, every NPC gets somebody else's reply and nothing errors.
+Int Function PersonaIndex(Actor akWho)
+	If akWho == None
+		Return -1
+	EndIf
+	String name = Rapport:Core.PersonaOf(akWho.GetFormID())
+	If name == "mercantile"
+		Return 0
+	ElseIf name == "romantic"
+		Return 1
+	ElseIf name == "vulgar"
+		Return 2
+	ElseIf name == "reticent"
+		Return 3
+	EndIf
+	Return -1
 EndFunction
 
 Event OnQuestInit()
@@ -131,6 +156,21 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		note = note + " | scene owner=this quest"
 	Else
 		note = note + " | scene owner=SOMEONE ELSE"
+	EndIf
+
+	; Which of the sixteen replies this NPC can give. Set BEFORE the scene
+	; starts: the conditions are read when the options are built, and a global
+	; set afterwards is a global set too late.
+	GlobalVariable pg = Self.PersonaGlobal()
+	Int persona = Self.PersonaIndex(who)
+	If pg == None
+		note = note + " | persona global did not resolve"
+	ElseIf persona < 0
+		pg.SetValue(-1.0)
+		note = note + " | NO PERSONA from Rapport - no reply will match"
+	Else
+		pg.SetValue(persona as Float)
+		note = note + " | persona=" + persona
 	EndIf
 
 	If !startScene
