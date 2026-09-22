@@ -33,11 +33,29 @@ your scene, right click in the Alias Keywords section and select Add, then choos
 **In your scene.** Two sources that know nothing about each other agree, which is worth more than
 either alone.
 
-**Labelled as hypothesis, not fact:** there are exactly four `SCEN` categories carrying prompts
-(14, 15, 16, 17) and vanilla Fallout 4 has exactly four dialogue-wheel slots. It is very likely those
-four categories *are* the four slots, which would also explain why XDI — whose whole purpose is
-removing the four-option cap — hooks the scene layer. **Not verified.** Do not build anything that
-depends on the mapping until somebody checks it.
+**That hypothesis was wrong, and here is the correction.** It said the four `SCEN` categories
+(14–17) were probably the four dialogue-wheel slots. Checked against `FFGoodneighbor02`: **all eight
+of its scene topics are category 15**, including the four sitting in different wheel slots. Category
+is not the slot.
+
+**The slot is which field of the SCEN record points at the topic.** That is the real mechanism, and
+it is in the scene record's action block:
+
+| field | slot |
+| --- | --- |
+| `PTOP` | positive |
+| `NTOP` | neutral |
+| `NETO` | negative |
+| `QTOP` | question |
+
+with a second set — `NPOT`, `NNGT`, `NNUT`, `NQUT` — holding four more topic ids, which appear to be
+where each option leads next.
+
+Two things follow that matter more than the correction itself. **Four slots, and Overture has
+exactly four registers**, so the base game's own structure fits the design with nothing left over.
+And **that is precisely the cap XDI removes** — so XDI is not merely a nicer presentation, it is what
+a fifth register would require. Category 15 appears to mean "scene player-dialogue topic"; what 14,
+16 and 17 distinguish is still unknown and nothing here depends on it.
 
 ## The records, field by field
 
@@ -67,6 +85,33 @@ A second example (`INFO 0007D5C4`) adds what a real conditioned line carries: `V
 two `CTDA` conditions with a `CIS2` naming `::var_Speech_var`, and `INCC` (the condition count). So
 conditions and scripts are normal here, and a speech check is a `CTDA` on the player option — which
 is how a register could later be gated on anything we like.
+
+## The complete minimum, from FFGoodneighbor02
+
+The smallest quest in the game that owns real player dialogue — 9 topics, 10 lines, 4 prompts. Every
+part of it, and nothing spare:
+
+```
+QUST  <quest>                       EDID, DNAM, one ALID alias for the NPC
+  GRUP type 10 <quest>              the quest's children
+    DIAL <topic>                    PNAM 50.0f · QNAM <quest> · DATA cat 15 · SNAM "SCEN" · TIFC 1
+      GRUP type 7 <topic>
+        INFO <line>                 ENAM 0 · NAM1 <npc text> · NAM2/3/4 0 · NAM9
+                                    · RNAM <player prompt> · NAM0 0 · INAM 1
+    ... one DIAL+INFO pair per option ...
+
+SCEN  <scene>                       top level, NOT inside the quest
+  EDID · FNAM flags
+  phase blocks                      HNAM · NEXT · NEXT · WNAM · CTDA
+  action block                      ALID <alias> · ANAM <type> · SNAM/ENAM start+end phase
+                                    · PTOP/NTOP/NETO/QTOP  <- the four topics
+                                    · NPOT/NNGT/NNUT/NQUT  <- where each one leads
+                                    · DTGT <target alias>
+```
+
+**No `BNAM`.** Scene topics carry no Dialogue Branch — only 1,290 of 35,443 `DIAL` records have one.
+That is the opposite of the bark case, where a missing `DLBR` left 211 topics silent, and it is worth
+stating plainly so nobody "fixes" a working scene topic by adding a branch it does not want.
 
 ## What this means for Overture
 
