@@ -242,6 +242,33 @@ prints what the engine holds rather than what the author intended.
   awaiting player input — roughly 6s after the list appears. Retry rather than treating the first
   refusal as a failure.
 
+## Both fixes verified, and the whole loop runs (2026-09-23)
+
+**The choice is taken and control comes back.** Selecting an Overture option played the NPC's reply,
+ended our scene, and handed the conversation back: `playerScene` moved from `27000801` (ours) to
+`00075E89` (Charlie's own), and the menu became his normal bartender options. So Overture inserts
+itself into a vanilla conversation and gets out again without breaking it.
+
+**The alias condition works, tested both ways on the same NPC:**
+
+| | what the menu showed |
+| --- | --- |
+| alias NOT filled | Charlie's own four options only — none of ours |
+| alias filled with Charlie | Overture's four |
+
+Before the `CTDA` every actor in the game offered the greeting. Now only the aliased one does.
+
+**The slot fix is confirmed by the numbers the engine hands back:**
+
+| register | optionID | slot |
+| --- | --- | --- |
+| charm | 0 | positive |
+| blunt | **1** | **negative** |
+| offer | **2** | **neutral** |
+| linger | 3 | question |
+
+That is O-4 exactly. Before the swap, blunt was in neutral and offer in negative.
+
 ## Status
 
 | | |
