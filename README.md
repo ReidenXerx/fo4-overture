@@ -51,10 +51,14 @@ Early. The lines are written and the route is proven; the plugin is not built ye
 ## Building
 
 ```bash
-python scripts/make-lip.py          # .lip for every rendered line
+python tools/make_overture_esp.py build/Overture.esp   # the plugin
+python scripts/make-lip.py                             # .lip for every rendered line
 ```
 
-More to come as the plugin takes shape.
+The plugin currently builds the **thinnest loop**: one quest, one scene, four player options in the
+four wheel slots, one placeholder NPC reply each. It has never been loaded by the game. Every byte
+shape in it is transcribed from `FFGoodneighbor02`, and round-trips through this repo's own readers,
+but reading your own output back proves the writer agrees with the reader and nothing more.
 
 ## Licence
 
