@@ -81,10 +81,11 @@ count contradicted by the running game.
   voices safe.
 
 **The part that does not carry over:** Rapport's topics are `Say`-driven barks. Overture needs
-**player dialogue** — topics the player selects from a menu — which is a different `INFO` shape and
-a different relationship to the quest. Per this project's own rule, that shape gets established by
-**diffing a real player topic out of `Fallout4.esm`**, not by extending the bark builder and hoping.
-That diff is the next piece of work and it is deliberately not guessed at here.
+**player dialogue**, which is a different record entirely — and the diff has now been done. It is
+in [`player-topic-shape.md`](player-topic-shape.md), and the headline is that a player option is
+**scene dialogue** (`SNAM` = `SCEN`), not a free-standing topic. 96% of every player prompt in
+`Fallout4.esm` lives there. Building loose topics would have produced records the engine never
+looks at, which is the same class of mistake as putting a `DIAL` at the top level.
 
 ---
 
@@ -95,5 +96,5 @@ That diff is the next piece of work and it is deliberately not guessed at here.
 | Player's unvoiced half | **Solved** — XDI, verified in its own docs and its shipped keywords |
 | Lip generation | **Tool proven, output unverified in game** |
 | Bark topic records | Prior art, working, in `fo4-rapport` |
-| Player topic records | **Not started** — needs a diff against a real one |
+| Player topic records | **Shape derived** from real records — they are scene dialogue, see `player-topic-shape.md`. Builder not written. |
 | The lines | 128 authored, 6,177 characters, matrix complete |
