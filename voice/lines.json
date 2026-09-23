@@ -1220,6 +1220,167 @@
       "persona": "reticent",
       "text": "You are here again. I am glad. Sorry, that was too much.",
       "chars": 56
+    },
+    {
+      "id": "ov3_mercantile_nothere_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "nothere",
+      "text": "Not out here, with the whole market listening. Somewhere private, and we have a deal.",
+      "chars": 85,
+      "draft": true
+    },
+    {
+      "id": "ov3_mercantile_nothere_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "nothere",
+      "text": "Lower your voice. Find us somewhere with a door and I am yours.",
+      "chars": 63,
+      "draft": true
+    },
+    {
+      "id": "ov3_romantic_nothere_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "nothere",
+      "text": "Yes. But not here, not like this. Take me somewhere we can be alone.",
+      "chars": 68,
+      "draft": true
+    },
+    {
+      "id": "ov3_romantic_nothere_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "nothere",
+      "text": "Ask me again somewhere quiet, and I will not make you wait.",
+      "chars": 59,
+      "draft": true
+    },
+    {
+      "id": "ov3_vulgar_nothere_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Yes. Now get me behind a door before I fuck you in front of all of them.",
+      "chars": 72,
+      "draft": true
+    },
+    {
+      "id": "ov3_vulgar_nothere_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Somewhere private. Then you can have my mouth, and anything else you want.",
+      "chars": 74,
+      "draft": true
+    },
+    {
+      "id": "ov3_reticent_nothere_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "nothere",
+      "text": "Not with people watching. Please. Somewhere quieter, and... yes.",
+      "chars": 64,
+      "draft": true
+    },
+    {
+      "id": "ov3_reticent_nothere_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "nothere",
+      "text": "Everyone would see. Take me somewhere else, if you mean it.",
+      "chars": 59,
+      "draft": true
+    },
+    {
+      "id": "ov3_mercantile_notnow_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "notnow",
+      "text": "Not now. I am working. Come back when the stall is shut.",
+      "chars": 56,
+      "draft": true
+    },
+    {
+      "id": "ov3_mercantile_notnow_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "notnow",
+      "text": "Later. Right now I have customers to see to.",
+      "chars": 44,
+      "draft": true
+    },
+    {
+      "id": "ov3_romantic_notnow_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "notnow",
+      "text": "Not in broad daylight. Find me tonight, and ask me properly.",
+      "chars": 60,
+      "draft": true
+    },
+    {
+      "id": "ov3_romantic_notnow_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "notnow",
+      "text": "Not like this. Somewhere with a little more candlelight.",
+      "chars": 56,
+      "draft": true
+    },
+    {
+      "id": "ov3_vulgar_notnow_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Not now. Tonight, and then I want your mouth on me.",
+      "chars": 51,
+      "draft": true
+    },
+    {
+      "id": "ov3_vulgar_notnow_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Hold that thought. Later I am going to ride you until you beg.",
+      "chars": 62,
+      "draft": true
+    },
+    {
+      "id": "ov3_reticent_notnow_01",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "notnow",
+      "text": "Not right now. Later, maybe. When it is quiet.",
+      "chars": 46,
+      "draft": true
+    },
+    {
+      "id": "ov3_reticent_notnow_02",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "notnow",
+      "text": "Not yet today. Come and find me when there is nobody around.",
+      "chars": 60,
+      "draft": true
     }
-  ]
+  ],
+  "_drafts": "Lines marked \"draft\": true were written 2026-09-23 overnight WITHOUT the owner, for the staged build's two stage-3 answers the bank did not have: 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy). They need the owner's review the way O-6's vulgar pass did, and nothing voices them until then."
 }

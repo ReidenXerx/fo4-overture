@@ -81,6 +81,7 @@ ENAM_RANDOM = 0x02       # pick among the valid lines of this run
 ENAM_SAY_ONCE = 0x04     # the line is never said again after the first time
 ENAM_RANDOM_END = 0x20   # closes a Random run; the next Random line starts a new one
 ENAM_REQUIRES_PLAYER_ACTIVATION = 0x08   # a greeting only on the player's E, never a walk-by hello
+ENAM_START_SCENE_ON_END = 0x01   # TSCE fires when the line ENDS, not as it begins
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
@@ -309,18 +310,15 @@ def topic(topic_id, edid, infos=1):
     f = field('EDID', zstring(edid))
     f += field('PNAM', struct.pack('<f', 50.0))
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
-    # DATA[1] = 2, which is what 31,330 of the base game's 31,958 SCEN topics
-    # carry. [2] = 15 is the category.
+    # DATA is Topic Flags (u8), Category (u8), Subtype (u16) -- xEdit's reading.
+    # 00 02 0F 00: no flags, category 2 (Scene), subtype 15. 31,330 of the base
+    # game's 31,958 SCEN topics carry the same.
     #
-    # VARIANTS DO NOT ROTATE and this is not the reason. Each topic holds two
-    # lines per persona with identical conditions, and the engine returns the
-    # same one every read. Tried and FAILED: setting bit 0x04 (DATA[1] = 6), on
-    # the observation that every topic type which really does pick among many
-    # lines -- HELO, GREE, NOTC, REFU -- carries it. Four reads, same line.
-    #
-    # Untested lead for whoever picks this up: the INFO's own ENAM. Ours is 0
-    # and the greeting's is 4, so ENAM is an info-level flag field and "pick
-    # among these" may live there rather than on the topic.
+    # SOLVED ELSEWHERE: variants rotate through the INFO's ENAM Random flag
+    # (0x02), not through anything on the topic. The failed experiment once
+    # recorded here -- "bit 0x04, DATA[1] = 6" -- changed the CATEGORY to 6
+    # (Service), not a flag, so it says nothing about topic flags, which live
+    # in DATA[0]. (Records review 2026-09-23.)
     f += field('DATA', bytes([0x00, 0x02, 0x0F, 0x00]))
     f += field('SNAM', b'SCEN')
     f += field('TIFC', struct.pack('<I', infos))
@@ -328,7 +326,7 @@ def topic(topic_id, edid, infos=1):
 
 
 def line(info_id, player_prompt, spoken, persona_index=None, public=None,
-         enam=ENAM_RANDOM, reply=None):
+         enam=ENAM_RANDOM, reply=None, jump=None, extra=b''):
     """One INFO. Transcribed from INFO 0010BEC4 (a player line) and 0010BEBD
     (an NPC reply), which differ in exactly one field: the player's has RNAM.
 
@@ -372,14 +370,26 @@ def line(info_id, player_prompt, spoken, persona_index=None, public=None,
         # AND, not OR: two CTDAs with the OR bit clear both have to pass.
         f += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, PUBLIC_GLOBAL,
                                      value=float(public), runon=0))
+    # Further conditions from the caller (a verdict, a fallback's persona -1).
+    # CTDAs AND in file order, so they sit after the persona and public ones.
+    f += extra
     if player_prompt is not None:
         f += field('RNAM', zstring(player_prompt))
-    f += field('NAM0', b'\0')
+    if jump is not None:
+        # `jump` = a phase NAME of our own scene. TSCE + NAM0 on a line spoken
+        # inside that scene moves it to the phase: vanilla's own pattern --
+        # INFO 0001DA84 jumps its running scene 0000583D to the phase "synth
+        # question loop" -- and 1,778 base-game INFOs do it. With ENAM 0x01
+        # the jump waits for the line to END.
+        f += field('TSCE', struct.pack('<I', SCENE_FORMID))
+        f += field('NAM0', zstring(jump))
+    else:
+        f += field('NAM0', b'\0')
     f += field('INAM', struct.pack('<I', 1))
     return record('INFO', info_id, f)
 
 
-def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None):
+def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alias=0):
     """One CTDA, 32 bytes.
 
     `value_global`: compare against a GLOBAL instead of a float -- the byte-0 flag
@@ -398,9 +408,10 @@ def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None):
         10-11   padding
         12-15   parameter 1
         16-19   parameter 2
-        20-23   run-on type (0 = Subject, the speaker)
+        20-23   run-on type (0 = Subject, the speaker; 5 = Quest Alias)
         24-27   reference
-        28-31   unused
+        28-31   parameter 3: the ALIAS ID when run-on is 5 (vanilla SCEN 0010C957
+                carries its alias 0x42 here), else 0
 
     The real records carry non-zero bytes in the two padding runs -- `7a d2 96`
     and `d2 96` -- identical across unrelated conditions, which is what
@@ -418,7 +429,7 @@ def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None):
             + struct.pack('<I', 0)
             + struct.pack('<I', runon)
             + struct.pack('<I', 0)
-            + struct.pack('<I', 0))
+            + struct.pack('<i', alias))
 
 
 # GetIsAliasRef. MEASURED: of this function's 4,806 uses on dialogue INFOs in
@@ -437,6 +448,9 @@ FUNC_GET_GLOBAL_VALUE = 74
 # WHO the approach opens for (O-8, owner poll 2026-09-23), all run on the SPEAKER.
 # Function indices from xEdit's condition table; form ids read out of Fallout4.esm.
 FUNC_GET_VALUE = 14
+FUNC_GET_IN_FACTION = 71
+# FollowersScript.SetCompanion adds it on recruitment and nothing removes it.
+FACTION_HAS_BEEN_COMPANION = 0x000A1B85
 FUNC_IS_IN_COMBAT = 289
 FUNC_IS_CHILD = 365
 FUNC_GET_PLAYER_TEAMMATE = 453   # the player's current companion(s)
@@ -500,6 +514,11 @@ def greeting():
             (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0),
             (FUNC_IS_CHILD, 0, 0.0),
             (FUNC_GET_PLAYER_TEAMMATE, 0, 0.0),
+            # Anyone who has EVER been a companion -- a dismissed Ivy standing
+            # in a settlement included. Companions get their own module (N-7),
+            # and a stranger's approach at priority 100 would talk over a
+            # companion mod's own voiced dialogue in subtitles. (Review 2026-09-23.)
+            (FUNC_GET_IN_FACTION, FACTION_HAS_BEEN_COMPANION, 0.0),
             (FUNC_IS_IN_COMBAT, 0, 0.0),
             (FUNC_IS_IN_SCENE, 0, 0.0),
             (FUNC_GET_GLOBAL_VALUE, ENABLED_GLOBAL, 1.0)):
@@ -518,6 +537,16 @@ def greeting():
     g += field('INAM', struct.pack('<I', 1))
     line_rec = record('INFO', GREET_INFO, g)
     return topic + child_group(GREET_TOPIC, 7, line_rec)
+
+
+# SCEN VNAM is "Actor Behavior Settings" (xEdit wbDefinitionsFO4.pas): Death,
+# Combat, Player Dialogue, Observe Combat, each 0 Set All Normal, 1 Set All
+# Pause, 2 Set All End, 3 Don't Set All. It is NOT four alias ids: the template's
+# 03000000 x4 only happened to equal its alias 3, and our copy of the IDEA wrote
+# 0 x4 -- Set All Normal, which contradicts our actor's own DNAM (Death End,
+# Combat End). 3,137 of Fallout4.esm's 3,553 scenes carry 3 x4, Don't Set All:
+# the actor's own behaviour decides. (Records review 2026-09-23.)
+VNAM_DONT_SET_ALL = struct.pack('<IIII', 3, 3, 3, 3)
 
 
 def scene(topic_ids):
@@ -603,8 +632,7 @@ def scene(topic_ids):
     # --- the tail ------------------------------------------------------------
     f += field('PNAM', struct.pack('<I', QUEST_FORMID))
     f += field('INAM', struct.pack('<I', 2))            # verbatim
-    f += field('VNAM', struct.pack('<IIII', ALIAS_INDEX, ALIAS_INDEX,
-                                  ALIAS_INDEX, ALIAS_INDEX))
+    f += field('VNAM', VNAM_DONT_SET_ALL)
     f += field('NNAM', zstring(
         'Overture: the player approaches someone and picks how.'))
     f += field('XNAM', struct.pack('<I', 0))            # verbatim
@@ -756,16 +784,50 @@ def build():
     blob = group('GLOB', persona_global() + public_global() + enabled_global()) + group('QUST', quest_blob)
     blob += group('AVIF', next_day_av() + stage_reached_av())
 
-    records = 3 + 2 + 1 + 1 + 2 + count  # globs, AVIFs, quest, scene, greeting pair, the rest
-    # From every id actually used. The hand-listed version predated the variant
-    # and recoil ranges and named an id below half of them.
-    next_object = max(i for i, _what in all_ids) + 1
-    hedr = struct.pack('<fiI', 1.0, records, next_object)
-    head = field('HEDR', hedr)
+    return finish(blob), topic_ids
+
+
+def walk_written(blob):
+    """(records, groups, form ids) of what was actually WRITTEN."""
+    recs, groups, ids = 0, 0, []
+
+    def walk(start, end):
+        nonlocal recs, groups
+        o = start
+        while o < end:
+            size = struct.unpack_from('<I', blob, o + 4)[0]
+            if blob[o:o + 4] == b'GRUP':
+                groups += 1
+                walk(o + 24, o + size)
+                o += size
+            else:
+                recs += 1
+                ids.append((struct.unpack_from('<I', blob, o + 12)[0], blob[o:o + 4].decode('ascii')))
+                o += 24 + size
+
+    walk(0, len(blob))
+    return recs, groups, ids
+
+
+def finish(blob):
+    """The TES4 header, from the records that were really written.
+
+    The hand-kept id list and record count each drifted once; this walks the
+    finished bytes instead, so a writer that forgets to register an id is
+    still caught before the engine meets a duplicate in InitGameDataThread.
+
+    numRecords counts records AND groups, as every real plugin does
+    (DLCRobot.esm: 49,111 + 1,421 = 50,532, its HEDR exactly). The next object
+    id is the bare object id, without the load-order byte.
+    """
+    recs, groups, ids = walk_written(blob)
+    check_unique(ids)
+    next_object = (max(i for i, _what in ids) + 1) & 0x00FFFFFF
+    head = field('HEDR', struct.pack('<fiI', 1.0, recs + groups, next_object))
     head += field('CNAM', zstring(AUTHOR))
     head += field('MAST', zstring(MASTER))
     head += field('DATA', struct.pack('<Q', 0))
-    return record('TES4', 0, head) + blob, topic_ids
+    return record('TES4', 0, head) + blob
 
 
 def main():

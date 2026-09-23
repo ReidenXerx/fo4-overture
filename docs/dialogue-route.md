@@ -568,6 +568,56 @@ The verified default plugin is what is in Data tonight. After the owner's Deploy
 `python tools/make_overture_esp.py build/Overture.esp --stages 3` and `scripts/deploy-dev.ps1` (both
 files already exist in Data, so no second Deploy) put the staged one in.
 
+## The review pass, and the branching done properly (2026-09-23, VERIFIED in game)
+
+Three review lenses read tonight's work (Papyrus logic, the plugin's records, the design). What they
+found that the game then confirmed:
+
+- **The staged build broke O-8's hand-back.** ENAM `0x40` End Running Scene on the ending replies ended
+  the scene before its last phase -- the type-4 "Start Scene" action with HTID, *End Scene Say
+  Greeting* (xEdit's names) -- could run. T-S1 and T-S4 above closed with no re-greet; that was the bug,
+  not a feature.
+- **VNAM is Actor Behavior Settings**, not four alias ids: Death / Combat / Player Dialogue / Observe
+  Combat, each 0 Set All Normal .. 3 Don't Set All. Ours wrote 0 x4, which contradicts our own actor's
+  DNAM; now 3 x4, as 3,137 of Fallout4.esm's 3,553 scenes carry.
+- **HEDR counts records AND groups** (DLCRobot.esm: 49,111 + 1,421 = 50,532, its header exactly); the
+  header is now written from the emitted bytes, which also re-checks every id actually written.
+- The greeting now excludes anyone who has **ever** been a companion (`HasBeenCompanionFaction`), so a
+  dismissed Ivy is never approached as a stranger.
+
+**Two routes that FAILED, so nobody tries them again:**
+
+1. `0x40` on the ending replies -- see above.
+2. **A TSCE + NAM0 phase jump** to a named HandBack phase -- the shape of vanilla's own self-jumping lines
+   (0015FF09, 0001DA84), field for field, and of xEdit's INFO layout. Tried with ENAM `0x01` Start Scene
+   on End and without it. The phase trail (`Overture: scene phase N began`, 1-based) showed what the
+   engine did instead: **it restarted the scene from its first phase** -- OnBegin fired again, phases 1
+   and 2 again, the stage-1 wheel again. Not understood.
+
+**What works: the reply records, the phases read.** `Overture:Reply`'s OnBegin -- as the NPC's line
+STARTS -- writes `OvertureLastOutcome`; the scene moves on only when that line ENDS, and the next
+phase's start condition reads the global then. Phase 2 (stage 1) needs `OvertureStageReached == 0` on
+the alias; phase 3 (stage 2) needs a land OR a stage reached on an earlier day; phase 4 (stage 3) needs a
+verdict of "not yet" or better; phase 5 (HandBack) needs anything but a yes. **No line carries `0x40`**,
+not even the yes: XDI turns that flag into the option's `endsScene` for its menu (xdi `DialogueEx.cpp`
+301, `Scaleform.cpp` 398), and F4MCP printed the winning proposition as `[ends scene]` -- the right
+register and the answer, on the wheel.
+
+**Measured** (Third Rail, `f4mcp-before-actions`; `console set <global> to <v>` standing in for
+`Reply.pex`, which is not in Data yet):
+
+| # | who | path | heard | phases |
+| --- | --- | --- | --- | --- |
+| G1 | Lindsey | charm (a miss) | `27001001` in full, then HER OWN `0007E631` "Need a place to stay? Try Hotel Rexford." | 1, 2, 5 |
+| G2b | Lindsey | offer, offer, offer; land, land, yes set by console | "Now that is how you open a conversation." → "You keep raising the price and I keep saying yes." → "Deal. And I am not even going to haggle over it." → closed, NO re-greet, NO `[ends scene]` | 1, 2, 3, 4 |
+| G3 | Lindsey | the same, verdict "not yet" | ... → `27003044` "Close. Keep working on it and come back to me." → her own `00115E9A` | 1, 2, 3, 4, 5 |
+| G4 | Harold, `OvertureStageReached` 1 | linger | the FIRST wheel is stage 2 → `27001179` "That is the longest anybody has stayed. I did notice." → his own `000345FE` "Huh? Don't have no handouts." | 1, 3, 5 |
+
+**And without `Reply.pex` at all** the global stays 0, phase 3 never starts on a first meeting, and the
+staged plugin is exactly the verified one-exchange conversation with its hand-back (G1). So the staged
+build is what is in Data now: after the owner's Deploy it becomes the whole conversation, with nothing
+else to switch.
+
 ## Status
 
 | | |
@@ -577,7 +627,7 @@ files already exist in Data, so no second Deploy) put the staged one in.
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
 | Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start; alias released at scene end |
-| The staged conversation (`--stages 3`) | **Data half verified** -- three stages in one conversation, misses end it, returning NPCs open at stage 2; the verdict waits on `Reply.pex` |
+| The staged conversation (`--stages 3`) | **Verified in game, every branch** (G1-G4) with the console standing in for `Reply.pex`; deployed |
 | Replies write the bond (`Overture:Reply`, INFO VMAD) | **Half verified** -- the game reads the scripts on all 40 INFOs; `Reply.pex` awaits the owner's Vortex Deploy |
 | Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
 | Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |

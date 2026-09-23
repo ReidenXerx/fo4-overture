@@ -16,6 +16,15 @@ Int Property Stage Auto Const
 ; what each is worth.
 Int Property Outcome Auto Const
 
+; The line has STARTED: the one decision that must be made early is stage 3's
+; verdict, at the start of the stage-2 land, so the phase-3 gate never races it.
+Event OnBegin(ObjectReference akSpeakerRef, Bool abHasBeenSaid)
+	Overture:Approach approach = Self.GetOwningQuest() as Overture:Approach
+	If approach != None
+		approach.ReplyBegins(akSpeakerRef as Actor, Stage, Outcome)
+	EndIf
+EndEvent
+
 Event OnEnd(ObjectReference akSpeakerRef, Bool abHasBeenSaid)
 	Overture:Approach approach = Self.GetOwningQuest() as Overture:Approach
 	If approach == None
