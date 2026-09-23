@@ -46,7 +46,11 @@ MASTER = 'Fallout4.esm'
 QUEST_FORMID = 0x01000800
 SCENE_FORMID = 0x01000801
 TOPIC_BASE = 0x01000810   # one DIAL per register
-INFO_BASE = 0x01000820    # one INFO per topic
+# Its own range, well clear of everything else. The variants made each topic's
+# ids run 0x820..0x899, straight through GREET_TOPIC 0x830, GREET_INFO 0x831 and
+# PERSONA_GLOBAL 0x840 -- duplicate form ids inside one plugin, which the engine
+# answered by crashing in InitGameDataThread while loading the file. Twice.
+INFO_BASE = 0x01001000
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
@@ -54,6 +58,9 @@ PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 # The order IS the global's value. Overture:Approach maps Rapport's persona name
 # onto these indices, so the two lists must not drift apart.
 PERSONAS = ['mercantile', 'romantic', 'vulgar', 'reticent']
+
+# Form ids are spaced this far apart per cell so variants never collide.
+MAX_VARIANTS = 8
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
@@ -180,6 +187,18 @@ def topic(topic_id, edid, infos=1):
     f = field('EDID', zstring(edid))
     f += field('PNAM', struct.pack('<f', 50.0))
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
+    # DATA[1] = 2, which is what 31,330 of the base game's 31,958 SCEN topics
+    # carry. [2] = 15 is the category.
+    #
+    # VARIANTS DO NOT ROTATE and this is not the reason. Each topic holds two
+    # lines per persona with identical conditions, and the engine returns the
+    # same one every read. Tried and FAILED: setting bit 0x04 (DATA[1] = 6), on
+    # the observation that every topic type which really does pick among many
+    # lines -- HELO, GREE, NOTC, REFU -- carries it. Four reads, same line.
+    #
+    # Untested lead for whoever picks this up: the INFO's own ENAM. Ours is 0
+    # and the greeting's is 4, so ENAM is an info-level flag field and "pick
+    # among these" may live there rather than on the topic.
     f += field('DATA', bytes([0x00, 0x02, 0x0F, 0x00]))
     f += field('SNAM', b'SCEN')
     f += field('TIFC', struct.pack('<I', infos))
@@ -387,6 +406,23 @@ def scene(topic_ids):
 
 # --------------------------------------------------------------------------
 
+def check_unique(ids):
+    """Refuse to write a plugin that reuses a form id.
+
+    This exists because the variants change silently produced duplicates and the
+    engine's answer was an access violation in InitGameDataThread with no record
+    named. A build error beats a crash log every time.
+    """
+    seen = {}
+    for formid, what in ids:
+        if formid in seen:
+            raise SystemExit(
+                f'DUPLICATE FORM ID {formid:08X}: "{what}" and "{seen[formid]}". '
+                f'Every record in one plugin needs its own id.')
+        seen[formid] = what
+    return seen
+
+
 def build():
     prompts = json.loads((ROOT / 'voice' / 'player-prompts.json')
                          .read_text(encoding='utf-8'))['prompts']
@@ -402,30 +438,52 @@ def build():
     reply = {}
     for l in bank['lines']:
         if l['kind'] == 'response' and l['stage'] == 1:
-            reply.setdefault((l['register'], l['persona']), l['text'])
+            reply.setdefault((l['register'], l['persona']), []).append(l['text'])
 
     topic_ids, children, count = {}, b'', 0
+    all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
+               (PERSONA_GLOBAL, 'persona global'),
+               (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
         tid = TOPIC_BASE + n
         topic_ids[slot] = tid
-        children += topic(tid, f'OvertureTopic{register.capitalize()}',
-                          infos=len(PERSONAS))
-        # One INFO per persona, each gated on the global. The engine takes the
-        # first whose condition passes, so exactly one reply is available.
-        block = b''
+        all_ids.append((tid, f'topic {register}'))
+
+        # EVERY variant, not just the first. Four lines exist per cell and the
+        # engine picks among the INFOs whose conditions pass -- measured on the
+        # base game, where one barter line came back as four different sentences
+        # on four reads. Using one line per cell made an NPC who says the same
+        # sentence every time you ever approach them.
+        block, n_infos = b'', 0
         for k, persona in enumerate(PERSONAS):
-            text = reply.get((register, persona))
-            if text is None:
+            texts = reply.get((register, persona))
+            if not texts:
                 raise SystemExit(f'no stage-1 response for {register}/{persona}')
-            block += line(INFO_BASE + n * len(PERSONAS) + k,
-                          by_register[register]['text'], text, persona_index=k)
+            if len(texts) > MAX_VARIANTS:
+                raise SystemExit(f'{register}/{persona} has {len(texts)} variants, '
+                                 f'more than the {MAX_VARIANTS} the id spacing allows')
+            for v, text in enumerate(texts):
+                iid = INFO_BASE + (n * len(PERSONAS) + k) * MAX_VARIANTS + v
+                all_ids.append((iid, f'{register}/{persona} variant {v}'))
+                block += line(iid, by_register[register]['text'], text,
+                              persona_index=k)
+                n_infos += 1
+
+        # The lines are built before the topic, so TIFC is the REAL count. An
+        # earlier version wrote the topic first with a placeholder and never went
+        # back, leaving every topic claiming one line while holding sixteen.
+        children += topic(tid, f'OvertureTopic{register.capitalize()}', infos=n_infos)
         children += child_group(tid, 7, block)
-        count += 1 + len(PERSONAS)
+        count += 1 + n_infos
 
     # The greeting, then the scene -- and the SCEN goes INSIDE the quest's child
     # group, as a sibling of the topics. Measured: FFGoodneighbor02's
     # SCEN 0010BECF sits in its GRUP type 10, not at the top level. Ours was
     # top-level, which is one of the two reasons the first run showed nothing.
+    # Before anything is written. A duplicate here is an access violation in
+    # InitGameDataThread with no record named, which is a bad way to find out.
+    check_unique(all_ids)
+
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
