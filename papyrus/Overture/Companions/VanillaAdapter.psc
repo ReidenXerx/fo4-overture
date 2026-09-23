@@ -20,6 +20,7 @@ threshold scenes, messages and perks -- their bookkeeping (C5).}
 Int Property CA_AFFINITY_ID = 0x000A1B80 AutoReadOnly
 Int Property CA_IS_ROMANTIC_ID = 0x00148DF6 AutoReadOnly
 Int Property CA_WANTS_TO_TALK_ID = 0x000FA86B AutoReadOnly
+Int Property CA_IS_ROMANCEABLE_NOW_ID = 0x00148F8D AutoReadOnly
 Float Property INFATUATION = 1000.0 AutoReadOnly
 
 ActorValue Function VanillaAV(Int aiID)
@@ -113,7 +114,31 @@ Bool Function Refuses(Actor akWho)
 	; threshold, a romance retry, a murder they saw. That conversation is theirs
 	; and goes first.
 	ActorValue av = Self.VanillaAV(CA_WANTS_TO_TALK_ID)
-	Return av != None && akWho.GetValue(av) != 0.0
+	If av != None && akWho.GetValue(av) != 0.0
+		Return True
+	EndIf
+	; Their own anger: CompanionActorScript.ModAffinity sets TemporaryAngerLevel to 1
+	; (an hour) or 2 (eight) on any fall, and clears it on a timer. An actor value the
+	; script names, read through its own property (C5).
+	CompanionActorScript cas = akWho as CompanionActorScript
+	If cas != None && cas.TemporaryAngerLevel != None && akWho.GetValue(cas.TemporaryAngerLevel) > 0.0
+		Return True
+	EndIf
+	; Below Neutral -- Disdain, Hatred on the way -- is a no whatever their romance
+	; says: CA_IsRomantic is never cleared once set, their affinity is their live
+	; state (C2; microscope wave 3).
+	Return Self.KnowsAffinity(akWho) && Self.Affinity(akWho) < 0.0
+EndFunction
+
+; A romance declined for good closes the door: CompanionActorScript.RomanceDeclined
+; (True) sets CA_IsRomanceableNow (Fallout4.esm 00148F8D) to -1, and nothing sets it
+; back. Their own story has said no; Overture does not ask around it.
+Bool Function Closed(Actor akWho)
+	If !Self.HasRomance(akWho)
+		Return False
+	EndIf
+	ActorValue av = Self.VanillaAV(CA_IS_ROMANCEABLE_NOW_ID)
+	Return av != None && akWho.GetValue(av) == -1.0
 EndFunction
 
 String Function Name()

@@ -269,6 +269,13 @@ GlobalVariable Function EnabledGlobal()
 	Return Game.GetFormFromFile(ENABLED_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
 
+; The master switch ("Approaches" on the MCM page). The greetings read the global
+; themselves; the companion module asks here, so off means off everywhere.
+Bool Function Enabled()
+	GlobalVariable g = Self.EnabledGlobal()
+	Return g == None || g.GetValue() != 0.0
+EndFunction
+
 GlobalVariable Function VerdictGlobal()
 	Return Game.GetFormFromFile(VERDICT_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
@@ -330,6 +337,14 @@ EndEvent
 
 Function Hook()
 	Self.RegisterForRemoteEvent(Game.GetPlayer(), "OnPlayerLoadGame")
+	; The companion module's quest: start-game-enabled, but if a save somehow has it
+	; stopped, nothing would hook and the module would be invisible without a word
+	; (microscope wave 3). Its own OnQuestInit hooks the rest.
+	Quest companionsQuest = Game.GetFormFromFile(COMPANIONS_QUEST_ID, "Overture.esp") as Quest
+	If companionsQuest != None && !companionsQuest.IsRunning()
+		Debug.Trace("Overture: the companions quest was not running - started", 1)
+		companionsQuest.Start()
+	EndIf
 
 	_api = Rapport:Core.ApiVersion()
 	If _api < NEEDS_API
@@ -681,21 +696,48 @@ Bool Function IsCompanionTalk(Actor akWho)
 	Return akWho != None && current != None && akWho.IsInFaction(current)
 EndFunction
 
-; A companion's conversation has ended. The moment it spent (Moments: "not here"
-; and "not now" keep it), and the day: "Later.", or the wheel left without an
-; answer, spends nothing -- the stamp comes down to an hour ahead, as after "not
-; now" (O-30), which still hands the re-greet back to their own dialogue.
+; A companion's conversation has ended. The moment (Moments: "not here" and "not
+; now" keep it, anything else spends it), and the day. NOTHING HAPPENED -- "Later.",
+; the wheel left, a "..." fallback beat, or a refusal no words could have changed
+; (the verdict refused every proposition) -- spends nothing: the stamp comes down to
+; an hour ahead, as after "not now" (O-30), which still hands the re-greet back to
+; their own dialogue. Anything else spends the day, stamped again here so a reply
+; that ended after an earlier "nothing happened" end still does (microscope wave 3).
 String Function CompanionEnded(Conversation c)
 	Int o = c.outcome
+	Bool keep = o == OUTCOME_NOT_HERE || o == OUTCOME_NOT_NOW
 	Overture:Companions:Moments moments = Game.GetFormFromFile(COMPANIONS_QUEST_ID, "Overture.esp") as Overture:Companions:Moments
 	If moments != None
-		moments.Ended(c.who, o == OUTCOME_NOT_HERE || o == OUTCOME_NOT_NOW)
+		moments.Ended(c.who, keep)
 	EndIf
-	If o == OUTCOME_LATER || o == 0
+	If keep
+		; BetweenConversations has already brought the stamp down to the hour (O-30).
+		Return ""
+	EndIf
+	If o == OUTCOME_LATER || o == 0 || o == OUTCOME_MISS || (o == OUTCOME_REFUSE && c.verdict == VERDICT_REFUSE)
 		Self.SetTo(c.who, NEXT_DAY_AV_ID, Utility.GetCurrentGameTime() + REOPEN_AFTER)
-		Return " | companion: later - the day is not spent"
+		Return " | companion: nothing happened - the day is not spent"
 	EndIf
+	Self.Stamp(c.who)
 	Return ""
+EndFunction
+
+; Would a moment opened now be an invitation that can only be refused or put off
+; (methodology 2)? What Decide refuses by nature -- no persona, fallen out, faithfully
+; taken -- and the romantic's setting, asked BEFORE a moment opens (Moments), so the
+; companion never asks for a minute only to say no.
+Bool Function CompanionOpenable(Actor akWho)
+	Int persona = Self.PersonaIndex(akWho)
+	If persona < 0
+		Return False
+	EndIf
+	If Rapport:Relations.BondBetween(Game.GetPlayer(), akWho) <= BOND_FALLEN_OUT
+		Return False
+	EndIf
+	If Self.FaithfullyTaken(akWho)
+		Return False
+	EndIf
+	Return persona != 1 || Self.Setting(akWho)
 EndFunction
 
 ; The companion's half of a verdict: their own gates (C2, O-22) and their wanting
@@ -710,20 +752,23 @@ Int Function CompanionVerdict(Actor akWho)
 		Return VERDICT_REFUSE
 	EndIf
 	Int gate = companions.Gate(akWho)
-	_companionNote = companions.LastGateNote()
+	_companionNote = companions.LastGateNote() + " | inScene=" + akWho.IsInScene() + " scene=" + akWho.GetCurrentScene()
 	If gate == companions.GATE_STATE
 		_why = WHY_THEIRS
 		Return VERDICT_REFUSE
-	ElseIf gate == companions.GATE_UNWON
+	EndIf
+	; Faithfulness refuses whatever else -- before a "not yet" that would promise
+	; what it cannot keep (methodology 2's order; microscope wave 3).
+	If Self.FaithfullyTaken(akWho)
+		_why = WHY_TAKEN
+		Return VERDICT_REFUSE
+	EndIf
+	If gate == companions.GATE_UNWON
 		_why = WHY_UNWON
 		Return VERDICT_REFUSE
 	ElseIf gate == companions.GATE_WANTING
 		_why = WHY_WANTING
 		Return VERDICT_NOTYET
-	EndIf
-	If Self.SpokenFor(akWho) && Rapport:Core.FaithfulnessOf(akWho.GetFormID()) >= Self.Tuned("fFaithRefuses:SpokenFor", 0.80)
-		_why = WHY_TAKEN
-		Return VERDICT_REFUSE
 	EndIf
 	Return 0
 EndFunction
@@ -1163,6 +1208,7 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 		late.outcome = aiOutcome
 		late.reached = reached
 		late.quiet = True
+		late.companion = Self.IsCompanionTalk(akWho)
 		Debug.Trace(note + " | after its conversation ended", 1)
 		Self.Finish(late, False)
 		Return
@@ -1211,7 +1257,11 @@ Function AskForTheScene()
 	EndIf
 	Actor player = Game.GetPlayer()
 	Bool took = False
-	If !Rapport:Core.Busy()
+	; Ivy's own fade to black holds the player (her StartSex: AI-driven); her EndSex
+	; would hand control back in the middle of a scene started now (microscope wave 3).
+	Overture:Companions:IvyNative ivy = Game.GetFormFromFile(COMPANIONS_QUEST_ID, "Overture.esp") as Overture:Companions:IvyNative
+	Bool herFade = ivy != None && ivy.HerFadeRunning()
+	If !Rapport:Core.Busy() && !herFade
 		; "_bond": the raw bond, a fact for the Narrator's words; a label without
 		; the underscore is a score share and would be printed as one.
 		Rapport:Core.NarrateBonus(player.GetFormID(), akWho.GetFormID(), "_bond", Rapport:Relations.BondBetween(player, akWho))
@@ -1506,6 +1556,17 @@ EndFunction
 ; into the scene -- which OnBegin does.
 String Function Prepare(Actor who)
 	String note = ""
+	; The verdict and the last reply's outcome belong to THIS conversation: a new one
+	; can begin while the last is still owed (Finish without the tidy), and phase 3's
+	; and HandBack's gates would read what it left (microscope wave 3).
+	GlobalVariable verdictGlobal = Self.VerdictGlobal()
+	If verdictGlobal != None
+		verdictGlobal.SetValue(0.0)
+	EndIf
+	GlobalVariable lastGlobal = Self.LastOutcomeGlobal()
+	If lastGlobal != None
+		lastGlobal.SetValue(0.0)
+	EndIf
 	GlobalVariable pg = Self.PersonaGlobal()
 	Int persona = Self.PersonaIndex(who)
 	If pg == None

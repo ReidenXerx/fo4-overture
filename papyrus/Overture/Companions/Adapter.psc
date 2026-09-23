@@ -46,7 +46,27 @@ Bool Function Refuses(Actor akWho)
 	If akWho == None
 		Return True
 	EndIf
-	Return akWho.IsDead() || akWho.IsInCombat() || akWho.IsInScene()
+	If akWho.IsDead() || akWho.IsInCombat()
+		Return True
+	EndIf
+	; A scene of THEIR OWN. Overture's approach scene is not one: the verdict is
+	; taken while the companion stands in it, and a bare IsInScene() refused every
+	; companion verdict there was (microscope wave 3, three lenses).
+	If akWho.IsInScene()
+		Return akWho.GetCurrentScene() != Self.OvertureScene()
+	EndIf
+	Return False
+EndFunction
+
+Scene Function OvertureScene()
+	Return Game.GetFormFromFile(0x00000801, "Overture.esp") as Scene
+EndFunction
+
+; Their own mod keeps arousal of its own (Ivy's _ivy_IsAroused). Overture then writes
+; no wanting of its own for them: two opinions of one fact is R-1's problem (C2), and
+; fo4-anatomy reads their own flag directly.
+Bool Function HasOwnArousal(Actor akWho)
+	Return False
 EndFunction
 
 ; Their own story has closed the door for good (Ivy's DenyRelationShipForEver).
@@ -73,10 +93,9 @@ Bool Function OpensMoments(Actor akWho)
 	Return False
 EndFunction
 
-; Tell their system what just happened, in its own vocabulary. asWhat is one of
-; "flirt", "deny", "scene". The base knows no vocabulary and says nothing.
-Function Notify(Actor akWho, String asWhat)
-EndFunction
+; (No Notify: calling their own reaction functions -- Ivy's FlirtEvent and DenyEvent
+; move her own irritation -- is moving a companion's own state from outside, which
+; O-24 rules out. It had no caller, and wave 3 named it the trap it would be.)
 
 ; A short name for traces. Never shown to the player.
 String Function Name()

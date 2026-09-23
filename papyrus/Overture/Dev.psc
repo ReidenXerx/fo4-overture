@@ -17,7 +17,12 @@ F4MCP.esp the bridge resolves to None and none of this registers.
   approach scenes on|off      whether a yes really asks Rapport for a scene (MCM)
   approach room public|private|auto
                               pin the room for every approach, or let Rapport
-                              count again: the Third Rail is never private}
+                              count again: the Third Rail is never private
+  approach companion          the companion module's view of the current companion:
+                              adapter, gates, wanting, whether a moment could open
+  approach moment             owe the current companion a moment and open it now
+                              (it still needs privacy and the day's stamp)
+  approach desire <0..1>      set the current companion's wanting}
 
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 
@@ -115,6 +120,39 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		Else
 			MCP:Core.Reply(tag, "approach room: counted by Rapport (observers against its tolerance)")
 		EndIf
+		Return
+	EndIf
+
+	; approach companion | moment | desire <0..1> -- the companion module (methodology
+	; 11), always on the CURRENT companion. "moment" owes one and opens it now -- it
+	; still needs them somewhere private and the day's stamp open, as a real one does;
+	; "desire" sets their wanting. Each ends with the module's view of them.
+	If first == "companion" || first == "moment" || first == "desire"
+		Overture:Companions:Moments moments = Game.GetFormFromFile(0x00000855, "Overture.esp") as Overture:Companions:Moments
+		If moments == None
+			MCP:Core.Reply(tag, "approach " + first + ": NOT DONE - the companions quest did not resolve (the one-exchange build has none)")
+			Return
+		EndIf
+		Overture:Companions:Registry reg = (moments as Quest) as Overture:Companions:Registry
+		Overture:Companions:Feeders feeders = (moments as Quest) as Overture:Companions:Feeders
+		Actor mate = reg.Current()
+		If mate == None
+			MCP:Core.Reply(tag, "approach " + first + ": NOT DONE - no current companion")
+			Return
+		EndIf
+		String done = ""
+		If first == "desire"
+			feeders.SetDesire(mate, second as Float)
+			done = " | wanting set (" + second + ")"
+		ElseIf first == "moment"
+			done = " | " + moments.ForceMoment()
+		EndIf
+		Overture:Companions:Adapter a = reg.AdapterFor(mate)
+		Int gate = feeders.Gate(mate)
+		String s = "approach companion: " + mate.GetFormID() + done + " | adapter=" + a.Name() + " opensMoments=" + a.OpensMoments(mate) + " eligible=" + reg.Eligible(mate)
+		s = s + " | refuses=" + a.Refuses(mate) + " closed=" + a.Closed(mate) + " | romance=" + a.HasRomance(mate) + "/" + a.IsRomanced(mate) + " affinity=" + a.Affinity(mate)
+		s = s + " | wanting=" + feeders.Desire(mate) + " gate=" + gate + " (" + feeders.LastGateNote() + ") | openable=" + app.CompanionOpenable(mate)
+		MCP:Core.Reply(tag, s)
 		Return
 	EndIf
 

@@ -128,7 +128,9 @@ excluded; a gen-3 synth is in, because to these conditions it is a human), and "
 until the companion module (N-7) claims them.
 
 **The companion reading was REVISED the same night** (design review, 2026-09-23): "companions" now means
-anyone who has EVER been one (`HasBeenCompanionFaction`, which recruitment adds and nothing removes). The
+anyone who has EVER been one (`HasBeenCompanionFaction`, which recruitment adds and nothing removes --
+CORRECTED by wave 3: vanilla adds it already when a companion becomes AVAILABLE, so available companions
+count too; recorded as a reading there). The
 owner's option read "minus companions", and tonight's brief says companions get a module "unlike other
 npcs"; the narrower reading let a dismissed Ivy be approached as a stranger at priority 100, in subtitles
 over her own voice. One condition on the greeting, reversible; the morning poll asks the owner to confirm.
@@ -320,10 +322,13 @@ answers in the persona Rapport gives them.
 - **Ivy's fade is phase 1, not 3.** Decompiled from her `CompanionIvy - Main.ba2`:
   - `Favor_Sex` (0059BC): `StartSex()` at phase 1's begin (black a second later), `EndSex()` at phase 3's
     begin, `GrantFavor()` as phase 3 ends.
-  - `Favor_Sex_Talk` (00627B) is a second, separate way in: seven INFOs start it, and neither scene starts
-    the other. It is her voiced talk through five stages, with no fade, and `GrantFavor()` at phase 12.
+  - ~~`Favor_Sex_Talk` (00627B) is a second, separate way in~~ **CORRECTED by wave 3:** nothing starts it.
+    The "seven INFOs" are its own lines jumping within it, and no record in her plugin or in 1,046
+    installed plugins, nor any of her 603 scripts, names it. Orphaned content, not counted.
   - The first draft's "phase 3" came from a string table and was wrong.
-- **`OnPhaseBegin` counts from 1**: Overture's own Papyrus log never shows a "phase 0".
+- **`OnPhaseBegin` counts from 1**: the phase trails of the staged scene in `docs/dialogue-route.md` read
+  1-2-5 and 1-2-3-4-5, which only a 1-based count can produce (wave 3's evidence; a missing "phase 0" in
+  one log was weaker).
 - **O-23's sneaking test is vanilla's own, but not proven as a way in.** The 11 base-game INFOs that ask
   `IsSneaking` of `PlayerRef` are hellos, idles and persuasion lines, and none is a greeting on activation.
   Whether talking to one's companion while sneaking opens a greeting at all is a game test (methodology 12).
@@ -349,11 +354,101 @@ answers in the persona Rapport gives them.
 - **A companion's jealousy needs a romance, or Rapport's lovers.** This is the companion side of O-29's
   "counts only after they became lovers". The sting is `fJealousySting`, one number with the strangers'
   jealousy. The vulgar's wanting rises, and the mercantile shrug.
-- **Ivy's two scenes both count** (D.1): `Favor_Sex` as its phase 3 ends, `Favor_Sex_Talk` as its phase 12
-  begins. Each gives the bond Rapport's own 15%. Rapport has no call for an outside scene yet (proposed:
+- **Ivy's scene counts** (D.1): `Favor_Sex`, once its phase 3 has begun (wave 3; `Favor_Sex_Talk` has no
+  way in). It gives the bond Rapport's own 15%. Rapport has no call for an outside scene yet (proposed:
   `RecordExternalScene`), so her scene COUNT is lost. Until then O-27's "a scene together" cannot come from
   her fades, only from ones Rapport played.
-- **D.3 acts on the measured phase.** It waits 2.5 s for her own fade to land, then lifts it with her
-  `EndSex()`, pauses her scene, and runs Rapport's. It does this only with "A yes starts a scene" on: that
+- **D.3 acts on the measured phase** (reworked by wave 3, below: anchored at her phase 2). It lifts her
+  fade with her `EndSex()`, pauses her scene, and runs Rapport's. It does this only with "A yes starts a scene" on: that
   switch stays off until a player scene is proven, which is how O-20's "still after a player scene is
   proven end to end" holds.
+
+## Microscope wave 3 — the companion module (2026-09-23, night)
+
+Five lenses (Papyrus runtime, records, the verdict and its rules, judgment, Ivy) reviewed 6315326. The
+records came out clean: the plugin is byte-identical to the builder, and stranger and companion lines
+cannot cross. The code did not. **Fixed the same night, NOT YET RUN IN GAME:**
+
+- **CRITICAL, three lenses: every companion verdict came out "refused".** `Adapter.Refuses` counted
+  `IsInScene()`, and the verdict is taken while the companion stands in Overture's own scene. A scene of
+  THEIR OWN still refuses: `GetCurrentScene()` is compared with Overture's. CompanionVerdict traces
+  both, so the first game test shows it.
+- **A moment asked once per recruitment, then never again.** It opened only on an edge of wanting,
+  nothing re-armed it, and after a scene wanting stayed over most bars. Now:
+  - a moment is OWED when they want it and the last one's cooldown (`fMomentCooldown`, 2 game days) is
+    over;
+  - it OPENS at the first poll where they are private, the day's stamp is open, and the answer would
+    not be a refusal by nature or the romantic's "not now" (methodology 2: an invitation that can only
+    be refused is never made);
+  - the Narrator hints at it once (DRAFT wording, O-11);
+  - "not here" and "not now" keep it past the hour they reopen at.
+- **Their affinity levels drained the bond.** Rapport moves a bond up by a(1-b) and down by a(1+b), and
+  every crossing counted, so a companion hovering at a threshold slid toward fallen-out without a word.
+  Now each positive level counts ONCE, the first time it is reached, as vanilla's own threshold scenes
+  fire once (`fThresholdUp` 0.05 → 0.08). Disdain and Hatred are the only falls, once per fall, re-armed
+  at Neutral.
+- **Wanting (Desire, published to fo4-anatomy) had no meaning worth showing.** It rose for everyone,
+  forever. Its contract is now in companions/README.md:
+  - it builds only while their own gates are open, and only on a day spent together (following, loaded);
+  - it goes to 0 after a scene together and when they stop being the companion;
+  - Ivy gets none: she keeps arousal of her own, and anatomy reads hers.
+- **The store is fed at day scale**: once a game day, only while together; fights one a day, near the
+  player. It used to be every 20 s, a Rapport.log line each time, overwriting the pair's last reason.
+- **Their own state counts in full (C2).** Vanilla's `TemporaryAngerLevel` and an affinity below Neutral
+  refuse, whatever their romance: `CA_IsRomantic` is never cleared once set. A romance declined for good
+  (`CA_IsRomanceableNow` -1) closes the door, so no moment ever opens on "win them over first".
+- **Methodology 2's order** in CompanionVerdict: their state, then faithfulness, then their romance or
+  affinity, then wanting. A faithful spouse used to hear "not yet" (+0.02, and a promise it could not
+  keep). A spoken-for companion's bar rises with faithfulness, as everyone's does.
+- **Nothing happened, nothing spent.** "Later.", the wheel left, a "..." fallback, and a refusal no words
+  could have changed all leave the day open. Every other end stamps it again, so a reply that ends late
+  still spends it.
+- **Jealousy.**
+  - A companion's reaction is counted in whole scene counts, not float hours that lose precision in an
+    old save.
+  - It uses the same table as strangers (sting, thrill, and for the vulgar wanting too), and the
+    Narrator says it.
+  - The strangers' jealousy path now leaves anyone who has EVER been a companion to the module: it only
+    moves their count on. A dismissed companion-lover's jealousy is not modelled.
+- **The master switch reaches the module**, and **Approach starts the companions quest** if a save has
+  it stopped.
+- **Ivy (D):**
+  - D.1 counts only `Favor_Sex`, and only once her phase 3 has begun. The flag is set before anything
+    can yield, because her last phase's end and her scene's end arrive together.
+  - D.3 was reworked. It now anchors at her phase 2 (the sex itself, with a 12.5 s timer), not on a clock
+    from phase 1. It holds Rapport's slot through the wait and checks again after it. It resumes when
+    OUR request is no longer in flight (`InFlightRequest`), with a cap. It asks Rapport's own record
+    whether the scene happened (`PairSceneCount`) and puts her fade back before her scene resumes.
+    Exactly one of D.1 and Rapport counts every scene, and nothing she wrote for the dark plays in
+    daylight.
+  - Overture's own yes waits while her fade holds the player. Her ids are validated once per load,
+    including that her scene belongs to her quest.
+  - `Adapter.Notify` is gone: calling her `FlirtEvent`/`DenyEvent` would move her own irritation, which
+    O-24 rules out.
+- **Records.**
+  - The greetings require `CA_WantsToTalk == 0` live, so their own queued conversation always goes first.
+  - The sneaking condition's parameter 3 is -1, as vanilla writes it.
+  - Each persona's jealous greeting run now has its own Random End fence. This was an O-33 bug from before
+    this module.
+  - Two actor values were added: `0x857` for the fall, and `0x858` for the pair scenes seen.
+- **Four DRAFT lines rewritten:** a refusal is said for four reasons and a "not now" for two, so each has
+  to be true for all of them. The yeses now promise no walk to a door.
+
+**Corrected by the wave** (the section above now says so):
+- `Favor_Sex_Talk` is not a way in. The "seven INFOs" were its own lines jumping within it, and nothing
+  in her plugin or any of 1,046 installed plugins starts it.
+- `OnPhaseBegin` counting from 1 rests on the phase trails in `docs/dialogue-route.md` (1-2-5,
+  1-2-3-4-5), not on a missing "phase 0".
+
+**Readings of the wave** (reversible, recorded here):
+- **Available companions count as companions.** Vanilla adds `HasBeenCompanionFaction` when a companion
+  becomes AVAILABLE (`SetAvailableToBeCompanion`: Piper, Preston after Concord and the rest), not at
+  recruitment. So they never get the stranger approach, and they get the companion module once
+  recruited. That is wider than O-21's words, and conservative: companion characters are the game's
+  most-voiced people. The code comments that said "on recruitment" were wrong and are corrected.
+- **Jealousy of a dismissed companion-lover is not modelled.** The module follows only the current one.
+- **For you (the owner's poll):**
+  - the O-23 way in: a prompt on the companion, a hotkey, or sneaking;
+  - whether a companion's own romance makes you lovers to the world (O-27);
+  - "Later." on the negative slot;
+  - the bond's bar in a companion's yes.

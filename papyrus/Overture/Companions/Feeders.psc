@@ -4,65 +4,73 @@ Scriptname Overture:Companions:Feeders extends Quest
   THE RELATIONSHIP  Rapport's player<->companion bond, and nothing else. Every
                     companion-only modifier below is an EVENT written into it in the
                     store's own units -- R-10's "add this much, for this reason",
-                    R-2's "import, do not mirror". No axis of ours shadows it, so
-                    Chemistry, the Narrator and any third mod read the number
-                    Overture reads.
+                    R-2's "import, do not mirror". No axis of ours shadows it.
   THEIR OWN GATES   their adapter: affinity, romance, anger, the closed door. Read,
                     never written (C5; O-24: only Rapport's store moves).
-  ONE STATE OF OURS WANTING (Desire, 0..1, AVIF 0x851 -- PUBLISHED: fo4-anatomy
-                    reads it): it builds with days on the road together, spikes
-                    when their own system's arousal rises, and falls after a scene
-                    together. A state, not a closeness -- wanting someone less the
-                    morning after is not the relationship getting worse -- so it
-                    gates the yes and never touches the store.
+  ONE STATE OF OURS WANTING (Desire, AVIF 0x851, 0..1 -- PUBLISHED: fo4-anatomy
+                    reads it). Its contract, since microscope wave 3:
+                    - it builds only while their own gates are open (their romance
+                      done, or their affinity at the gate) and only on a day spent
+                      TOGETHER (following the player, loaded);
+                    - it goes to 0 after a scene together, and 0 when they stop being
+                      the companion;
+                    - a companion whose own mod keeps arousal of its own (Ivy) gets
+                      NONE of ours: two opinions of one fact is R-1's problem.
+                    A state, not a closeness -- wanting someone less the morning after
+                    is not the relationship getting worse -- so it gates the yes and
+                    never touches the store.
 
-THE FEEDERS (every size ASSUMED, fractions of the distance left, MCM-tunable):
-  their affinity reaches a level        fThresholdUp per level (Friend 250,
-                                        Admiration 500, Confidant 750,
-                                        Infatuation 1000, normalised)
-  ... and loses one                     fThresholdDown per level
-  a game day travelling together        fTogetherPerDay (a day per tick at most)
-  a fight survived together             FIGHT_SURVIVED, three a day at most
+THE FEEDERS (sizes ASSUMED, fractions of the distance left, the main ones on MCM),
+at most once a game day, and only while TOGETHER:
+  their affinity reaches a level        fThresholdUp, ONCE per level ever (Friend 250,
+                                        Admiration 500, Confidant 750, Infatuation 1000)
+                                        -- vanilla's own threshold scenes fire once
+  their affinity falls to Disdain,      fThresholdDown each, once per fall, re-armed
+  then Hatred                           when they are back at Neutral
+  a day travelling together             fTogetherPerDay
+  a fight survived together             FIGHT_SURVIVED, one a day
   the player with someone else          ONLY for someone it is their business:
-                                        romanced by their own romance, or
-                                        Rapport's lovers. Romantic and reticent:
-                                        fJealousySting against the bond; vulgar:
-                                        wanting rises; mercantile shrugs (O-29's
-                                        table, which methodology 11 wrote first)
+                                        romanced by their own romance, or Rapport's
+                                        lovers. O-29's table, as for strangers:
+                                        romantic and reticent stung (fJealousySting),
+                                        vulgar thrilled (fJealousyThrill, and wanting
+                                        rises), mercantile shrug. Said by the Narrator.
   a scene with the player               Rapport's own RecordScene writes the bond;
-                                        here only wanting falls
+                                        here wanting goes to 0
+
+WHY ONCE: Rapport moves a bond by a fraction of the distance left, up by a(1-b) and
+down by a(1+b), so a level lost and regained is never a wash. Counting every
+crossing drained a companion hovering at a threshold toward fallen-out, silently
+(microscope wave 3).
 
 ONLY for a companion an adapter claims (vanilla, Ivy): the engine fallback vouches
-for nothing (C6), and a mod companion's days are not ours to count.}
+for nothing (C6). Nothing runs with Overture switched off (OvertureEnabled).}
 
 Int Property APPROACH_QUEST_ID = 0x00000800 AutoReadOnly
 Int Property DESIRE_AV_ID = 0x00000851 AutoReadOnly
 Int Property LAST_TICK_AV_ID = 0x00000856 AutoReadOnly
+; The negative level counted in the current fall (0, -1 Disdain, -2 Hatred).
+Int Property FALL_AV_ID = 0x00000857 AutoReadOnly
+; The player's scene count WITH this companion, plus one, as they last knew it.
+Int Property PAIR_SEEN_AV_ID = 0x00000858 AutoReadOnly
+; The player's scene count with ANYONE ELSE, plus one, as they last knew it (0 = never).
 Int Property SEEN_SCENE_AV_ID = 0x0000085A AutoReadOnly
+; The highest level of their own affinity ever counted (0-4).
 Int Property TIER_AV_ID = 0x0000085B AutoReadOnly
 ; R-10's reasons: 3 dialogue, 4 gift, 5 any other addon.
 Int Property REASON_ADDON = 5 AutoReadOnly
 Int Property NEEDS_API = 201 AutoReadOnly
 
-Float Property FIGHT_SURVIVED = 0.005 AutoReadOnly
-Int Property FIGHTS_PER_DAY = 3 AutoReadOnly
-Float Property MAX_DAYS_PER_TICK = 1.0 AutoReadOnly
-; Wanting's own moves (ASSUMED).
-Float Property SATED = -0.6 AutoReadOnly
+Float Property FIGHT_SURVIVED = 0.002 AutoReadOnly
+; "Together" for a fight: the companion within this of the player when it ends.
+Float Property FIGHT_RANGE = 4096.0 AutoReadOnly
 Float Property THRILLED = 0.1 AutoReadOnly
-Float Property AROUSED = 0.2 AutoReadOnly
-; No scene yet: HoursSinceScene answers a huge number, not a negative.
-Float Property NEVER = 100000000.0 AutoReadOnly
 
-; What Gate decided. PASS: their gates are open and they want it. STATE: their own
-; state says no right now (C2). UNWON: their own romance is not done, or their
-; affinity is under the gate (O-22). WANTING: not wanting it enough yet.
 Int Property GATE_PASS = 0 AutoReadOnly
 Int Property GATE_STATE = 1 AutoReadOnly
 Int Property GATE_UNWON = 2 AutoReadOnly
 Int Property GATE_WANTING = 3 AutoReadOnly
 
-Int _fightsToday = 0
 Float _fightDay = -1.0
 String _gateNote = ""
 
@@ -70,7 +78,7 @@ Overture:Companions:Registry Function Registry()
 	Return (Self as Quest) as Overture:Companions:Registry
 EndFunction
 
-; The approach's quest, for its settings (one Tuned, one guard: Approach.HasSettings).
+; The approach's quest: its settings (one Tuned, one guard), its switch, its rules.
 Overture:Approach Function Overture()
 	Return Game.GetFormFromFile(APPROACH_QUEST_ID, "Overture.esp") as Overture:Approach
 EndFunction
@@ -83,8 +91,29 @@ Float Function Tuned(String asKey, Float afDefault)
 	Return approach.Tuned(asKey, afDefault)
 EndFunction
 
+; Overture's master switch reaches the module too, not only the greetings.
+Bool Function Enabled()
+	Overture:Approach approach = Self.Overture()
+	Return approach != None && approach.Enabled()
+EndFunction
+
 ActorValue Function OurAV(Int aiID)
 	Return Game.GetFormFromFile(aiID, "Overture.esp") as ActorValue
+EndFunction
+
+Float Function Mark(Actor akWho, Int aiID)
+	ActorValue av = Self.OurAV(aiID)
+	If akWho == None || av == None
+		Return 0.0
+	EndIf
+	Return akWho.GetValue(av)
+EndFunction
+
+Function SetMark(Actor akWho, Int aiID, Float afValue)
+	ActorValue av = Self.OurAV(aiID)
+	If akWho != None && av != None
+		akWho.SetValue(av, afValue)
+	EndIf
 EndFunction
 
 Bool Function RapportReady()
@@ -97,6 +126,19 @@ Bool Function Counts(Actor akWho)
 	Return a != None && a.Name() != "engine"
 EndFunction
 
+; Whether wanting is ours to keep for them (see the contract above).
+Bool Function Desires(Actor akWho)
+	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
+	Return a != None && a.Name() != "engine" && !a.HasOwnArousal(akWho)
+EndFunction
+
+; Following the player and loaded: a day or a fight counts only then. Told to wait
+; at a settlement is not travelling together.
+Bool Function Together(Actor akWho)
+	FollowersScript followers = FollowersScript.GetScript()
+	Return akWho != None && akWho.Is3DLoaded() && followers != None && followers.IsFollowing(akWho)
+EndFunction
+
 ; One event into the store, in its own units: "add this much, for this reason".
 Function Feed(Actor akWho, Float afAmount)
 	If akWho == None || afAmount == 0.0
@@ -105,30 +147,26 @@ Function Feed(Actor akWho, Float afAmount)
 	Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, afAmount, REASON_ADDON)
 EndFunction
 
-Function MoveDesire(Actor akWho, Float afBy)
-	ActorValue av = Self.OurAV(DESIRE_AV_ID)
-	If akWho == None || av == None
+Function SetDesire(Actor akWho, Float afValue)
+	If !Self.Desires(akWho)
 		Return
 	EndIf
-	Float d = akWho.GetValue(av) + afBy
+	Float d = afValue
 	If d < 0.0
 		d = 0.0
 	ElseIf d > 1.0
 		d = 1.0
 	EndIf
-	akWho.SetValue(av, d)
+	Self.SetMark(akWho, DESIRE_AV_ID, d)
 EndFunction
 
 Float Function Desire(Actor akWho)
-	ActorValue av = Self.OurAV(DESIRE_AV_ID)
-	If akWho == None || av == None
-		Return 0.0
-	EndIf
-	Return akWho.GetValue(av)
+	Return Self.Mark(akWho, DESIRE_AV_ID)
 EndFunction
 
-; Their affinity's level, 0 (below Friend) .. 4 (Infatuation), normalised the way
-; every adapter reports affinity (-1..1, Infatuation at 1).
+; Their affinity's level, normalised the way every adapter reports it (-1..1,
+; Infatuation at 1): 4 Infatuation, 3 Confidant, 2 Admiration, 1 Friend, 0 Neutral,
+; -1 Disdain, -2 Hatred -- vanilla's own thresholds.
 Int Function Tier(Float afAffinity)
 	If afAffinity >= 1.0
 		Return 4
@@ -138,53 +176,80 @@ Int Function Tier(Float afAffinity)
 		Return 2
 	ElseIf afAffinity >= 0.25
 		Return 1
+	ElseIf afAffinity <= -1.0
+		Return -2
+	ElseIf afAffinity <= -0.5
+		Return -1
 	EndIf
 	Return 0
 EndFunction
 
-; Recruited: time together starts now, the player's earlier scenes are old news,
-; and their level as it stands is where they already are, not an event.
+; Their own romance done, or -- with no romance of their own -- their affinity at
+; the gate (O-22).
+Bool Function Won(Actor akWho, Overture:Companions:Adapter akAdapter)
+	If akAdapter.HasRomance(akWho)
+		Return akAdapter.IsRomanced(akWho)
+	EndIf
+	Return akAdapter.KnowsAffinity(akWho) && akAdapter.Affinity(akWho) >= Self.Tuned("fAffinityGate:Companions", 1.00)
+EndFunction
+
+; Recruited: time together starts now, the player's earlier scenes are old news, and
+; the levels they already hold are where they are, not events.
 Function Joined(Actor akWho)
-	ActorValue lastAV = Self.OurAV(LAST_TICK_AV_ID)
-	ActorValue seenAV = Self.OurAV(SEEN_SCENE_AV_ID)
-	ActorValue tierAV = Self.OurAV(TIER_AV_ID)
-	If akWho == None || lastAV == None || seenAV == None || tierAV == None || !Self.Counts(akWho)
+	If akWho == None || !Self.Counts(akWho) || !Self.RapportReady()
 		Return
 	EndIf
-	akWho.SetValue(lastAV, Utility.GetCurrentGameTime())
-	If Self.RapportReady()
-		Float since = Rapport:Core.HoursSinceScene(Game.GetPlayer().GetFormID())
-		If since < NEVER
-			akWho.SetValue(seenAV, Utility.GetCurrentGameTime() * 24.0 - since)
-		EndIf
-	EndIf
+	Self.SetMark(akWho, LAST_TICK_AV_ID, Utility.GetCurrentGameTime())
+	Self.Watermarks(akWho)
 	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
 	If a.KnowsAffinity(akWho)
-		akWho.SetValue(tierAV, Self.Tier(a.Affinity(akWho)) as Float)
+		Int now = Self.Tier(a.Affinity(akWho))
+		If now > Self.Mark(akWho, TIER_AV_ID) as Int
+			Self.SetMark(akWho, TIER_AV_ID, now as Float)
+		EndIf
+		If now < 0
+			Self.SetMark(akWho, FALL_AV_ID, now as Float)
+		EndIf
 	EndIf
 	Debug.Trace("Overture companions: " + akWho.GetFormID() + " joined (" + a.Name() + ")", 0)
 EndFunction
 
-; The slow tick, for the CURRENT companion: days together, their affinity's levels,
-; wanting building, jealousy. Any real-time rate; it works in game days.
-Function Tick(Actor akWho)
-	If akWho == None || !Self.Registry().IsCurrentCompanion(akWho) || !Self.Counts(akWho) || !Self.RapportReady()
-		Return
+; They are not the companion any more: wanting is not kept for someone away (the
+; published value reads 0 for them).
+Function Left(Actor akWho)
+	If akWho != None && Self.Desires(akWho)
+		Self.SetMark(akWho, DESIRE_AV_ID, 0.0)
 	EndIf
-	ActorValue lastAV = Self.OurAV(LAST_TICK_AV_ID)
-	If lastAV == None
+EndFunction
+
+; The player's scene counts as this companion knows them now.
+Function Watermarks(Actor akWho)
+	Int p = Game.GetPlayer().GetFormID()
+	Int pair = Rapport:Core.PairSceneCount(p, akWho.GetFormID())
+	Self.SetMark(akWho, PAIR_SEEN_AV_ID, (pair + 1) as Float)
+	Self.SetMark(akWho, SEEN_SCENE_AV_ID, (Rapport:Core.SceneCount(p) - pair + 1) as Float)
+EndFunction
+
+; The tick, for the CURRENT companion, on Moments' clock. The store and wanting move
+; at most once a game day; jealousy and their levels are read every tick.
+Function Tick(Actor akWho)
+	If akWho == None || !Self.Enabled() || !Self.Registry().IsCurrentCompanion(akWho) || !Self.Counts(akWho) || !Self.RapportReady()
 		Return
 	EndIf
 	Float today = Utility.GetCurrentGameTime()
-	Float last = akWho.GetValue(lastAV)
-	akWho.SetValue(lastAV, today)
-	If last > 0.0 && today > last
-		Float days = today - last
-		If days > MAX_DAYS_PER_TICK
-			days = MAX_DAYS_PER_TICK
+	Float last = Self.Mark(akWho, LAST_TICK_AV_ID)
+	If last <= 0.0
+		Self.SetMark(akWho, LAST_TICK_AV_ID, today)
+	ElseIf today - last >= 1.0
+		; A day has passed: counted once, and the rest of a long absence dropped.
+		Self.SetMark(akWho, LAST_TICK_AV_ID, today)
+		If Self.Together(akWho)
+			Self.Feed(akWho, Self.Tuned("fTogetherPerDay:Companions", 0.01))
+			Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
+			If Self.Won(akWho, a)
+				Self.SetDesire(akWho, Self.Desire(akWho) + Self.Tuned("fDesirePerDay:Companions", 0.10))
+			EndIf
 		EndIf
-		Self.Feed(akWho, Self.Tuned("fTogetherPerDay:Companions", 0.01) * days)
-		Self.MoveDesire(akWho, Self.Tuned("fDesirePerDay:Companions", 0.10) * days)
 	EndIf
 	Self.Thresholds(akWho)
 	Self.Jealousy(akWho)
@@ -192,87 +257,96 @@ EndFunction
 
 Function Thresholds(Actor akWho)
 	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
-	ActorValue tierAV = Self.OurAV(TIER_AV_ID)
-	If a == None || tierAV == None || !a.KnowsAffinity(akWho)
+	If a == None || !a.KnowsAffinity(akWho)
 		Return
 	EndIf
 	Int now = Self.Tier(a.Affinity(akWho))
-	Int was = akWho.GetValue(tierAV) as Int
-	If now == was
-		Return
+	; Up: a level never reached before. Written before the events: a second look
+	; finds nothing new.
+	Int high = Self.Mark(akWho, TIER_AV_ID) as Int
+	If now > high
+		Self.SetMark(akWho, TIER_AV_ID, now as Float)
+		Debug.Trace("Overture companions: " + akWho.GetFormID() + "'s own affinity reached level " + now + " for the first time", 0)
+		While high < now
+			high += 1
+			Self.Feed(akWho, Self.Tuned("fThresholdUp:Companions", 0.08))
+		EndWhile
 	EndIf
-	; Written before the events: a second look finds nothing new.
-	akWho.SetValue(tierAV, now as Float)
-	Debug.Trace("Overture companions: " + akWho.GetFormID() + "'s own affinity went from level " + was + " to " + now, 0)
-	While was < now
-		Self.Feed(akWho, Self.Tuned("fThresholdUp:Companions", 0.05))
-		was += 1
-	EndWhile
-	While was > now
-		Self.Feed(akWho, Self.Tuned("fThresholdDown:Companions", -0.08))
-		was -= 1
-	EndWhile
+	; Down: Disdain, then Hatred, once per fall; back at Neutral re-arms it.
+	Int fall = Self.Mark(akWho, FALL_AV_ID) as Int
+	If now >= 0
+		If fall != 0
+			Self.SetMark(akWho, FALL_AV_ID, 0.0)
+		EndIf
+	ElseIf now < fall
+		Self.SetMark(akWho, FALL_AV_ID, now as Float)
+		Debug.Trace("Overture companions: " + akWho.GetFormID() + "'s own affinity fell to level " + now, 0)
+		While fall > now
+			fall -= 1
+			Self.Feed(akWho, Self.Tuned("fThresholdDown:Companions", -0.08))
+		EndWhile
+	EndIf
 EndFunction
 
-; A fight survived together: Moments hears the companion leave combat, both alive.
+; A fight survived together: Moments hears the companion leave combat. One a day,
+; and only near the player.
 Function SurvivedTogether(Actor akWho)
-	If !Self.Counts(akWho) || !Self.RapportReady()
-		Return
-	EndIf
-	Float today = Math.Floor(Utility.GetCurrentGameTime())
-	If today != _fightDay
-		_fightDay = today
-		_fightsToday = 0
-	EndIf
-	If _fightsToday >= FIGHTS_PER_DAY
-		Return
-	EndIf
-	_fightsToday += 1
-	Self.Feed(akWho, FIGHT_SURVIVED)
-EndFunction
-
-; A scene of the player's since this companion last looked, per companion.
-Function Jealousy(Actor akWho)
-	ActorValue seenAV = Self.OurAV(SEEN_SCENE_AV_ID)
-	If seenAV == None
+	If !Self.Enabled() || !Self.Counts(akWho) || !Self.RapportReady()
 		Return
 	EndIf
 	Actor player = Game.GetPlayer()
+	If player.IsDead() || !akWho.Is3DLoaded() || akWho.GetDistance(player) > FIGHT_RANGE
+		Return
+	EndIf
+	Float today = Math.Floor(Utility.GetCurrentGameTime())
+	If today == _fightDay
+		Return
+	EndIf
+	_fightDay = today
+	Self.Feed(akWho, FIGHT_SURVIVED)
+EndFunction
+
+; The player's scenes since this companion last looked, in whole counts (Rapport's
+; SceneCount and PairSceneCount), not game hours: a float hour stamp loses its
+; precision in an old save (microscope wave 3).
+Function Jealousy(Actor akWho)
+	Actor player = Game.GetPlayer()
 	Int p = player.GetFormID()
-	Float since = Rapport:Core.HoursSinceScene(p)
-	Float at = Utility.GetCurrentGameTime() * 24.0 - since
-	If since >= NEVER || at <= akWho.GetValue(seenAV) + 0.01
-		Return
-	EndIf
-	akWho.SetValue(seenAV, at)
-	If Rapport:Core.LastPartner(p) == akWho.GetFormID()
+	Int id = akWho.GetFormID()
+	Int pair = Rapport:Core.PairSceneCount(p, id)
+	Int others = Rapport:Core.SceneCount(p) - pair
+	Int knownPair = (Self.Mark(akWho, PAIR_SEEN_AV_ID) as Int) - 1
+	Int knownOthers = (Self.Mark(akWho, SEEN_SCENE_AV_ID) as Int) - 1
+	; Written before anything else can run: a second look finds nothing new.
+	Self.Watermarks(akWho)
+	If knownPair >= 0 && pair > knownPair
 		; With them: Rapport's RecordScene already wrote the bond. Sated.
-		Self.MoveDesire(akWho, SATED)
-		Debug.Trace("Overture companions: " + akWho.GetFormID() + " was the player's last scene - sated", 0)
+		Self.SetDesire(akWho, 0.0)
+		Debug.Trace("Overture companions: " + id + " had a scene with the player - wanting back to 0", 0)
+	EndIf
+	If knownOthers < 0 || others <= knownOthers
 		Return
 	EndIf
-	; Whose business is it? Someone romanced by their own romance, or Rapport's lovers
-	; -- the companion side of O-29's "counts only after they became lovers".
+	; Whose business is it? Their own romance, or Rapport's lovers -- the companion
+	; side of O-29's "counts only after they became lovers".
 	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
-	If !a.IsRomanced(akWho) && !Rapport:Core.AreLovers(p, akWho.GetFormID())
+	If !a.IsRomanced(akWho) && !Rapport:Core.AreLovers(p, id)
 		Return
 	EndIf
-	String persona = Rapport:Core.PersonaOf(akWho.GetFormID())
+	String persona = Rapport:Core.PersonaOf(id)
 	If persona == "romantic" || persona == "reticent"
 		Self.Feed(akWho, Self.Tuned("fJealousySting:Jealousy", -0.06))
-		Debug.Trace("Overture companions: " + akWho.GetFormID() + " heard about the player's scene with someone else - it stung", 0)
+		Rapport:Core.NarrateLine(p, id, "{second} heard you've been with someone else. It stung.", "")
 	ElseIf persona == "vulgar"
-		Self.MoveDesire(akWho, THRILLED)
-		Debug.Trace("Overture companions: " + akWho.GetFormID() + " heard about the player's scene with someone else - and liked it", 0)
+		Self.Feed(akWho, Self.Tuned("fJealousyThrill:Jealousy", 0.03))
+		Self.SetDesire(akWho, Self.Desire(akWho) + THRILLED)
+		Rapport:Core.NarrateLine(p, id, "{second} heard you've been with someone else - and liked hearing it.", "")
 	EndIf
+	Debug.Trace("Overture companions: " + id + " heard about the player's scene with someone else (" + persona + ")", 0)
 EndFunction
 
-; Their own system's arousal RISING is a spike (the edge, not the level).
-Function Aroused(Actor akWho)
-	Self.MoveDesire(akWho, AROUSED)
-EndFunction
-
-; How much they must want it, by persona (Rapport's), less the romanced ease.
+; How much they must want it, by persona (Rapport's), less the romanced ease, plus
+; what being spoken for costs (methodology 7, as for everyone).
 Float Function Bar(Actor akWho, Overture:Companions:Adapter akAdapter)
 	String persona = Rapport:Core.PersonaOf(akWho.GetFormID())
 	Float bar = 0.5
@@ -288,28 +362,38 @@ Float Function Bar(Actor akWho, Overture:Companions:Adapter akAdapter)
 	If akAdapter.IsRomanced(akWho)
 		bar -= Self.Tuned("fRomancedEase:Companions", 0.20)
 	EndIf
+	Overture:Approach approach = Self.Overture()
+	If approach != None && approach.SpokenFor(akWho)
+		bar += Self.Tuned("fFaithWeight:SpokenFor", 0.40) * Rapport:Core.FaithfulnessOf(akWho.GetFormID())
+	EndIf
 	Return bar
 EndFunction
 
 ; The companion's half of a verdict: their gates first (C2, O-22), then wanting.
-; GATE_* above; LastGateNote says why, for the trace.
+; GATE_* above; LastGateNote says why, for the trace. (Faithfulness sits between
+; UNWON and WANTING in Approach.CompanionVerdict, as methodology 2 orders refusals.)
 Int Function Gate(Actor akWho)
 	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
 	If a == None || a.Refuses(akWho) || a.Closed(akWho)
 		_gateNote = "their own state says no"
 		Return GATE_STATE
 	EndIf
-	If a.HasRomance(akWho)
-		If !a.IsRomanced(akWho)
+	If !Self.Won(akWho, a)
+		If a.HasRomance(akWho)
 			_gateNote = "not romanced, by their own romance"
-			Return GATE_UNWON
+		Else
+			_gateNote = "their own affinity " + a.Affinity(akWho) + " is under the gate"
 		EndIf
-	Else
-		Float gate = Self.Tuned("fAffinityGate:Companions", 1.00)
-		If !a.KnowsAffinity(akWho) || a.Affinity(akWho) < gate
-			_gateNote = "their own affinity " + a.Affinity(akWho) + " is under " + gate
-			Return GATE_UNWON
+		Return GATE_UNWON
+	EndIf
+	; A companion with arousal of their own is asked their own question.
+	If a.HasOwnArousal(akWho)
+		If a.Wants(akWho)
+			_gateNote = "their own arousal says yes"
+			Return GATE_PASS
 		EndIf
+		_gateNote = "their own arousal says not yet"
+		Return GATE_WANTING
 	EndIf
 	Float bar = Self.Bar(akWho, a)
 	Float wanting = Self.Desire(akWho)

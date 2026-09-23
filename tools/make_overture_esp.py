@@ -61,7 +61,7 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 #   0x850-0x8FF  the companion module (tools/overture_stages.py has each id). 0x851, Desire,
 #                is PUBLISHED: fo4-anatomy reads it (companions/README.md). Never renumber.
 #                0x850, 0x852 and 0x854 stay reserved for the variants not built (B's Trust and
-#                Devotion, A's mirror); 0x857-0x85F are unused.
+#                Devotion, A's mirror); 0x859 and 0x85C-0x85F are unused.
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD5F  fallbacks
@@ -493,7 +493,9 @@ FUNC_GET_GLOBAL_VALUE = 74
 # Function indices from xEdit's condition table; form ids read out of Fallout4.esm.
 FUNC_GET_VALUE = 14
 FUNC_GET_IN_FACTION = 71
-# FollowersScript.SetCompanion adds it on recruitment and nothing removes it.
+# FollowersScript adds it when a companion becomes AVAILABLE (SetAvailableToBeCompanion:
+# Piper, Preston after Concord ...) as well as on recruitment, and nothing removes it
+# (microscope wave 3, records lens; decisions "Microscope wave 3").
 FACTION_HAS_BEEN_COMPANION = 0x000A1B85
 FUNC_IS_IN_COMBAT = 289
 FUNC_IS_CHILD = 365
@@ -572,7 +574,11 @@ def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_co
     # below cannot. Their own Random run, fenced by Random End, so a jealous lover
     # never draws a plain lover's line.
     for i, (persona_index, text) in enumerate(jealous_lines):
-        last = i == len(jealous_lines) - 1
+        # Each persona's LAST line closes its run. One fence at the very end sat on
+        # the reticent's line alone, and only an INFO whose conditions pass is sure
+        # to end a run -- so another persona's pool could run on into the lover
+        # greetings below (microscope wave 3, records lens).
+        last = i == len(jealous_lines) - 1 or jealous_lines[i + 1][0] != persona_index
         infos += greeting_info(JEALOUS_GREET_BASE + i, text,
                                ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
                                field('CTDA', condition(FUNC_GET_VALUE, JEALOUS_PENDING_AV,

@@ -702,8 +702,10 @@ is untouched: **the module is invisible until it has something to say.**
    archive): `StartSex()` is phase 1's begin, `EndSex()` phase 3's begin, `GrantFavor()` phase 3's end.
    The first draft guessed 3 from a string table, and 3 is where the fade LIFTS. Her scene is recorded
    only if it reached its favor and Rapport did not play it — an animated one is already counted by
-   Rapport's own `RecordScene`, and adding ours too was R-10's double count through a side door. She has
-   a second scene, `Favor_Sex_Talk` (her voiced talk, no fade), which counts the same way.
+   Rapport's own `RecordScene`, and adding ours too was R-10's double count through a side door. (Her
+   `Favor_Sex_Talk` has no way in at all: wave 3 found nothing that starts it.) Reworked by wave 3: D.3
+   anchors at her phase 2, holds Rapport's slot, resumes when OUR request leaves flight, and puts her
+   fade back before her scene goes on (decisions, "Microscope wave 3").
 
 ### 11.4 Recommended: B-lite + C + D
 
@@ -775,7 +777,8 @@ proposition (DRAFT, subtitles only, `voice/companion-lines.json`). HandBack move
 Then the room, the setting and Rapport's slot, as for everyone. The bond still has its say through
 fallen-out.
 
-**MCM**: ten numbers under "Companions" and the switch "Ivy: her fade becomes a scene". make_mcm.py now
+**MCM**: eleven numbers under "Companions" (wave 3 added "Days between moments") and the switch
+"Ivy: her fade becomes a scene". make_mcm.py now
 checks every script's `Tuned` calls, not Approach's alone (three mutants caught).
 
 ---

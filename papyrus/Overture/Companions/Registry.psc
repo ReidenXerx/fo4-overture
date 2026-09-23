@@ -2,8 +2,9 @@ Scriptname Overture:Companions:Registry extends Quest
 {Who counts as a companion, who is the current one, and which adapter speaks for them.
 
 A companion is anyone the engine has ever made one: HasBeenCompanionFaction
-(Fallout4.esm 000A1B85), which FollowersScript.SetCompanion adds on recruitment and
-never removes -- the stranger approach leaves them to this module for good (O-21).
+(Fallout4.esm 000A1B85), which FollowersScript adds when a companion becomes AVAILABLE
+(SetAvailableToBeCompanion: Piper, Preston after Concord ...) as well as on recruitment,
+and never removes -- the stranger approach leaves them to this module for good (O-21).
 The CURRENT one is in CurrentCompanionFaction (00023C01) and in FollowersScript's
 Companion alias. Ivy's own NPC record carries both, so a mod companion built on the
 vanilla framework needs no registration at all.

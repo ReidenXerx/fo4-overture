@@ -88,8 +88,14 @@ COMPANIONS_QUEST_EDID = 'OvertureCompanionsQuest'
 COMPANION_DESIRE_AV = 0x01000851     # PUBLISHED: fo4-anatomy reads it, 0..1. Never renumber.
 COMPANION_MOMENT_AV = 0x01000853     # MOMENT_* below; written by Overture:Companions:Moments
 COMPANION_LAST_TICK_AV = 0x01000856  # the game day the feeders last counted
-COMPANION_SEEN_SCENE_AV = 0x0100085A  # the player's last scene this companion has reacted to
-COMPANION_TIER_AV = 0x0100085B       # their own affinity's level, as last counted
+COMPANION_FALL_AV = 0x01000857       # the negative level counted in the current fall (0, -1, -2)
+COMPANION_PAIR_SEEN_AV = 0x01000858  # the player's scene count WITH them, plus one, as they knew it
+COMPANION_SEEN_SCENE_AV = 0x0100085A  # the player's scene count with anyone ELSE, plus one, as they knew it
+COMPANION_TIER_AV = 0x0100085B       # the highest level of their own affinity ever counted (0-4)
+# Their own queued conversation (vanilla CA_WantsToTalk, Fallout4.esm): nonzero means an
+# affinity scene of THEIRS is waiting, and it goes first -- read live in the greeting,
+# so the 20 s between Moments' polls cannot let ours beat it (microscope wave 3).
+CA_WANTS_TO_TALK_AV = 0x000FA86B
 COMPANION_GREET_BASE = 0x01000860    # four: the moment's two, then the player's start's two
 COMPANION_PLAYER_TOPIC = 0x01000864  # four, one per wheel slot
 COMPANION_PLAYER_INFO = 0x01000868
@@ -194,10 +200,14 @@ SETTINGS = [
      'How much a game day travelling together builds wanting.', 0.0, 0.5, 0.01),
     ('fTogetherPerDay', 'Companions', 0.01, 'Companions', 'A day together adds to the bond',
      "A share of the distance left, as every source moves Rapport's bond.", 0.0, 0.1, 0.005),
-    ('fThresholdUp', 'Companions', 0.05, 'Companions', 'Their affinity rises a level',
-     'What each level of their own affinity they reach adds to the bond.', 0.0, 0.3, 0.01),
-    ('fThresholdDown', 'Companions', -0.08, 'Companions', 'Their affinity falls a level',
-     'What each level they lose takes away.', -0.3, 0.0, 0.01),
+    ('fThresholdUp', 'Companions', 0.08, 'Companions', 'Their affinity reaches a new level',
+     'What each level of their own affinity adds to the bond, the first time they reach it (Friend, '
+     'Admiration, Confidant, Infatuation).', 0.0, 0.3, 0.01),
+    ('fThresholdDown', 'Companions', -0.08, 'Companions', 'Their affinity falls to Disdain or Hatred',
+     'What each of those takes away, once per fall.', -0.3, 0.0, 0.01),
+    ('fMomentCooldown', 'Companions', 2.0, 'Companions', 'Days between moments',
+     'After a moment is used or passes unused, how many game days before a companion who still wants '
+     'you asks again.', 0.5, 7.0, 0.5),
 ]
 # The switches that are MCM settings (the other, OvertureEnabled, is a global: the
 # greeting's own conditions read it).  (key, ini section, default, label, help)
@@ -291,7 +301,8 @@ def build_staged():
            (m.GREET_TOPIC, 'greeting topic'), (m.GREET_INFO, 'greeting line'),
            (COMPANIONS_QUEST, 'companions quest'), (COMPANION_DESIRE_AV, 'companion desire'),
            (COMPANION_MOMENT_AV, 'companion moment'), (COMPANION_LAST_TICK_AV, 'companion last tick'),
-           (COMPANION_SEEN_SCENE_AV, 'companion seen scene'), (COMPANION_TIER_AV, 'companion affinity tier')]
+           (COMPANION_SEEN_SCENE_AV, 'companion seen scene'), (COMPANION_TIER_AV, 'companion affinity tier'),
+           (COMPANION_FALL_AV, 'companion fall'), (COMPANION_PAIR_SEEN_AV, 'companion pair seen')]
     children, count = b'', 0
     topics = {1: {}, 2: {}, 3: {}}
 
@@ -471,6 +482,8 @@ def build_staged():
                     + m.actor_value(COMPANION_DESIRE_AV, 'OvertureCompanionDesire')
                     + m.actor_value(COMPANION_MOMENT_AV, 'OvertureCompanionMoment')
                     + m.actor_value(COMPANION_LAST_TICK_AV, 'OvertureCompanionLastTick')
+                    + m.actor_value(COMPANION_FALL_AV, 'OvertureCompanionFall')
+                    + m.actor_value(COMPANION_PAIR_SEEN_AV, 'OvertureCompanionPairSeen')
                     + m.actor_value(COMPANION_SEEN_SCENE_AV, 'OvertureCompanionSeenScene')
                     + m.actor_value(COMPANION_TIER_AV, 'OvertureCompanionAffinityTier'))
 
@@ -547,13 +560,19 @@ def companion_greetings(lines, ids):
     start = [l['text'] for l in lines if l['kind'] == 'companion_start']
     if not moment or not start or len(moment) + len(start) > 4:
         raise SystemExit('companion greetings: one to four in all, and at least one of each kind')
-    open_now = m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV, value=float(MOMENT_OPEN),
-                                           runon=m.RUNON_SUBJECT))
-    player_starts = (m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
-                                                 value=float(MOMENT_VOUCHED), op=m.CTDA_OP_GE,
-                                                 runon=m.RUNON_SUBJECT))
+    theirs_first = m.field('CTDA', m.condition(m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, value=0.0,
+                                               runon=m.RUNON_SUBJECT))
+    open_now = theirs_first + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
+                                                          value=float(MOMENT_OPEN), runon=m.RUNON_SUBJECT))
+    # Parameter 3 is -1, as on every run-on-2 condition in Fallout4.esm (4,226 of them,
+    # the 11 player-sneaking INFOs included); the builder's default 0 is run-on 0's.
+    player_starts = (theirs_first
+                     + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
+                                                   value=float(MOMENT_VOUCHED), op=m.CTDA_OP_GE,
+                                                   runon=m.RUNON_SUBJECT))
                      + m.field('CTDA', m.condition(m.FUNC_IS_SNEAKING, 0, value=1.0,
-                                                   runon=m.RUNON_REFERENCE, reference=m.PLAYER_REF)))
+                                                   runon=m.RUNON_REFERENCE, reference=m.PLAYER_REF,
+                                                   alias=-1)))
     infos, fid = b'', COMPANION_GREET_BASE
     for kind, group, gate in (('moment', moment, open_now), ('start', start, player_starts)):
         for i, text in enumerate(group):
