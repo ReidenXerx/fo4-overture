@@ -78,6 +78,7 @@ MAX_VARIANTS = 8
 ENAM_RANDOM = 0x02       # pick among the valid lines of this run
 ENAM_SAY_ONCE = 0x04     # the line is never said again after the first time
 ENAM_RANDOM_END = 0x20   # closes a Random run; the next Random line starts a new one
+ENAM_REQUIRES_PLAYER_ACTIVATION = 0x08   # a greeting only on the player's E, never a walk-by hello
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
@@ -368,9 +369,11 @@ def greeting():
     DATA is 00 07 73 00: [1]=7, [2]=0x73=115. Category 115 is what the
     template's greeting carries, against 15 for the player topics.
 
-    ONE CONDITION: the speaker must be our Target alias (function 566,
-    GetIsAliasRef, run on Subject). The first build had none, and was therefore
-    offered by every actor in the game while the quest ran.
+    WHO IT OPENS FOR is decided on the SPEAKER, and ALFA puts the speaker into
+    the Target alias -- vanilla's generic-greeting shape (see below). Until O-7's
+    eligibility conditions land, the only gate is OvertureArmed. (It used to be
+    GetIsAliasRef on a hand-filled alias, which is what the dev verb existed to
+    fill.)
     """
     f = field('EDID', zstring('OvertureGreeting'))
     f += field('PNAM', struct.pack('<f', 50.0))
@@ -384,22 +387,34 @@ def greeting():
     # NOT the template's 4. That is ENAM_SAY_ONCE: right for FFGoodneighbor02,
     # whose greeting starts its quest's scene one time, and wrong for a greeting
     # that has to open the approach every time the player talks to someone (O-7).
-    g = field('ENAM', struct.pack('<HH', 0, 0))
+    #
+    # Requires Player Activation (0x08), as vanilla's generic vendor greeting
+    # 00076AAD carries: the approach opens when the player presses E on someone,
+    # never as a hello while they walk past.
+    g = field('ENAM', struct.pack('<HH', ENAM_REQUIRES_PLAYER_ACTIVATION, 0))
     g += field('TRDA', trda)
     g += field('NAM1', zstring('...'))           # the NPC's greeting line
     g += field('NAM2', b'\0')
     g += field('NAM3', b'\0')
     g += field('NAM4', b'\0')
-    # Only when the speaker IS our Target alias. Without this the greeting is
-    # offered by every actor while the quest runs, which is what the first
-    # build did and what O-7 cannot be built on top of.
-    g += field('CTDA', condition(FUNC_GET_IS_ALIAS_REF, ALIAS_INDEX,
-                                 value=1.0, runon=RUNON_SUBJECT))
-    # AND armed: one exchange per approach. Without it the repeatable greeting
-    # re-fired on the re-greet after every reply and never let the NPC go.
+    # WHO it is for is no longer an alias condition. The greeting's conditions
+    # run on the SPEAKER, and ALFA below puts that speaker INTO the alias as the
+    # scene starts -- so a GetIsAliasRef test would be asking about an alias that
+    # is still empty. For now the only gate is the dev arming; O-7's eligibility
+    # conditions (on the speaker) go here.
+    #
+    # One exchange per approach: disarmed the moment the scene is seen playing,
+    # so the re-greet after the reply goes to the NPC's own greeting.
     g += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, ARMED_GLOBAL,
                                  value=1.0, runon=RUNON_SUBJECT))
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
+    # FORCED ALIAS: the engine puts whoever says this line into alias 0 as the
+    # scene starts. xEdit calls it "Forced Alias" (s32), right after TSCE; it is
+    # how ONE vanilla quest serves every vendor, merchant and doctor in the game
+    # (WorkshopVendorGreetingsGeneric 00076AAD: TSCE + ALFA 0 into an alias with
+    # no fill at all -- exactly our alias's shape). 102 base-game greetings carry
+    # it (tools/greet_scene_aliases.py). This is O-7's mechanism.
+    g += field('ALFA', struct.pack('<i', ALIAS_INDEX))
     g += field('NAM0', b'\0')
     g += field('INAM', struct.pack('<I', 1))
     line_rec = record('INFO', GREET_INFO, g)

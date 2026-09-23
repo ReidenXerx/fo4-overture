@@ -406,6 +406,50 @@ Charlie   0010D5D7  "Anyway, seeing as my primary function is the sale and distr
                     -> his own scene 00075E89, his own options (singer, barter, not today)
 ```
 
+## O-7's mechanism: the greeting says who it is for (2026-09-23, VERIFIED in game)
+
+O-7 wants the approach to open whenever the player talks to an eligible NPC, without the dev verb
+naming anybody. The problem was never the greeting -- a greeting's conditions already run on the
+SPEAKER -- but the scene it starts, whose actions name their actor by ALIAS. That alias has to hold the
+speaker by the time the scene runs, and the engine chooses the greeting in the same millisecond the
+dialogue target is announced (Charlie's greeting and `[event target]` share a timestamp), so filling it
+"when the dialogue starts" is already too late.
+
+**Vanilla has the answer on the INFO itself: `ALFA`, "Forced Alias"** (xEdit, s32, right after `TSCE`).
+The engine puts whoever speaks the line into that alias as the scene starts. It is how one quest serves
+every vendor, merchant and doctor in the game:
+
+| quest | greetings with TSCE + ALFA | the alias |
+| --- | --- | --- |
+| `DialogueGenericDoctors` | 61 | alias 0, conditions |
+| `WorkshopVendorGreetingsGeneric` | 15 | alias 0, **no fill at all** -- our alias's exact shape |
+| `WorkshopParent` | 13 | script-filled |
+| `DialogueGenericMerchants` | 4 | alias 0 "Merchant", Optional, conditions |
+
+102 base-game greetings carry it (`tools/greet_scene_aliases.py`). The vendor greeting `00076AAD` also
+sets ENAM `0x08`, **Requires Player Activation**: it opens on the player's E and never as a walk-by
+hello, which is what an approach must be too.
+
+Overture's greeting now has the same shape: `TSCE` → our scene, `ALFA 0`, ENAM `0x08`, and no alias
+condition (the alias is empty until the engine fills it). The persona and the room are prepared the
+moment the scene is seen playing, for whoever ALFA put there. `approach arm` arms with an EMPTY alias;
+then the player talks to anybody. **Verified on two NPCs, neither named:**
+
+```
+Whitechapel Charlie  27000831 "..."  ->  player 27000901  ->  27001031  vulgar/offer: "Put your money away..."
+  re-greet: his own 0010D5DC "Now, you need one for the road?"  -> his scene 00075E89
+Harold Roach         27000831 "..."  ->  player 27000901  ->  27001039  reticent/offer: "Please do not.
+                                                                         I would not know what to say."
+  re-greet: his own 00115E9A "What? Another one of you mercs looking for MacCready?..."
+```
+
+Harold is a generic Third Rail drifter, a ghoul with a greeting line and no dialogue scene of his own --
+exactly the NPC O-7 is for. The reply's INFO id names the persona cell, so the persona the script read
+off the alias is proven by which line he spoke. (The script's own "the scene started with" report does
+not arrive: F4MCP drops a reply sent after its verb has finished.) What is still
+to design, with the owner: WHO is eligible (conditions on the speaker), HOW OFTEN, and whether it runs
+before or after the NPC's own greeting.
+
 ## Status
 
 | | |

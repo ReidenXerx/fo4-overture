@@ -47,6 +47,10 @@ Float Property ARMED_FOR = 120.0 AutoReadOnly
 
 Bool watchSawScene = false
 Float watchArmedAt = 0.0
+; The dev verb's reply tag, and whether the persona and the room still have to be
+; prepared when the scene starts (arm mode: nobody was named in advance).
+String watchTag = ""
+Bool watchPrepare = false
 
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
@@ -90,6 +94,19 @@ Event OnTimer(Int aiTimerID)
 			GlobalVariable armed = Self.ArmedGlobal()
 			If armed != None
 				armed.SetValue(0.0)
+			EndIf
+			If watchPrepare
+				watchPrepare = false
+				Actor who = Self.TargetAlias().GetActorReference()
+				String note = "approach: the scene started with "
+				If who == None
+					note = note + "NOBODY in the alias - ALFA did not fill it"
+				Else
+					note = note + who.GetFormID() + Self.Prepare(who)
+				EndIf
+				If watchTag != ""
+					MCP:Core.Reply(watchTag, note)
+				EndIf
 			EndIf
 		EndIf
 		Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
@@ -169,6 +186,48 @@ Event MCP:Bridge.OnHello(MCP:Bridge akSender, Var[] akArgs)
 	MCP:Core.RegisterAddon("overture", "approach")
 EndEvent
 
+; The persona and the room, for whoever the approach is with. Returns the note.
+;
+; Set BEFORE the NPC's reply is chosen -- which is after the player picks, seconds
+; into the scene -- so it can run before the scene (the dev verb, with an actor) or
+; the moment the scene is seen playing (ALFA filled the alias; see OnTimer).
+String Function Prepare(Actor who)
+	String note = ""
+	GlobalVariable pg = Self.PersonaGlobal()
+	Int persona = Self.PersonaIndex(who)
+	If pg == None
+		note = note + " | persona global did not resolve"
+	ElseIf persona < 0
+		pg.SetValue(-1.0)
+		note = note + " | NO PERSONA from Rapport - no reply will match"
+	Else
+		pg.SetValue(persona as Float)
+		note = note + " | persona=" + persona
+	EndIf
+
+	; O-4: an intimate register in a public room recoils even on the persona it
+	; would otherwise land with. Rapport owns what "public" means -- its own
+	; observer count against its own tolerance -- so the two never disagree.
+	GlobalVariable inPublic = Self.PublicGlobal()
+	If inPublic != None
+		Int watching = Rapport:Core.ObserversNear(who.GetFormID())
+		If watching < 0
+			; No scan has published yet. NOT the same as nobody watching, so
+			; assume public: a recoil the player did not expect is a smaller
+			; mistake than a proposition shouted across a room.
+			inPublic.SetValue(1.0)
+			note = note + " | observers unknown, assuming public"
+		ElseIf watching > Rapport:Core.ObserverTolerance()
+			inPublic.SetValue(1.0)
+			note = note + " | " + watching + " watching - PUBLIC"
+		Else
+			inPublic.SetValue(0.0)
+			note = note + " | " + watching + " watching - private"
+		EndIf
+	EndIf
+	Return note
+EndFunction
+
 Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	; akArgs is FLAT: [0] verb, [1] rest, [2] tag, [3] token count, then
 	; (token as String, token as form id) pairs from [4]. Fallout 4's Papyrus
@@ -188,6 +247,28 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	Bool startScene = true
 	If count > 1 && (akArgs[6] as String) == "noscene"
 		startScene = false
+	EndIf
+
+	; "approach arm": arm with an EMPTY alias and talk to anybody. The greeting's
+	; ALFA puts whoever answers into the alias as the scene starts, and the watch
+	; prepares the persona and the room for them then. This is the O-7 mechanism
+	; with the dev verb doing only the arming.
+	If count > 0 && (akArgs[4] as String) == "arm"
+		GlobalVariable armedOnly = Self.ArmedGlobal()
+		If armedOnly == None || Self.TargetAlias() == None
+			MCP:Core.Reply(tag, "approach arm: OvertureArmed or the alias did not resolve")
+			Return
+		EndIf
+		If !(Self as Quest).IsRunning()
+			(Self as Quest).Start()
+		EndIf
+		Self.TargetAlias().Clear()
+		armedOnly.SetValue(1.0)
+		watchTag = tag
+		watchPrepare = true
+		Self.Watch()
+		MCP:Core.Reply(tag, "approach arm: ARMED with an EMPTY alias - talk to anyone; ALFA puts them in it")
+		Return
 	EndIf
 
 	Actor who = None
@@ -232,41 +313,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		note = note + " | scene owner=SOMEONE ELSE"
 	EndIf
 
-	; Which of the sixteen replies this NPC can give. Set BEFORE the scene
-	; starts: the conditions are read when the options are built, and a global
-	; set afterwards is a global set too late.
-	GlobalVariable pg = Self.PersonaGlobal()
-	Int persona = Self.PersonaIndex(who)
-	If pg == None
-		note = note + " | persona global did not resolve"
-	ElseIf persona < 0
-		pg.SetValue(-1.0)
-		note = note + " | NO PERSONA from Rapport - no reply will match"
-	Else
-		pg.SetValue(persona as Float)
-		note = note + " | persona=" + persona
-	EndIf
-
-	; O-4: an intimate register in a public room recoils even on the persona it
-	; would otherwise land with. Rapport owns what "public" means -- its own
-	; observer count against its own tolerance -- so the two never disagree.
-	GlobalVariable inPublic = Self.PublicGlobal()
-	If inPublic != None
-		Int watching = Rapport:Core.ObserversNear(who.GetFormID())
-		If watching < 0
-			; No scan has published yet. NOT the same as nobody watching, so
-			; assume public: a recoil the player did not expect is a smaller
-			; mistake than a proposition shouted across a room.
-			inPublic.SetValue(1.0)
-			note = note + " | observers unknown, assuming public"
-		ElseIf watching > Rapport:Core.ObserverTolerance()
-			inPublic.SetValue(1.0)
-			note = note + " | " + watching + " watching - PUBLIC"
-		Else
-			inPublic.SetValue(0.0)
-			note = note + " | " + watching + " watching - private"
-		EndIf
-	EndIf
+	note = note + Self.Prepare(who)
 
 	If !startScene
 		; Armed: the next time the player talks to them, the greeting opens the
@@ -277,6 +324,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 			Return
 		EndIf
 		armed.SetValue(1.0)
+		watchPrepare = false   ; prepared above, for the named actor
 		Self.Watch()
 		MCP:Core.Reply(tag, note + " | ARMED (noscene) - alias filled, now talk to them; one exchange, then theirs")
 		Return
@@ -292,6 +340,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	EndIf
 	; Started by hand, so nothing to arm -- but the alias still has to be let go
 	; once the exchange is over, or the next conversation is ours again.
+	watchPrepare = false
 	Self.Watch()
 	MCP:Core.Reply(tag, note)
 EndEvent
