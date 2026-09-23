@@ -533,7 +533,16 @@ before anything is built on it for good (O-6 was exactly that review):
 | a lover's greeting, persona-neutral (O-12; 2026-09-23) | 4 | `voice/lines.json` `lover_greeting` |
 | a jealous lover's greeting, per persona × 2 (O-33; 2026-09-23) | 8 | `voice/lines.json` `jealous_greeting` |
 
-**36 DRAFT lines in all**, none voiced. O-31 (any register answers a lover) reuses each persona's own
+**Voiced so far** (checked 2026-09-23 against fo4-rapport `voice/render-manifest.json`): the original 128
+NPC lines, in the six core voices (O-5), rendered 2026-09-21 04:30 by Rapport's pipeline (eleven_v3)
+from its `voice/overture-lines.json` as it stood at 04:19. **33 of those files are STALE**: they say
+words the bank no longer has -- 32 vulgar lines rewritten by O-6 on 09-22, and one mercantile line the
+04:33 lint changed. 26 of the 33 are lines the plugin uses (1,452 characters); the other 7 are the
+greeting, returning and farewell kinds, which no plugin record uses today. Re-rendering the 26 in six
+voices costs about 8,700 characters.
+
+**36 DRAFT lines in all**, none voiced. The 28 on the NPC side cost about 8,500 characters in six
+voices, once reviewed; the 8 player lines are text (O-2/O-3) and cost nothing. O-31 (any register answers a lover) reuses each persona's own
 stage-3 answers in every register, so it adds INFOs but no lines -- and since a voice file is named by
 its INFO id, the same line will need a file under each id when it is voiced (§12, the id registry).
 
