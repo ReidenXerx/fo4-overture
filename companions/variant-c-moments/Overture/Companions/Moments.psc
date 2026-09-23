@@ -21,12 +21,16 @@ talking to them opens ours FIRST and their own menu follows -- O-8's order,
 open, the greeting's conditions fail and their dialogue is untouched: the
 module is invisible until it has something to say.
 
-WHAT A MOMENT IS (ASSUMED, the owner's poll): private (Rapport's own crowd
-count), not in combat or a scene, their adapter neither refuses nor has closed
-the door -- and one of
-    their own system wants it (Ivy's arousal),
-    the intimacy track's DESIRE is over the bar (variant B),
-    or their affinity has reached Admiration (variant A, or B's TRUST input).
+WHAT A MOMENT IS (ASSUMED, the owner's poll). An EDGE, not a level: the moment
+opens when "wanting" turns true -- the intimacy track's DESIRE crossing its bar,
+their own system's arousal rising -- and stays open for a window (two game
+hours), then closes. A level ("affinity has reached Admiration") would make
+every mid-game companion's first private talk of every day ours, including the
+one to hand them the loot (design review 2026-09-23). And only for a companion
+whose adapter vouches for it (OpensMoments) and who has no intimate scene of
+their own -- Ivy's is hers, so Overture opens nothing for her (C3). The
+companion scene's first wheel must carry a costless "Later." that hands back
+without stamping the day (to build with the scene).
 
 A moment can also be spoken: when one opens and the companion is close, they
 say one line of their own ("Hey. Got a minute? Not for the road.") -- a hint,
@@ -41,9 +45,12 @@ Int Property MOMENT_AV_ID = 0x00000853 AutoReadOnly
 Int Property NEXT_DAY_AV_ID = 0x00000843 AutoReadOnly
 Int Property POLL_TIMER = 1 AutoReadOnly
 Float Property POLL_SECONDS = 20.0 AutoReadOnly
-Float Property OPENS_AT_AFFINITY = 0.50 AutoReadOnly
+; Two game hours, in days (GetCurrentGameTime's unit). ASSUMED.
+Float Property WINDOW_DAYS = 0.0833 AutoReadOnly
 
 Actor _watching = None
+Bool _wasWanting = False
+Float _openUntil = 0.0
 
 Overture:Companions:Registry Function Registry()
 	Return (Self as Quest) as Overture:Companions:Registry
@@ -94,17 +101,36 @@ EndFunction
 
 Function Evaluate(Actor akWho)
 	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
-	Bool open = a != None && !a.Refuses(akWho) && !a.Closed(akWho) && Self.Private(akWho)
-	If open
-		open = a.Wants(akWho) || Self.TrackWants(akWho) || a.Affinity(akWho) >= OPENS_AT_AFFINITY
+	If a == None || !a.OpensMoments(akWho) || a.OwnIntimateScene(akWho) != None
+		; Not ours to open (C6), or theirs to play (C3).
+		Self.SetMoment(akWho, False)
+		Return
 	EndIf
+	Float now = Utility.GetCurrentGameTime()
+	Bool wanting = a.Wants(akWho) || Self.TrackWants(akWho)
+	If wanting && !_wasWanting
+		; The edge: it opens now, for a window.
+		_openUntil = now + WINDOW_DAYS
+	EndIf
+	_wasWanting = wanting
+	Bool open = now < _openUntil && !a.Refuses(akWho) && !a.Closed(akWho) && Self.Private(akWho)
 	Self.SetMoment(akWho, open)
 EndFunction
 
-; Variant B's opinion, when it is installed alongside. Resolved by name so this
-; variant compiles and runs without it.
+; The player said "Later." or the moment was used: it closes until the next edge.
+Function Close(Actor akWho)
+	_openUntil = 0.0
+	Self.SetMoment(akWho, False)
+EndFunction
+
+; The relationship variant's opinion, whichever is installed alongside: B-lite
+; (the recommendation) or B. Resolved by name so this variant compiles and runs
+; without either.
 Bool Function TrackWants(Actor akWho)
-	ScriptObject track = (Self as Quest).CastAs("Overture:Companions:Track")
+	ScriptObject track = (Self as Quest).CastAs("Overture:Companions:Feeders")
+	If track == None
+		track = (Self as Quest).CastAs("Overture:Companions:Track")
+	EndIf
 	If track == None
 		Return False
 	EndIf

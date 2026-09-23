@@ -64,6 +64,16 @@ Scene Function OwnIntimateScene(Actor akWho)
 	Return None
 EndFunction
 
+; May Overture open a conversation of its own with this companion (variant C's
+; moment)? FALSE by default -- C6: a companion no adapter vouches for stays
+; invisible. A companion from a mod with voiced content of its own would
+; otherwise hear Overture's lines as subtitles over their own voice (design
+; review 2026-09-23). An adapter says True only when it knows the companion has
+; nothing of their own for the moment.
+Bool Function OpensMoments(Actor akWho)
+	Return False
+EndFunction
+
 ; Tell their system what just happened, in its own vocabulary. asWhat is one of
 ; "flirt", "deny", "scene". The base knows no vocabulary and says nothing.
 Function Notify(Actor akWho, String asWhat)

@@ -41,8 +41,58 @@ Int Property FAVOR_SEX_SCENE_ID = 0x0059BC AutoReadOnly
 ; her maximum is.
 Float Property AFFINITY_SCALE = 200.0 AutoReadOnly
 
+; The last answer, so the log speaks only when it changes. NOT a cache: script
+; variables live in the save, and "checked once" would survive an update of
+; Ivy's plugin that moved every id.
+Bool _valid = True
+
 Bool Function Installed()
-	Return Game.IsPluginInstalled(PLUGIN)
+	If !Game.IsPluginInstalled(PLUGIN)
+		Return False
+	EndIf
+	; C4 PER FIELD, not per plugin: a moved or missing global would otherwise read
+	; as "not angry, not irritated, not closed" -- a permissive guess, the opposite
+	; of what C4 promises (design review 2026-09-23). Every id, every time: ten
+	; lookups, and this runs at most every few seconds.
+	Bool valid = Self.Validate()
+	If valid != _valid
+		_valid = valid
+		If !valid
+			Debug.Trace("Overture companions: CompanionIvy.esm is installed but its ids do not match 6.1 - the Ivy adapter is OFF", 1)
+		EndIf
+	EndIf
+	Return valid
+EndFunction
+
+Bool Function Validate()
+	If (Game.GetFormFromFile(IVY_NPC_ID, PLUGIN) as ActorBase) == None
+		Return False
+	ElseIf (Game.GetFormFromFile(IVY_QUEST_ID, PLUGIN) as Quest) == None
+		Return False
+	ElseIf (Game.GetFormFromFile(FAVOR_SEX_SCENE_ID, PLUGIN) as Scene) == None
+		Return False
+	EndIf
+	Int[] globals = new Int[7]
+	globals[0] = AFFINITY_ID
+	globals[1] = IS_AROUSED_ID
+	globals[2] = LOVE_ID
+	globals[3] = AVAILABLE_ID
+	globals[4] = ANGRY_ID
+	globals[5] = IRRITATED_ID
+	globals[6] = 0x0011AB   ; _ivy_Arousal_Threshold: read nowhere yet, checked so a move is seen
+	Int i = 0
+	While i < globals.Length
+		If (Game.GetFormFromFile(globals[i], PLUGIN) as GlobalVariable) == None
+			Return False
+		EndIf
+		i += 1
+	EndWhile
+	Return True
+EndFunction
+
+; Her own Favor: Sex is the moment; Overture opens nothing of its own for her (C3).
+Bool Function OpensMoments(Actor akWho)
+	Return False
 EndFunction
 
 GlobalVariable Function IvyGlobal(Int aiID)
@@ -51,6 +101,7 @@ GlobalVariable Function IvyGlobal(Int aiID)
 	EndIf
 	Return Game.GetFormFromFile(aiID, PLUGIN) as GlobalVariable
 EndFunction
+
 
 ; Her own script, for calling her own functions. None when absent or renamed.
 ScriptObject Function IvyScript()
@@ -101,8 +152,12 @@ Bool Function IsRomanced(Actor akWho)
 EndFunction
 
 ; Angry or irritated, by her own reckoning, is a no -- whatever our numbers say.
+; A global that stopped resolving is a no too.
 Bool Function Refuses(Actor akWho)
 	If Parent.Refuses(akWho)
+		Return True
+	EndIf
+	If Self.IvyGlobal(ANGRY_ID) == None || Self.IvyGlobal(IRRITATED_ID) == None
 		Return True
 	EndIf
 	Return Self.Flag(ANGRY_ID) || Self.Flag(IRRITATED_ID)

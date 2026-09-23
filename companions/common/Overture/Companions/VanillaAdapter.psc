@@ -1,8 +1,9 @@
 Scriptname Overture:Companions:VanillaAdapter extends Overture:Companions:Adapter
-{Every companion built on the vanilla framework: CompanionActorScript on the
-actor, affinity in CA_Affinity. The twelve base-game companions, their DLC kin,
-and every mod companion that reuses the framework -- Ivy's actor carries it
-too, though her own system is IvyAdapter's and outranks this one for her.
+{The BASE GAME's companions: CompanionActorScript on the actor, affinity in
+CA_Affinity, the actor from Fallout4.esm or an official DLC master. A mod
+companion that reuses the framework (Ivy's actor carries it too) is NOT claimed
+here: it may have voiced content of its own, and only an adapter written for it
+knows (C6, design review 2026-09-23).
 
 Read 2026-09-23 from Fallout4.esm with tools/dump_record.py:
   CA_Affinity      AVIF 000A1B80    CA_IsRomantic  AVIF 00148DF6
@@ -27,11 +28,46 @@ ActorValue Function VanillaAV(Int aiID)
 	Return Game.GetFormFromFile(aiID, "Fallout4.esm") as ActorValue
 EndFunction
 
+; THE BASE GAME'S companions only -- Fallout4.esm and the official DLC masters.
+; Claiming every actor that carries CompanionActorScript swept in every mod
+; companion built on the framework (Heather, the spouse companions, Ivy's actor
+; too), and sent them down the path meant for companions with no content of
+; their own (design review 2026-09-23). A mod companion gets its own adapter, or
+; the engine fallback, which opens nothing (C6).
 Bool Function Claims(Actor akWho)
-	If akWho == None
+	If akWho == None || (akWho as CompanionActorScript) == None
 		Return False
 	EndIf
-	Return (akWho as CompanionActorScript) != None
+	Return Self.FromOfficialMaster(akWho.GetActorBase())
+EndFunction
+
+Bool Function FromOfficialMaster(Form akForm)
+	If akForm == None
+		Return False
+	EndIf
+	Int id = akForm.GetFormID()
+	If id < 0
+		; A load-order index of 0x80 or more is never an official master.
+		Return False
+	EndIf
+	; No bitwise AND in Papyrus: the object id is the low 24 bits.
+	Int local = id % 16777216
+	If Game.GetFormFromFile(local, "Fallout4.esm") == akForm
+		Return True
+	EndIf
+	If Game.IsPluginInstalled("DLCRobot.esm") && Game.GetFormFromFile(local, "DLCRobot.esm") == akForm
+		Return True
+	EndIf
+	If Game.IsPluginInstalled("DLCCoast.esm") && Game.GetFormFromFile(local, "DLCCoast.esm") == akForm
+		Return True
+	EndIf
+	Return Game.IsPluginInstalled("DLCNukaWorld.esm") && Game.GetFormFromFile(local, "DLCNukaWorld.esm") == akForm
+EndFunction
+
+; The base game's companions have no intimate content of their own: Overture's
+; conversation is theirs to have.
+Bool Function OpensMoments(Actor akWho)
+	Return Self.Claims(akWho)
 EndFunction
 
 Bool Function KnowsAffinity(Actor akWho)

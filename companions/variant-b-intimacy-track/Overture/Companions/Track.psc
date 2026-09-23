@@ -30,16 +30,30 @@ ledger (R-11), so LastPartner(player) and HoursSinceScene(player) already say
 COMPANION's persona: romantic and reticent lose devotion, mercantile shrugs,
 vulgar is aroused by it. ASSUMED, all of it -- the owner's poll.
 
+THE CASE AGAINST THIS VARIANT (design review 2026-09-23, and it is a fair one):
+TRUST and DEVOTION are Overture's own opinion of how close two people are, kept
+beside the store -- R-1 exists to prevent exactly "two mods keeping separate
+opinions of whether two NPCs are close". Variant B-lite keeps DESIRE (a state,
+not a closeness) and feeds the store with EVENTS instead; it is the
+recommendation. This one stays as the heavier option for the owner to weigh.
+
 SCAFFOLD (2026-09-23): not in the shipping plugin. Needs, in Overture.esp:
 AVIF OvertureCompanionTrust / Desire / Devotion (reserved 0x850-0x852),
-OvertureCompanionLastTick (0x856, game days), this script on the companions
-quest (0x855), and a timer started when a companion is recruited.}
+OvertureCompanionLastTick (0x856, game days), OvertureCompanionSeenScene
+(0x85A, game hours), this script on the companions quest (0x855), and a timer
+started when a companion is recruited.}
 
 Int Property TRUST_AV_ID = 0x00000850 AutoReadOnly
 Int Property DESIRE_AV_ID = 0x00000851 AutoReadOnly
 Int Property DEVOTION_AV_ID = 0x00000852 AutoReadOnly
 Int Property LAST_TICK_AV_ID = 0x00000856 AutoReadOnly
+; Per COMPANION: the time of the player's last scene this companion has already
+; reacted to. One script-wide watermark made a new recruit jealous of a scene from
+; before they ever joined (design review 2026-09-23).
+Int Property SEEN_SCENE_AV_ID = 0x0000085A AutoReadOnly
 Int Property REASON_ADDON = 5 AutoReadOnly
+; A tick never accrues more than this, in days: time APART is not time together.
+Float Property MAX_DAYS_PER_TICK = 1.0 AutoReadOnly
 
 ; Per game day. ASSUMED: tuned so a companion who travels with you and is never
 ; cheated on reaches DEVOTION 0.5 in about three weeks of game time.
@@ -47,8 +61,6 @@ Float Property DEVOTION_PER_DAY = 0.03 AutoReadOnly
 Float Property DESIRE_PER_DAY = 0.10 AutoReadOnly
 Float Property TRUST_PER_AFFINITY = 1.0 AutoReadOnly
 Float Property JEALOUSY = 0.10 AutoReadOnly
-
-Float _lastPlayerScene = -1.0
 
 Overture:Companions:Registry Function Registry()
 	Return (Self as Quest) as Overture:Companions:Registry
@@ -77,8 +89,36 @@ Function Move(Actor akWho, Int aiAxisID, Float afBy)
 	Float after = Self.Clamp01(before + afBy)
 	akWho.SetValue(av, after)
 	If aiAxisID != DESIRE_AV_ID && after != before
-		Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, (after - before) * 0.5, REASON_ADDON)
+		; Half the axis move, EXACTLY: AddBondBetween's amount is a fraction of the
+		; distance left, so a raw +x then -x would not come back (see
+		; AffinityMirror.ExactAmount, and the review's -0.016).
+		Actor player = Game.GetPlayer()
+		Float amount = Self.ExactAmount(Rapport:Relations.BondBetween(player, akWho), (after - before) * 0.5)
+		If amount != 0.0
+			Rapport:Relations.AddBondBetween(player, akWho, amount, REASON_ADDON)
+		EndIf
 	EndIf
+EndFunction
+
+Float Function ExactAmount(Float afBond, Float afDelta)
+	If afDelta > 0.0
+		If afBond >= 1.0
+			Return 0.0
+		EndIf
+		Float up = afDelta / (1.0 - afBond)
+		If up > 1.0
+			Return 1.0
+		EndIf
+		Return up
+	EndIf
+	If afBond <= -1.0
+		Return 0.0
+	EndIf
+	Float down = afDelta / (1.0 + afBond)
+	If down < -1.0
+		Return -1.0
+	EndIf
+	Return down
 EndFunction
 
 Float Function Axis(Actor akWho, Int aiAxisID)
@@ -107,6 +147,12 @@ Function Tick(Actor akWho)
 		Return
 	EndIf
 	Float days = today - last
+	; LastTick only moves while they travel with the player, so the first tick
+	; after a month apart would otherwise count the month (review 2026-09-23).
+	; Joined() resets it; the cap is the belt to that brace.
+	If days > MAX_DAYS_PER_TICK
+		days = MAX_DAYS_PER_TICK
+	EndIf
 
 	; Days together.
 	Self.Move(akWho, DEVOTION_AV_ID, DEVOTION_PER_DAY * days)
@@ -126,21 +172,34 @@ EndFunction
 
 ; A new scene for the player since the last look: with this companion, desire
 ; is sated and devotion grows; with anyone else, the companion's persona decides.
+; Recruited (FollowersScript's CompanionChange event): time together starts NOW,
+; and every scene the player had before they joined is already old news.
+Function Joined(Actor akWho)
+	ActorValue lastAV = Self.OurAV(LAST_TICK_AV_ID)
+	ActorValue seenAV = Self.OurAV(SEEN_SCENE_AV_ID)
+	If akWho == None || lastAV == None || seenAV == None
+		Return
+	EndIf
+	akWho.SetValue(lastAV, Utility.GetCurrentGameTime())
+	Float since = Rapport:Core.HoursSinceScene(Game.GetPlayer().GetFormID())
+	If since < 100000000.0
+		akWho.SetValue(seenAV, Utility.GetCurrentGameTime() * 24.0 - since)
+	EndIf
+EndFunction
+
 Function Jealousy(Actor akWho)
+	ActorValue seenAV = Self.OurAV(SEEN_SCENE_AV_ID)
+	If seenAV == None
+		Return
+	EndIf
 	Int player = Game.GetPlayer().GetFormID()
 	Float since = Rapport:Core.HoursSinceScene(player)
 	Float at = Utility.GetCurrentGameTime() * 24.0 - since
 	; "Never" comes back as infinity. Papyrus has no exponent syntax, hence the digits.
-	If since > 100000000.0 || at <= _lastPlayerScene + 0.01
+	If since > 100000000.0 || at <= akWho.GetValue(seenAV) + 0.01
 		Return
 	EndIf
-	; The first look after a load only learns where things stand: a scene from
-	; before this script was watching is not news, and must not sting.
-	Bool firstLook = _lastPlayerScene < 0.0
-	_lastPlayerScene = at
-	If firstLook
-		Return
-	EndIf
+	akWho.SetValue(seenAV, at)
 	If Rapport:Core.LastPartner(player) == akWho.GetFormID()
 		Self.Move(akWho, DESIRE_AV_ID, -0.6)
 		Self.Move(akWho, DEVOTION_AV_ID, 0.05)

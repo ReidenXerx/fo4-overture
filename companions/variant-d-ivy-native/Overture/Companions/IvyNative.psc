@@ -44,6 +44,10 @@ Int Property WAIT_TIMER = 7 AutoReadOnly
 Scene _hers = None
 Actor _ivy = None
 Bool _animating = False
+; This run of her scene reached the fade (so it happened), and whether Rapport
+; played it (so Rapport's own RecordScene already counted it).
+Bool _faded = False
+Bool _handedToRapport = False
 
 Overture:Companions:IvyAdapter Function Adapter()
 	Return (Self as Quest).CastAs("Overture:Companions:IvyAdapter") as Overture:Companions:IvyAdapter
@@ -69,11 +73,16 @@ Function Hook(Actor akIvy)
 EndFunction
 
 Event Scene.OnBegin(Scene akSender)
+	_faded = False
+	_handedToRapport = False
 	Debug.Trace("Overture companions: Ivy's Favor: Sex began", 0)
 EndEvent
 
 Event Scene.OnPhaseBegin(Scene akSender, Int auiPhaseIndex)
 	Debug.Trace("Overture companions: Ivy's Favor: Sex phase " + auiPhaseIndex + " began", 0)
+	If auiPhaseIndex == FADE_PHASE
+		_faded = True
+	EndIf
 	If PROBE_ONLY || auiPhaseIndex != FADE_PHASE || _ivy == None
 		Return
 	EndIf
@@ -86,6 +95,14 @@ EndEvent
 
 Event Scene.OnEnd(Scene akSender)
 	If _ivy == None
+		Return
+	EndIf
+	; Only a scene that HAPPENED, and only once. Aborted before the fade: nothing
+	; happened. Animated through Rapport: Rapport's RecordScene already added its
+	; 15% -- adding ours too is R-10's double count, reopened through a side door
+	; (design review 2026-09-23). Her own fade, played as hers: ours to record.
+	If !_faded || _handedToRapport
+		Debug.Trace("Overture companions: Ivy's Favor: Sex ended; nothing to record (faded=" + _faded + ", Rapport played it=" + _handedToRapport + ")", 0)
 		Return
 	EndIf
 	; The bond half of a scene: 15% of the distance left, the same size Rapport
@@ -105,6 +122,7 @@ Function Animate()
 		ivyScript.CallFunction("EndSex", noArgs)
 		_hers.Pause(True)
 		_animating = Rapport:Core.RequestScene(Game.GetPlayer(), _ivy, "athome")
+		_handedToRapport = _animating
 		If !_animating
 			; Rapport said not now: give her scene back exactly as it was.
 			_hers.Pause(False)

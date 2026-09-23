@@ -15,6 +15,14 @@ WHY IT MIRRORS DELTAS, NOT VALUES. Setting the bond to the affinity would erase
 what Rapport's scenes add (15% of the distance left, R-10's "add this much, for
 this reason"). Adding the change keeps every writer's contribution.
 
+AND WHY EACH DELTA IS CONVERTED. AddBondBetween's amount is a fraction of the
+distance LEFT (Ledger.cpp AddBond: +a moves a*(1-bond), -a moves a*(1+bond)),
+which is right for an event and wrong for a mirror: it is not conservative.
+Affinity 0 -> 0.4 -> 0.8 -> 0.4 passed raw leaves the bond at -0.016, and a
+companion idling at the cap ends up a stranger (design review 2026-09-23,
+re-computed). So the amount is solved for the exact change: delta/(1-bond) up,
+delta/(1+bond) down. The same three steps then leave it at 0.4.
+
 THE UNIQUE MODIFIERS here are the companion's own: their likes and dislikes of
 what the player does, which vanilla already turns into affinity. That is the
 case for A -- and its limit: intimacy never moves affinity (A is read-only on
@@ -54,8 +62,35 @@ Function Mirror(Actor akWho)
 	If change < MIN_CHANGE && change > -MIN_CHANGE
 		Return
 	EndIf
-	Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, change, REASON_ADDON)
+	Actor player = Game.GetPlayer()
+	Float amount = Self.ExactAmount(Rapport:Relations.BondBetween(player, akWho), change)
+	If amount != 0.0
+		Rapport:Relations.AddBondBetween(player, akWho, amount, REASON_ADDON)
+	EndIf
 	akWho.SetValue(av, now)
+EndFunction
+
+; The amount that moves the bond by exactly afDelta under Rapport's
+; fraction-of-the-distance-left arithmetic, clamped to what the API accepts.
+Float Function ExactAmount(Float afBond, Float afDelta)
+	If afDelta > 0.0
+		If afBond >= 1.0
+			Return 0.0
+		EndIf
+		Float up = afDelta / (1.0 - afBond)
+		If up > 1.0
+			Return 1.0
+		EndIf
+		Return up
+	EndIf
+	If afBond <= -1.0
+		Return 0.0
+	EndIf
+	Float down = afDelta / (1.0 + afBond)
+	If down < -1.0
+		Return -1.0
+	EndIf
+	Return down
 EndFunction
 
 Bool Function ConversationOpens(Actor akWho)
