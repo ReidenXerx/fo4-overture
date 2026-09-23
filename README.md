@@ -28,18 +28,21 @@ shouted across a market. That is what makes place load-bearing rather than decor
 
 ## Status
 
-Early. The lines are written and the route is proven; the plugin is not built yet.
+Early, and running. What the game has actually done (`docs/dialogue-route.md` has every measurement):
 
-- **128 lines**, 6,177 characters — every persona × register cell authored, four lines each, across
-  four stages, plus greetings, recoils, proposals, farewells and returning lines.
-- **The player's silent half is solved** by XDI, which also keeps the dialogue camera off the
-  player's still face.
-- **Lip sync is a scripted step** using the `LipGenerator` that ships with the game — no Creation
-  Kit, no download.
-- **Player dialogue records are not built yet**, and will be derived by diffing a real one out of
-  `Fallout4.esm` rather than guessed at.
+- **Talking to someone opens it** (O-7): adults, humans and ghouls, not your current companion, once
+  a game day (O-8) — then their own dialogue takes over. No hotkey, no menu, no verb.
+- **The NPC answers in their persona**, with every authored variant rotating, and **place overrides
+  it**: the crude register recoils in a crowded room, even on the persona it would have landed with.
+- **Three stages in one conversation** (the `--stages 3` build): a land runs on into the next wheel, a
+  miss ends it, a returning NPC starts at stage 2, and a proposition in the wrong register is refused.
+- **Every reply now writes to Rapport's relationship store** — built, and read by the game on all 40
+  reply lines; it runs once its script file is deployed.
+- The player's half is text through XDI, which keeps the camera off the player's still face; lip sync
+  is a scripted step with the game's own `LipGenerator`.
 
-`docs/dialogue-route.md` has the detail, including what is proven and what merely looks proven.
+What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, the
+companion module (`companions/`, four variants, none shipped), and the owner's open questions.
 
 ## Requirements
 
@@ -51,14 +54,18 @@ Early. The lines are written and the route is proven; the plugin is not built ye
 ## Building
 
 ```bash
-python tools/make_overture_esp.py build/Overture.esp   # the plugin
-python scripts/make-lip.py                             # .lip for every rendered line
+python tools/make_overture_esp.py build/Overture.esp              # the verified one-exchange plugin
+python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
+pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply
+pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
+python scripts/make-lip.py                                         # .lip for every rendered line
+pwsh companions/tools/check.ps1                                    # compile-check the companion scaffolds
 ```
 
-The plugin currently builds the **thinnest loop**: one quest, one scene, four player options in the
-four wheel slots, one placeholder NPC reply each. It has never been loaded by the game. Every byte
-shape in it is transcribed from `FFGoodneighbor02`, and round-trips through this repo's own readers,
-but reading your own output back proves the writer agrees with the reader and nothing more.
+Every byte shape in the plugin is transcribed from a vanilla record and says which one; where a
+field is not understood it is copied verbatim and marked. Reading our own output back only proves
+the writer agrees with the reader — the game is the test, and the test results are in
+`docs/dialogue-route.md`.
 
 ## Licence
 
