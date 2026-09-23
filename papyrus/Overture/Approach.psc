@@ -258,20 +258,21 @@ Event Scene.OnEnd(Scene akSender)
 	; and each line was spoken one conversation late, by the next OnBegin. The
 	; facts in _talk* are this conversation's either way: events arrive in order,
 	; so the next conversation's OnBegin cannot have run before this one.
-	Bool playingAtEnd = akSender.IsPlaying()
+	Actor who = _talkWith
 	Self.Narrate()
 	; The tidy-up is different. One scene serves every conversation, and clearing
-	; the alias under one that has already begun would break it. So wait, briefly,
-	; for the scene to really stop, and tidy only if nobody has it by then.
-	Int waited = 0
-	While akSender.IsPlaying() && waited < 20
-		Utility.Wait(0.25)
-		waited += 1
-	EndWhile
-	Debug.Trace("Overture: scene ended - IsPlaying at the event " + playingAtEnd + ", after " + (waited * 0.25) + " s " + akSender.IsPlaying(), 0)
-	If akSender.IsPlaying()
+	; the alias under one that has already begun would break it. NOT IsPlaying():
+	; MEASURED 2026-09-23, it still said True five seconds after this event
+	; ("IsPlaying at the event True, after 5.000000 s True"), so it guarded nothing
+	; and the tidy-up never ran. The alias says it instead: ALFA puts the next
+	; speaker in it before their scene begins, so while it holds nobody else,
+	; nobody else has the scene.
+	Actor inAlias = Self.TargetAlias().GetActorReference()
+	If inAlias != None && inAlias != who
+		Debug.Trace("Overture: scene ended - " + inAlias.GetFormID() + " already holds the alias, left as it is", 0)
 		Return
 	EndIf
+	Debug.Trace("Overture: scene ended - alias let go, persona and room forgotten", 0)
 	Self.TargetAlias().Clear()
 	; And forget who it was: a persona or a room left in the globals is the next
 	; NPC's reply if their own OnBegin is late. -1 matches no reply (the staged
