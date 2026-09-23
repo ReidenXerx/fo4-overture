@@ -50,9 +50,10 @@ convenience, and gating it off in a release build is a packaging item.)
       +-- landed on an earlier day ----> STAGE 2: four registers
                                             land   -> STAGE 3
                                             miss / recoil -> hand-back
-  STAGE 3  two options: the proposition, or goodbye
-      propose -> ACCEPT (-> STAGE 4) | NOT YET | REFUSE | NOT HERE (public; §6)
-      goodbye -> their farewell line (no bond change: leaving well costs nothing)
+  STAGE 3  the proposition, in each of the four registers
+      their register  -> ACCEPT (-> STAGE 4) | NOT YET | REFUSE | NOT HERE (public; §6)
+      any other       -> REFUSE
+      leaving the conversation is the goodbye (no bond change: leaving well costs nothing)
   STAGE 4  the scene, through Rapport (player + NPC)
 ```
 
@@ -288,11 +289,11 @@ No list, no timer, no co-save of Overture's own.
 | entry | the greeting's own conditions on the speaker, `ALFA` Forced Alias, ENAM Requires Player Activation | **VERIFIED** (O-7, O-8) |
 | once a day | `OvertureNextApproachDay <= GameDaysPassed`, the CTDA's Use Global bit | **VERIFIED** |
 | persona and room | globals the script sets in the scene's `OnBegin`, read by INFO conditions | **VERIFIED** |
-| stages | scene PHASES, one player-dialogue action each; a phase's start conditions read what the previous reply decided | to prove |
+| stages | scene PHASES, one player-dialogue action each (`tools/overture_stages.py`, `--stages 3`): a reply that ends the talk carries ENAM `0x40` End Running Scene, a land runs on; phase 1 starts only if `OvertureStageReached == 0` on the alias | **VERIFIED** (T-S1..T-S5, `dialogue-route.md`) |
 | "what the reply decided" | `Overture:Reply` on each NPC reply INFO, `extends TopicInfo`, `Event OnEnd(ObjectReference akSpeakerRef, Bool abHasBeenSaid)` — vanilla's own pattern (`CA_TopicInfoScript`, `CA_DialogueBump_BaseScript`) — calls `Overture:Approach.Replied`, which writes the bond and the stage reached | **built on stage 1**; the game reads it on all 40 INFOs; runs once the owner's Deploy puts `Reply.pex` in Data |
 | INFO VMAD | one plain script with two Int properties (`Stage`, `Outcome`), no fragment block — the shape of Fallout4.esm INFO `0001DABE` (xEdit `wbVMADFragmentedINFO`, fragments optional from 3) | **VERIFIED parsed** (the engine binds by it) |
-| stage-3 verdict | computed at the stage-2 reply's `OnEnd` (after the bond write), set in a global the stage-3 reply sets are conditioned on (§2's order) | to prove |
-| stage 4 | the accept line's `OnEnd` → `NoteAffair` if needed → `NarrateBonus` → `RequestScene(player, npc, scenario)` | to prove: the player in a Rapport scene |
+| stage-3 verdict | `Overture:Approach.Decide`, at the stage-2 land's `OnEnd` (after the bond write), into `OvertureVerdict`; the right register's replies are conditioned on it, the other three refuse | built; wrong-register refusal **VERIFIED**, the verdict itself waits on `Reply.pex` |
+| stage 4 | the accept line's `OnEnd` → `NoteAffair` if needed → `NarrateBonus` → `RequestScene(player, npc, scenario)`, behind `OvertureScenesEnabled` (0 by default; `approach scenes on`) | built, OFF; to prove: the player in a Rapport scene |
 | scenario | vulgar → `quickie` outdoors, `athome` indoors; romantic → `tender`; mercantile and reticent → `athome` indoors, `tender` outdoors — ASSUMED | |
 | the follow | a second alias with a follow package, filled by the "not here" reply's script, cleared on scene or lapse | to prove; poll |
 
@@ -483,7 +484,8 @@ teleports her mid-scene when the player is carried off by AAF.
 in Vortex. It puts `Overture-dev/Scripts/Overture/Reply.pex` into Data (a new file never gets there
 from a staging copy alone) — and the Silhouette session's pending `Silhouette.esp` / `Adopter.pex`
 deploy is waiting on the same press. After it, one offer to Lindsey proves the bond write
-(`dialogue-route.md`, "Every reply now says what it did").
+(`dialogue-route.md`, "Every reply now says what it did"). Then the staged plugin (`--stages 3`,
+data half verified) can go in without another Deploy, and the verdict can be walked.
 
 Each: the question, the options, the recommendation, and what the build does without an answer.
 

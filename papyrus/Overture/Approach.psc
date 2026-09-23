@@ -23,7 +23,10 @@ THE DEV CHANNEL, through F4MCP's addon protocol (with no F4MCP.esp the bridge
 resolves to None and none of it registers):
   approach <npc>         force the scene on this NPC now, eligible or not
   approach reset <npc>   clear the day stamp, so the next talk opens it again
-  approach status <npc>  what the gate sees for this NPC
+  approach forget <npc>  clear the day stamp AND the stage reached (stage 1 again)
+  approach status <npc>  what the gate sees for this NPC, the stage reached, the bond
+  approach verdict <npc> what stage 3 would answer now (staged build), changing nothing
+  approach scenes on|off whether a yes really asks Rapport for a scene (staged build)
 
 NO GetDisplayName ANYWHERE. It is absent from the decompiled base sources, and
 the compiler reports an unknown method as
@@ -56,12 +59,33 @@ Float Property RECOIL = -0.06 AutoReadOnly
 ; R-10: 3 is dialogue, the reason Rapport keeps for Overture.
 Int Property REASON_DIALOGUE = 3 AutoReadOnly
 
-; Overture:Reply's Outcome property, as the builder writes it.
+; Overture:Reply's Outcome property, as the builder writes it (make_overture_esp
+; 1-5, overture_stages 6-9).
 Int Property OUTCOME_LAND = 1 AutoReadOnly
 Int Property OUTCOME_MISS = 2 AutoReadOnly
 Int Property OUTCOME_OFFEND = 3 AutoReadOnly
 Int Property OUTCOME_RECOIL = 4 AutoReadOnly
 Int Property OUTCOME_RECOIL_LIKED = 5 AutoReadOnly
+Int Property OUTCOME_ACCEPT = 6 AutoReadOnly
+Int Property OUTCOME_NOTYET = 7 AutoReadOnly
+Int Property OUTCOME_REFUSE = 8 AutoReadOnly
+Int Property OUTCOME_NOT_HERE = 9 AutoReadOnly
+
+; THE STAGED BUILD (tools/overture_stages.py, --stages 3). The one-exchange
+; plugin has none of these records: every lookup below comes back None there,
+; and every use is guarded.
+Int Property VERDICT_GLOBAL_ID = 0x00000845 AutoReadOnly
+Int Property SCENES_GLOBAL_ID = 0x00000846 AutoReadOnly
+Int Property VERDICT_REFUSE = 1 AutoReadOnly
+Int Property VERDICT_NOTYET = 2 AutoReadOnly
+Int Property VERDICT_ACCEPT = 3 AutoReadOnly
+Int Property VERDICT_NOT_HERE = 4 AutoReadOnly
+Float Property NOTYET = 0.02 AutoReadOnly
+Float Property REFUSE = -0.03 AutoReadOnly
+; Spoken for (methodology 7): refused outright at this faithfulness, otherwise
+; the bar rises by this much of it. ASSUMED.
+Float Property SPOKEN_FOR_FAITH = 0.8 AutoReadOnly
+Float Property FAITH_WEIGHT = 0.4 AutoReadOnly
 
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
@@ -174,10 +198,113 @@ Float Function Worth(Int aiStage, Int aiOutcome)
 		Return OFFEND
 	ElseIf aiOutcome == OUTCOME_RECOIL
 		Return RECOIL
+	ElseIf aiOutcome == OUTCOME_NOTYET
+		Return NOTYET
+	ElseIf aiOutcome == OUTCOME_REFUSE
+		Return REFUSE
 	EndIf
-	; A miss is the player learning, and a recoil on the persona it would have
-	; landed with is "yes, not here": neither costs anything.
+	; A miss is the player learning, a recoil on the persona it would have landed
+	; with is "yes, not here", and a yes writes nothing: the scene does, and
+	; writing both would be R-10's double count through the other door.
 	Return 0.0
+EndFunction
+
+GlobalVariable Function VerdictGlobal()
+	Return Game.GetFormFromFile(VERDICT_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+GlobalVariable Function ScenesGlobal()
+	Return Game.GetFormFromFile(SCENES_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+; The bond a yes needs, per persona, in PERSONAS order (methodology 3). ASSUMED.
+Float Function Threshold(Int aiPersona)
+	If aiPersona == 0
+		Return 0.15
+	ElseIf aiPersona == 1
+		Return 0.25
+	ElseIf aiPersona == 2
+		Return 0.08
+	EndIf
+	Return 0.30
+EndFunction
+
+; The romantic's setting (R-8: "fancy words, patience, setting"): indoors, or
+; after dark. Being in public is handled before this, by "not here".
+Bool Function Setting(Actor akWho)
+	Float hour = (Utility.GetCurrentGameTime() - Math.Floor(Utility.GetCurrentGameTime())) * 24.0
+	Return akWho.IsInInterior() || hour >= 20.0 || hour < 5.0
+EndFunction
+
+String Function ScenarioFor(Actor akWho, Int aiPersona)
+	Bool inside = akWho.IsInInterior()
+	If aiPersona == 1
+		Return "tender"
+	ElseIf inside
+		Return "athome"
+	ElseIf aiPersona == 2
+		Return "quickie"
+	EndIf
+	Return "tender"
+EndFunction
+
+Bool Function SpokenFor(Actor akWho)
+	Return Rapport:Relations.HasPartner(akWho) && !Rapport:Relations.ArePartners(Game.GetPlayer(), akWho)
+EndFunction
+
+; Stage 3's verdict for the register that got here, decided when the stage-2
+; land has been said -- seconds before the stage-3 wheel opens, so the replies'
+; conditions never race it (docs/methodology.md 2).
+Int Function Decide(Actor akWho)
+	Int persona = Self.PersonaIndex(akWho)
+	If persona < 0
+		Return VERDICT_REFUSE
+	EndIf
+	Float bond = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
+	Float bar = Self.Threshold(persona)
+	If Self.SpokenFor(akWho)
+		Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
+		If faith >= SPOKEN_FOR_FAITH
+			Return VERDICT_REFUSE
+		EndIf
+		bar += FAITH_WEIGHT * faith
+	EndIf
+	If bond < bar
+		If bond < bar * 0.5
+			Return VERDICT_REFUSE
+		EndIf
+		Return VERDICT_NOTYET
+	EndIf
+	If persona == 1 && !Self.Setting(akWho)
+		Return VERDICT_NOTYET
+	EndIf
+	GlobalVariable inPublic = Self.PublicGlobal()
+	If inPublic != None && inPublic.GetValue() != 0.0
+		Return VERDICT_NOT_HERE
+	EndIf
+	If Rapport:Core.Busy() || Rapport:Core.CanRun(Self.ScenarioFor(akWho, persona), Game.GetPlayer(), akWho) < 0
+		Return VERDICT_NOTYET
+	EndIf
+	Return VERDICT_ACCEPT
+EndFunction
+
+; Stage 4, behind OvertureScenesEnabled until a Rapport scene with the player in
+; it has been watched end to end (methodology 5).
+Function Proposition(Actor akWho)
+	GlobalVariable scenes = Self.ScenesGlobal()
+	If scenes == None || scenes.GetValue() == 0.0
+		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; scenes are off (OvertureScenesEnabled 0)", 0)
+		Return
+	EndIf
+	Actor player = Game.GetPlayer()
+	Int persona = Self.PersonaIndex(akWho)
+	If Self.SpokenFor(akWho)
+		; Staged by Rapport: recorded only if the scene really starts (C-9).
+		Rapport:Core.NoteAffair(player.GetFormID(), akWho.GetFormID())
+	EndIf
+	Rapport:Core.NarrateBonus(player.GetFormID(), akWho.GetFormID(), "bond", Rapport:Relations.BondBetween(player, akWho))
+	Bool took = Rapport:Core.RequestScene(player, akWho, Self.ScenarioFor(akWho, persona))
+	Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; Rapport took the scene: " + took, 0)
 EndFunction
 
 ; Called by Overture:Reply when an NPC's reply line has been said. Writes the
@@ -200,6 +327,16 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 			akWho.SetValue(reached, aiStage as Float)
 			note = note + " | stage reached " + aiStage
 		EndIf
+		; The stage-2 land opens stage 3: decide its verdict now, with the bond
+		; this land just wrote. Only the staged plugin has the global.
+		GlobalVariable verdict = Self.VerdictGlobal()
+		If aiStage == 2 && verdict != None
+			Int decided = Self.Decide(akWho)
+			verdict.SetValue(decided as Float)
+			note = note + " | verdict " + decided
+		EndIf
+	ElseIf aiOutcome == OUTCOME_ACCEPT
+		Self.Proposition(akWho)
 	EndIf
 	Debug.Trace(note, 0)
 EndFunction
@@ -250,6 +387,14 @@ String Function Prepare(Actor who)
 			note = note + " | " + watching + " watching - private"
 		EndIf
 	EndIf
+
+	; A verdict belongs to one conversation. 0 matches no stage-3 reply, so a
+	; conversation that reaches stage 3 without a fresh one is silent, never
+	; somebody else's yes.
+	GlobalVariable verdict = Self.VerdictGlobal()
+	If verdict != None
+		verdict.SetValue(0.0)
+	EndIf
 	Return note
 EndFunction
 
@@ -270,6 +415,23 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	String first = ""
 	If count > 0
 		first = akArgs[4] as String
+	EndIf
+
+	; approach scenes on|off -- whether a yes really asks Rapport for a scene.
+	; No actor: the switch is global.
+	If first == "scenes"
+		GlobalVariable scenes = Self.ScenesGlobal()
+		If scenes == None
+			MCP:Core.Reply(tag, "approach scenes: this Overture.esp has no OvertureScenesEnabled - build with --stages 3")
+			Return
+		EndIf
+		If count > 1 && (akArgs[6] as String) == "on"
+			scenes.SetValue(1.0)
+		ElseIf count > 1 && (akArgs[6] as String) == "off"
+			scenes.SetValue(0.0)
+		EndIf
+		MCP:Core.Reply(tag, "approach scenes: " + scenes.GetValue())
+		Return
 	EndIf
 
 	; The actor is the LAST token (its form-id reading), or the nearest one.
@@ -296,6 +458,27 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		EndIf
 		who.SetValue(av, 0.0)
 		MCP:Core.Reply(tag, "approach reset: " + who.GetFormID() + " may be approached again today")
+		Return
+	EndIf
+
+	; approach forget <npc> -- as if the player had never approached them: the
+	; day stamp AND the stage reached. The bond is Rapport's, and stays.
+	If first == "forget"
+		ActorValue day = Self.NextDayAV()
+		ActorValue stage = Self.StageReachedAV()
+		If day != None
+			who.SetValue(day, 0.0)
+		EndIf
+		If stage != None
+			who.SetValue(stage, 0.0)
+		EndIf
+		MCP:Core.Reply(tag, "approach forget: " + who.GetFormID() + " starts again at stage 1, today")
+		Return
+	EndIf
+
+	; approach verdict <npc> -- what stage 3 would answer right now, changing nothing.
+	If first == "verdict"
+		MCP:Core.Reply(tag, "approach verdict: " + who.GetFormID() + " | verdict=" + Self.Decide(who) + " (1 refuse 2 notyet 3 accept 4 not here) | bond=" + Rapport:Relations.BondBetween(Game.GetPlayer(), who) + " | bar=" + Self.Threshold(Self.PersonaIndex(who)) + " | spokenFor=" + Self.SpokenFor(who))
 		Return
 	EndIf
 

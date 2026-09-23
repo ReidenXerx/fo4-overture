@@ -772,6 +772,23 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 1
+    # --stages 3: the staged conversation (tools/overture_stages.py), NOT YET
+    # VERIFIED IN GAME. Without it, the verified one-exchange plugin, unchanged.
+    stages = 1
+    if '--stages' in sys.argv:
+        stages = int(sys.argv[sys.argv.index('--stages') + 1])
+    if stages == 3:
+        import overture_stages
+        blob, staged = overture_stages.build_staged()
+        out = pathlib.Path(sys.argv[1])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(blob)
+        print(f'wrote {out} ({len(blob)} bytes) -- STAGED BUILD, unverified in game')
+        for stage in (1, 2, 3):
+            print(f'  stage {stage}: ' + ', '.join(f'{k} {v:08X}' for k, v in staged[stage].items()))
+        return 0
+    if stages != 1:
+        raise SystemExit('--stages is 1 (the verified build) or 3')
     blob, topic_ids = build()
     out = pathlib.Path(sys.argv[1])
     out.parent.mkdir(parents=True, exist_ok=True)

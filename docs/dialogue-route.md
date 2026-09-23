@@ -530,6 +530,44 @@ public" -- Rapport's crowd scan has not published yet, and Overture treats unkno
 (a recoil the player did not expect is the smaller mistake). A tester who loads and talks at once will
 see recoils a minute later would not.
 
+## The staged conversation runs (2026-09-23, the data half VERIFIED)
+
+`make_overture_esp.py <out> --stages 3` (`tools/overture_stages.py`) builds stages 1 → 2 → 3 in one
+scene; the default build stays the one-exchange plugin, byte for byte. The branching is DATA, so it
+runs without a line of Papyrus -- and it did, with `Reply.pex` still missing from Data:
+
+- a reply that ends the conversation carries ENAM `0x40` End Running Scene (misses, offends, recoils,
+  the reticent's first-meeting land, every stage-3 answer); a land carries nothing and the scene runs
+  on into the next phase's wheel;
+- phase 1 (stage 1) starts only if `GetValue OvertureStageReached == 0` on the ALFA alias (run-on 5),
+  with an empty phase 0 in front -- vanilla's `WorkshopRecruitVaultTec` gates a later phase on its
+  ALFA alias the same way;
+- stage 3 is the proposition in all four registers (every one of the base game's 2,848 player-dialogue
+  actions fills all four slots); only the persona's own register reads the verdict, the other three are
+  refused.
+
+**Measured** (Third Rail, `f4mcp-before-actions`, no verb on the path):
+
+| # | who | chose | heard | proves |
+| --- | --- | --- | --- | --- |
+| T-S1 | Lindsey (mercantile) | charm | `27001001` "That is very nice. Now tell me what you actually want." → closed | a miss ends the scene |
+| T-S2 | Lindsey | offer, offer, charm | `27001020` "Now that is how you open a conversation." → **stage-2 wheel** → `27001121` "Now we are negotiating properly." → **stage-3 wheel** → `27003001` "You have not made it worth my while, and you know it." → closed | three stages in ONE conversation; wrong-register refusal |
+| T-S4 | Harold (reticent), first meeting | linger | `27001078` "You are still here. Most people are not." → closed, no stage 2 | R-8: nothing more the first time |
+| T-S5 | Harold, `OvertureStageReached` set to 1 by console | linger, charm | the FIRST wheel is stage 2 → `27001179` "That is the longest anybody has stayed. I did notice." → stage 3 → `27003019` "I cannot do this. Not like this, not right now." | a returning NPC skips stage 1 (the alias condition) |
+
+`console 115EA1.setav OvertureStageReached 1` set a modded actor value by its EDID, which is how T-S5
+stood in for the script that will set it.
+
+**Not verified yet, all waiting on `Reply.pex` being in Data:** the bond writes, the stage reached
+being written by the script, and stage 3 in the RIGHT register -- the verdict (accept / not yet /
+refuse / not here) is computed by `Overture:Approach.Decide` when the stage-2 land has been said, and
+with no script the verdict global stays 0 and matches no reply. That path was deliberately not
+exercised: a wheel whose answer matches nothing may leave the dialogue waiting.
+
+The verified default plugin is what is in Data tonight. After the owner's Deploy:
+`python tools/make_overture_esp.py build/Overture.esp --stages 3` and `scripts/deploy-dev.ps1` (both
+files already exist in Data, so no second Deploy) put the staged one in.
+
 ## Status
 
 | | |
@@ -539,6 +577,7 @@ see recoils a minute later would not.
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
 | Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start; alias released at scene end |
+| The staged conversation (`--stages 3`) | **Data half verified** -- three stages in one conversation, misses end it, returning NPCs open at stage 2; the verdict waits on `Reply.pex` |
 | Replies write the bond (`Overture:Reply`, INFO VMAD) | **Half verified** -- the game reads the scripts on all 40 INFOs; `Reply.pex` awaits the owner's Vortex Deploy |
 | Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
 | Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |
