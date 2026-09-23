@@ -61,6 +61,7 @@ PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
 NEXT_DAY_AV = 0x01000843      # AVIF: the game day an NPC may be approached again (O-8)
+STAGE_REACHED_AV = 0x01000844  # AVIF: the furthest stage that LANDED with the player (methodology 8)
 
 # The register O-4 calls intimate. Only this one recoils in public: a gift or a
 # compliment in a crowded bar is merely a gift or a compliment.
@@ -83,6 +84,11 @@ ENAM_REQUIRES_PLAYER_ACTIVATION = 0x08   # a greeting only on the player's E, ne
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
+# On every NPC reply INFO. Its OnEnd tells Overture:Approach.Replied what the
+# line did; the two Int properties say which stage and which outcome.
+REPLY_SCRIPT = 'Overture:Reply'
+# Overture:Reply's Outcome values -- Overture:Approach's OUTCOME_* must match.
+OUTCOME_LAND, OUTCOME_MISS, OUTCOME_OFFEND, OUTCOME_RECOIL, OUTCOME_RECOIL_LIKED = 1, 2, 3, 4, 5
 SCENE_EDID = 'OvertureApproachScene'
 
 # The alias the quest points at whoever the player is talking to. Index 0 is
@@ -139,6 +145,30 @@ def zstring(text):
     return text.encode('ascii') + b'\0'
 
 
+def wstring(text):
+    """A VMAD string: uint16 length, then the bytes, no terminator."""
+    raw = text.encode('ascii')
+    return struct.pack('<H', len(raw)) + raw
+
+
+def vmad(script, int_props=()):
+    """One script, optionally with Int properties. version 6, object format 2.
+
+    The INFO form of this is MEASURED on Fallout4.esm INFO 0001DABE: its VMAD is
+    version 6, format 2, two plain scripts (CA_DialogueBump_TopicInfoScript with
+    one edited property, CA_DB_Event01 with none) and NOTHING after them -- the
+    fragment block is optional (xEdit wbVMADFragmentedINFO, SetOptionalFrom(3)).
+    A property is: name, type (3 = Int), status (1 = edited, as vanilla's is),
+    then the value.
+    """
+    v = struct.pack('<hhH', 6, 2, 1)
+    v += wstring(script) + struct.pack('<B', 0)        # status: local
+    v += struct.pack('<H', len(int_props))
+    for name, value in int_props:
+        v += wstring(name) + struct.pack('<BB', 3, 1) + struct.pack('<i', value)
+    return v
+
+
 def record(sig, form_id, fields_blob, flags=0):
     return (sig.encode('ascii')
             + struct.pack('<III', len(fields_blob), flags, form_id)
@@ -179,12 +209,8 @@ def quest():
     dnam = bytes.fromhex('110064670000000000000000')
     # version 6, object format 2, one script, no properties. The script resolves
     # everything else by file-relative id at runtime, so there is nothing to bind.
-    vmad = struct.pack('<hhH', 6, 2, 1)
-    vmad += struct.pack('<H', len(SCRIPT_NAME)) + SCRIPT_NAME.encode('ascii')
-    vmad += struct.pack('<B', 0)      # status: local
-    vmad += struct.pack('<H', 0)      # no properties
     f = field('EDID', zstring(QUEST_EDID))
-    f += field('VMAD', vmad)
+    f += field('VMAD', vmad(SCRIPT_NAME))
     f += field('DNAM', dnam)
     f += field('NEXT', b'')
     # aliases
@@ -258,6 +284,20 @@ def next_day_av():
     return record('AVIF', NEXT_DAY_AV, f)
 
 
+def stage_reached_av():
+    """AVIF: the furthest stage that LANDED with the player, 0 = never.
+
+    Written by Overture:Approach.Replied on a land; read to start a returning
+    conversation at stage 2 rather than replaying first-meeting lines
+    (docs/methodology.md 1 and 8). Same shape as the next-day value.
+    """
+    f = field('EDID', zstring('OvertureStageReached'))
+    f += field('DESC', zstring(''))
+    f += field('NAM0', struct.pack('<f', 0.0))
+    f += field('AVFL', struct.pack('<I', 0x00000400))
+    return record('AVIF', STAGE_REACHED_AV, f)
+
+
 def topic(topic_id, edid, infos=1):
     """One DIAL. Transcribed from DIAL 0010BEB4.
 
@@ -288,7 +328,7 @@ def topic(topic_id, edid, infos=1):
 
 
 def line(info_id, player_prompt, spoken, persona_index=None, public=None,
-         enam=ENAM_RANDOM):
+         enam=ENAM_RANDOM, reply=None):
     """One INFO. Transcribed from INFO 0010BEC4 (a player line) and 0010BEBD
     (an NPC reply), which differ in exactly one field: the player's has RNAM.
 
@@ -306,12 +346,18 @@ def line(info_id, player_prompt, spoken, persona_index=None, public=None,
     fo4-rapport's barks work without it.
     """
     trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
+    # VMAD FIRST, where INFO 0001DABE has it. `reply` = (stage, outcome) puts
+    # Overture:Reply on the line; the player's own lines carry none.
+    f = b''
+    if reply is not None:
+        stage, outcome = reply
+        f += field('VMAD', vmad(REPLY_SCRIPT, (('Stage', stage), ('Outcome', outcome))))
     # ENAM bit 0x02 = "one of several", the engine's Random flag. Ours was 0 and
     # every read returned the same line even though two passed their conditions.
     # MEASURED across every dialogue INFO in Fallout4.esm: of lines carrying
     # ENAM 2, 87% sit in a topic that holds more than one line (15,022 of
     # 17,269); of lines carrying 0, only 31% do. tools/info_enam.py is the check.
-    f = field('ENAM', struct.pack('<HH', enam, 0))
+    f += field('ENAM', struct.pack('<HH', enam, 0))
     f += field('TRDA', trda)
     f += field('NAM1', zstring(spoken))
     f += field('NAM2', b'\0')
@@ -600,7 +646,7 @@ def build():
     recoil = {}
     for l in bank['lines']:
         if l['kind'] == 'response' and l['stage'] == 1:
-            reply.setdefault((l['register'], l['persona']), []).append(l['text'])
+            reply.setdefault((l['register'], l['persona']), []).append((l['text'], l['outcome']))
         elif l['kind'] == 'recoil' and l['stage'] == 1:
             recoil.setdefault(l['persona'], []).append(l['text'])
 
@@ -608,6 +654,7 @@ def build():
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
                (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
                (ENABLED_GLOBAL, 'enabled global'), (NEXT_DAY_AV, 'next-day actor value'),
+               (STAGE_REACHED_AV, 'stage-reached actor value'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
         prompt = by_register[register]
@@ -658,9 +705,13 @@ def build():
                     rid = RECOIL_BASE + k * MAX_VARIANTS + v
                     all_ids.append((rid, f'recoil {persona} variant {v}'))
                     last = v == len(texts) - 1
+                    # The vulgar recoil is "yes -- not here": the register was
+                    # right. Every other persona's is an embarrassment.
+                    liked = bank['lands_on'].get(persona) == register
                     block += line(rid, None, text,
                                   persona_index=k, public=1,
-                                  enam=ENAM_RANDOM | (ENAM_RANDOM_END if last else 0))
+                                  enam=ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
+                                  reply=(1, OUTCOME_RECOIL_LIKED if liked else OUTCOME_RECOIL))
                     n_infos += 1
 
         for k, persona in enumerate(PERSONAS):
@@ -670,10 +721,18 @@ def build():
             if len(texts) > MAX_VARIANTS:
                 raise SystemExit(f'{register}/{persona} has {len(texts)} variants, '
                                  f'more than the {MAX_VARIANTS} the id spacing allows')
-            for v, text in enumerate(texts):
+            for v, (text, outcome) in enumerate(texts):
                 iid = INFO_BASE + (n * len(PERSONAS) + k) * MAX_VARIANTS + v
                 all_ids.append((iid, f'{register}/{persona} variant {v}'))
-                block += line(iid, None, text, persona_index=k)
+                if outcome == 'land':
+                    code = OUTCOME_LAND
+                elif register == INTIMATE_REGISTER:
+                    # Crude at someone who did not want crude is an insult, not
+                    # a wrong guess (methodology 3).
+                    code = OUTCOME_OFFEND
+                else:
+                    code = OUTCOME_MISS
+                block += line(iid, None, text, persona_index=k, reply=(1, code))
                 n_infos += 1
 
         # The lines are built before the topic, so TIFC is the REAL count. An
@@ -695,9 +754,9 @@ def build():
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
     blob = group('GLOB', persona_global() + public_global() + enabled_global()) + group('QUST', quest_blob)
-    blob += group('AVIF', next_day_av())
+    blob += group('AVIF', next_day_av() + stage_reached_av())
 
-    records = 3 + 1 + 1 + 1 + 2 + count  # globs, AVIF, quest, scene, greeting pair, the rest
+    records = 3 + 2 + 1 + 1 + 2 + count  # globs, AVIFs, quest, scene, greeting pair, the rest
     # From every id actually used. The hand-listed version predated the variant
     # and recoil ranges and named an id below half of them.
     next_object = max(i for i, _what in all_ids) + 1

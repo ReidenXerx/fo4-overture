@@ -289,8 +289,8 @@ No list, no timer, no co-save of Overture's own.
 | once a day | `OvertureNextApproachDay <= GameDaysPassed`, the CTDA's Use Global bit | **VERIFIED** |
 | persona and room | globals the script sets in the scene's `OnBegin`, read by INFO conditions | **VERIFIED** |
 | stages | scene PHASES, one player-dialogue action each; a phase's start conditions read what the previous reply decided | to prove |
-| "what the reply decided" | a script on each NPC reply INFO, `extends TopicInfo`, `Event OnEnd(ObjectReference akSpeakerRef, Bool abHasBeenSaid)` — vanilla's own pattern (`CA_TopicInfoScript`, `CA_DialogueBump_BaseScript`). It writes the bond and sets the next phase's gate | to prove |
-| INFO VMAD | scripts array, then an OPTIONAL fragments section (xEdit `wbVMADFragmentedINFO`, `SetOptionalFrom(3)`) — so a plain script needs no fragment block. The script can identify its INFO by `Self.GetFormID()` against the builder's id layout, so the VMAD needs no properties, the same shape as the quest's | to prove |
+| "what the reply decided" | `Overture:Reply` on each NPC reply INFO, `extends TopicInfo`, `Event OnEnd(ObjectReference akSpeakerRef, Bool abHasBeenSaid)` — vanilla's own pattern (`CA_TopicInfoScript`, `CA_DialogueBump_BaseScript`) — calls `Overture:Approach.Replied`, which writes the bond and the stage reached | **built on stage 1**; the game reads it on all 40 INFOs; runs once the owner's Deploy puts `Reply.pex` in Data |
+| INFO VMAD | one plain script with two Int properties (`Stage`, `Outcome`), no fragment block — the shape of Fallout4.esm INFO `0001DABE` (xEdit `wbVMADFragmentedINFO`, fragments optional from 3) | **VERIFIED parsed** (the engine binds by it) |
 | stage-3 verdict | computed at the stage-2 reply's `OnEnd` (after the bond write), set in a global the stage-3 reply sets are conditioned on (§2's order) | to prove |
 | stage 4 | the accept line's `OnEnd` → `NoteAffair` if needed → `NarrateBonus` → `RequestScene(player, npc, scenario)` | to prove: the player in a Rapport scene |
 | scenario | vulgar → `quickie` outdoors, `athome` indoors; romantic → `tender`; mercantile and reticent → `athome` indoors, `tender` outdoors — ASSUMED | |
@@ -478,6 +478,12 @@ teleports her mid-scene when the player is carried off by AAF.
 ---
 
 ## 13. MORNING POLL LIST
+
+**First, not a poll — one action only the owner can take:** with the game CLOSED, press **Deploy**
+in Vortex. It puts `Overture-dev/Scripts/Overture/Reply.pex` into Data (a new file never gets there
+from a staging copy alone) — and the Silhouette session's pending `Silhouette.esp` / `Adopter.pex`
+deploy is waiting on the same press. After it, one offer to Lindsey proves the bond write
+(`dialogue-route.md`, "Every reply now says what it did").
 
 Each: the question, the options, the recommendation, and what the build does without an answer.
 

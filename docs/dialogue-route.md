@@ -499,6 +499,37 @@ CLOSED (`menuOpen=false shuttingDown=true`) -- the previous conversation's flag.
 for `awaiting=YES` chooses into a menu that is not there yet, and XDI refuses. Wait for `menu=open` AND
 `awaiting=YES`.
 
+## Every reply now says what it did (2026-09-23, half verified)
+
+The multi-stage design (`methodology.md`) needs each NPC reply to WRITE something -- the bond, and
+the stage reached -- and conditions cannot write. Vanilla's answer is a script on the INFO:
+`CA_DialogueBump_BaseScript` extends `TopicInfo` and acts in `OnEnd`. Its VMAD is measured on
+Fallout4.esm INFO `0001DABE`: version 6, format 2, two plain scripts, one with an edited property,
+and **nothing after them** -- the fragment block xEdit shows for INFOs is optional
+(`wbVMADFragmentedINFO`, `SetOptionalFrom(3)`), so a plain script is the same shape as the quest's.
+
+So every one of the 40 NPC replies now carries `Overture:Reply` with two Int properties, `Stage` and
+`Outcome` (land, miss, offend, recoil, recoil-liked), and `OnEnd` calls `Overture:Approach.Replied`,
+which writes `AddBondBetween(player, npc, worth, 3)` and `OvertureStageReached` (AVIF `0x844`).
+Decoded back out of the built plugin before anything ran: the mercantile offer land carries Outcome
+1, the charm miss 2, the blunt miss 3, the mercantile recoil 4, the vulgar recoil 5.
+
+**What the game said (07:32, `f4mcp-before-actions`):** it read all 40 -- `Unable to bind script
+Overture:Reply to topic info 27001020 ... on quest OvertureDialogueQuest (27000800)`, one line per
+INFO, at data load and again at game load -- and failed only because `Cannot open store for class
+"Overture:Reply", missing file?`. The script is a NEW file, and a new file reaches `Data` only through
+the owner's Vortex Deploy (memory: a staged copy is not a deployed one). Dialogue is untouched by it:
+offer to Lindsey landed (`27001020`) and handed back to her own line as before.
+
+**Still to see**, after the owner's Deploy: the bind succeeding, and `Rapport.log` saying
+`relationship: 00000014 + 00115E9F bond +0.000 -> +0.050 (asked +0.050, reason 3)` after an offer.
+`approach status` now prints `stageReached` and `bond` for exactly that check.
+
+**Also seen:** an approach within the first minute after a load reads "observers unknown, assuming
+public" -- Rapport's crowd scan has not published yet, and Overture treats unknown as public by design
+(a recoil the player did not expect is the smaller mistake). A tester who loads and talks at once will
+see recoils a minute later would not.
+
 ## Status
 
 | | |
@@ -508,6 +539,7 @@ for `awaiting=YES` chooses into a menu that is not there yet, and XDI refuses. W
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
 | Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start; alias released at scene end |
+| Replies write the bond (`Overture:Reply`, INFO VMAD) | **Half verified** -- the game reads the scripts on all 40 INFOs; `Reply.pex` awaits the owner's Vortex Deploy |
 | Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
 | Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |
 | Lip generation | **Tool proven, output unverified in game** |

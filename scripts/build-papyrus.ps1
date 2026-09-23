@@ -49,7 +49,10 @@ New-Item -ItemType Directory -Force $out | Out-Null
 # namespaced script (Overture:Approach) compiled without it fails with
 # "unable to locate script Overture:Approach" -- the namespace is resolved from
 # the imports, not from the file's path. fo4-rapport carries the same comment.
-$imports = @($Base, $sources, $McpSrc, $RapportSrc) -join ';'
+# papyrus-stubs: IMPORT-ONLY types the reconstructed base lacks (TopicInfo, which
+# Overture:Reply extends). Never a source path -- see the stub's own header.
+$stubs   = Join-Path $root 'papyrus-stubs'
+$imports = @($Base, $sources, $stubs, $McpSrc, $RapportSrc) -join ';'
 $files = Get-ChildItem -Path $sources -Recurse -Filter *.psc
 Write-Host ("Compiling {0} script(s) against {1}" -f $files.Count, $imports)
 

@@ -42,8 +42,26 @@ Int Property PERSONA_GLOBAL_ID = 0x00000840 AutoReadOnly
 Int Property PUBLIC_GLOBAL_ID = 0x00000841 AutoReadOnly
 Int Property ENABLED_GLOBAL_ID = 0x00000842 AutoReadOnly
 Int Property NEXT_DAY_AV_ID = 0x00000843 AutoReadOnly
+Int Property STAGE_REACHED_AV_ID = 0x00000844 AutoReadOnly
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
+
+; What a reply is worth to the bond (docs/methodology.md 3). A fraction of the
+; distance left, the way every source moves Rapport's store. ASSUMED numbers,
+; for the owner to tune; they belong on the MCM page when there is one.
+Float Property LAND_STAGE_1 = 0.05 AutoReadOnly
+Float Property LAND_STAGE_2 = 0.07 AutoReadOnly
+Float Property OFFEND = -0.04 AutoReadOnly
+Float Property RECOIL = -0.06 AutoReadOnly
+; R-10: 3 is dialogue, the reason Rapport keeps for Overture.
+Int Property REASON_DIALOGUE = 3 AutoReadOnly
+
+; Overture:Reply's Outcome property, as the builder writes it.
+Int Property OUTCOME_LAND = 1 AutoReadOnly
+Int Property OUTCOME_MISS = 2 AutoReadOnly
+Int Property OUTCOME_OFFEND = 3 AutoReadOnly
+Int Property OUTCOME_RECOIL = 4 AutoReadOnly
+Int Property OUTCOME_RECOIL_LIKED = 5 AutoReadOnly
 
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
@@ -141,6 +159,50 @@ EndEvent
 Event Scene.OnEnd(Scene akSender)
 	Self.TargetAlias().Clear()
 EndEvent
+
+ActorValue Function StageReachedAV()
+	Return Game.GetFormFromFile(STAGE_REACHED_AV_ID, "Overture.esp") as ActorValue
+EndFunction
+
+Float Function Worth(Int aiStage, Int aiOutcome)
+	If aiOutcome == OUTCOME_LAND
+		If aiStage >= 2
+			Return LAND_STAGE_2
+		EndIf
+		Return LAND_STAGE_1
+	ElseIf aiOutcome == OUTCOME_OFFEND
+		Return OFFEND
+	ElseIf aiOutcome == OUTCOME_RECOIL
+		Return RECOIL
+	EndIf
+	; A miss is the player learning, and a recoil on the persona it would have
+	; landed with is "yes, not here": neither costs anything.
+	Return 0.0
+EndFunction
+
+; Called by Overture:Reply when an NPC's reply line has been said. Writes the
+; bond (R-10: add this much, for this reason) and the stage this NPC has
+; reached with the player, which decides where tomorrow's conversation starts.
+Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
+	If akWho == None
+		Return
+	EndIf
+	String note = "Overture: " + akWho.GetFormID() + " replied, stage " + aiStage + " outcome " + aiOutcome
+	Float worth = Self.Worth(aiStage, aiOutcome)
+	If worth != 0.0
+		Float before = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
+		Float after = Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, worth, REASON_DIALOGUE)
+		note = note + " | bond " + before + " -> " + after
+	EndIf
+	If aiOutcome == OUTCOME_LAND
+		ActorValue reached = Self.StageReachedAV()
+		If reached != None && akWho.GetValue(reached) < aiStage as Float
+			akWho.SetValue(reached, aiStage as Float)
+			note = note + " | stage reached " + aiStage
+		EndIf
+	EndIf
+	Debug.Trace(note, 0)
+EndFunction
 
 ; Once a game day (O-8). The greeting compares this against GameDaysPassed, so
 ; the NPC opens again with tomorrow's first conversation. No timer, no list.
@@ -256,6 +318,11 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		If en != None
 			s = s + " | enabled=" + en.GetValue()
 		EndIf
+		ActorValue reached = Self.StageReachedAV()
+		If reached != None
+			s = s + " | stageReached=" + who.GetValue(reached)
+		EndIf
+		s = s + " | bond=" + Rapport:Relations.BondBetween(Game.GetPlayer(), who)
 		MCP:Core.Reply(tag, s)
 		Return
 	EndIf
