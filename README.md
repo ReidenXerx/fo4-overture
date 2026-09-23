@@ -61,13 +61,16 @@ companion module (`companions/`, four variants, none shipped), and the owner's o
 - [Rapport](https://github.com/ReidenXerx/fo4-rapport) 0.2.1 or newer
 - [Extended Dialogue Interface (XDI)](https://www.nexusmods.com/fallout4/mods/27216) — required, and
   linked rather than bundled at its author's request
+- MCM, for the settings page. Without it, the built-in numbers apply and a yes starts no scene.
+- F4MCP is NOT required: it is the dev channel (`approach ...` verbs), in its own script,
+  `Overture:Dev`, so without it only the verbs are missing.
 
 ## Building
 
 ```bash
 python tools/make_overture_esp.py build/Overture.esp              # the verified one-exchange plugin
 python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
-pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply
+pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply, Overture:Dev
 python tools/make_mcm.py                                           # the MCM page and its settings.ini, from the settings table
 pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
 python scripts/make-lip.py                                         # .lip for every rendered line

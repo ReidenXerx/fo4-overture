@@ -64,6 +64,7 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 #   0xC00-0xCFF  stage 3                            0xD00-0xD43  fallbacks
 #   0xE00-0xE0F  RETIRED: the MCM's numbers were globals here until they moved to
 #                MCM's settings.ini. Not reused -- a dev save may still name them.
+#   0x846        RETIRED likewise: OvertureScenesEnabled, now an MCM setting too.
 #   0xD44-0xDFF, 0xE10-0xFFF  free
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
@@ -105,6 +106,9 @@ ENAM_START_SCENE_ON_END = 0x01   # TSCE fires when the line ENDS, not as it begi
 
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
+# The F4MCP dev verbs, apart from the approach: every MCP type is in it, so a
+# player without F4MCP loses the verbs and nothing else. Staged build only.
+DEV_SCRIPT = 'Overture:Dev'
 # On every NPC reply INFO. Its OnEnd tells Overture:Approach.Replied what the
 # line did; the two Int properties say which stage and which outcome.
 REPLY_SCRIPT = 'Overture:Reply'
@@ -173,7 +177,13 @@ def wstring(text):
 
 
 def vmad(script, int_props=()):
-    """One script, optionally with Int properties. version 6, object format 2.
+    """One script, optionally with Int properties: vmad_scripts for one."""
+    return vmad_scripts([(script, int_props)])
+
+
+def vmad_scripts(scripts):
+    """Plain scripts, each optionally with Int properties. version 6, object
+    format 2. `scripts` is [(name, ((property, value), ...)), ...].
 
     The INFO form of this is MEASURED on Fallout4.esm INFO 0001DABE: its VMAD is
     version 6, format 2, two plain scripts (CA_DialogueBump_TopicInfoScript with
@@ -182,11 +192,12 @@ def vmad(script, int_props=()):
     A property is: name, type (3 = Int), status (1 = edited, as vanilla's is),
     then the value.
     """
-    v = struct.pack('<hhH', 6, 2, 1)
-    v += wstring(script) + struct.pack('<B', 0)        # status: local
-    v += struct.pack('<H', len(int_props))
-    for name, value in int_props:
-        v += wstring(name) + struct.pack('<BB', 3, 1) + struct.pack('<i', value)
+    v = struct.pack('<hhH', 6, 2, len(scripts))
+    for script, int_props in scripts:
+        v += wstring(script) + struct.pack('<B', 0)        # status: local
+        v += struct.pack('<H', len(int_props))
+        for name, value in int_props:
+            v += wstring(name) + struct.pack('<BB', 3, 1) + struct.pack('<i', value)
     return v
 
 
@@ -215,8 +226,10 @@ def child_group(form_id, group_type, blob):
 # the records
 # --------------------------------------------------------------------------
 
-def quest():
-    """The dialogue quest, with ONE script-filled reference alias.
+def quest(scripts=(SCRIPT_NAME,)):
+    """The dialogue quest, with ONE script-filled reference alias, and `scripts`
+    on it (the staged build adds Overture:Dev; the one-exchange build keeps the
+    verified bytes, and so has no dev verbs).
 
     DNAM is copied from the known-good shape fo4-rapport uses: start game
     enabled, so the scene is available without anything having to start it.
@@ -228,10 +241,10 @@ def quest():
     all of them, with the plain 0x00000002 the most common at 279.
     """
     dnam = bytes.fromhex('110064670000000000000000')
-    # version 6, object format 2, one script, no properties. The script resolves
-    # everything else by file-relative id at runtime, so there is nothing to bind.
+    # version 6, object format 2, no properties. The scripts resolve everything
+    # else by file-relative id at runtime, so there is nothing to bind.
     f = field('EDID', zstring(QUEST_EDID))
-    f += field('VMAD', vmad(SCRIPT_NAME))
+    f += field('VMAD', vmad_scripts([(name, ()) for name in scripts]))
     f += field('DNAM', dnam)
     f += field('NEXT', b'')
     # aliases
@@ -842,6 +855,12 @@ def build():
     return finish(blob), topic_ids
 
 
+# Vanilla records this plugin deliberately overrides: none.
+OVERRIDES = frozenset()
+# Ids once used and never to be reused (the map at the top of this file).
+RETIRED = frozenset([0x01000846] + list(range(0x01000E00, 0x01000E10)))
+
+
 def walk_written(blob):
     """(records, groups, form ids) of what was actually WRITTEN."""
     recs, groups, ids = 0, 0, []
@@ -877,17 +896,24 @@ def finish(blob):
     """
     recs, groups, ids = walk_written(blob)
     check_unique(ids)
-    # Two files are addressable from here and no others: 00 is Fallout4.esm (an
-    # override), 01 is this plugin. And a light plugin holds object ids
-    # 0x800-0xFFF and nothing else; one outside that range is a record the engine
-    # cannot address. Refuse to write either.
+    # Only this plugin's own records (01), and only in 0x800-0xFFF, the ids a light
+    # plugin holds. A 00 record would be an override of Fallout4.esm, and this
+    # plugin writes none: a constant written without its 01 would build cleanly and
+    # silently redefine a vanilla record -- Fallout4.esm has an AVIF at 0x00000849,
+    # SAID_YES_AV's own object id (microscope pass 2). Nor a retired id, which a dev
+    # save may still name.
     for formid, what in ids:
         top = formid >> 24
+        if top == 0x00 and formid not in OVERRIDES:
+            raise SystemExit(f'{formid:08X} ("{what}") would override a Fallout4.esm record, and this plugin '
+                             f'overrides none - an id missing its 01?')
         if top not in (0x00, 0x01):
             raise SystemExit(f'{formid:08X} ("{what}"): file index {top:02X} is neither Fallout4.esm (00) '
                              f'nor this plugin (01).')
         if top == 0x01 and not 0x800 <= (formid & 0x00FFFFFF) <= 0xFFF:
             raise SystemExit(f'{formid:08X} ("{what}") is outside 0x800-0xFFF, the only ids a light plugin holds.')
+        if formid in RETIRED:
+            raise SystemExit(f'{formid:08X} ("{what}") is a retired id - a dev save may still name it; take another.')
     # The next object id is this plugin's own: an override of a Fallout4.esm record
     # carries Fallout4.esm's object id, which says nothing about ours.
     own = [i for i, _what in ids if i >> 24 == 0x01]

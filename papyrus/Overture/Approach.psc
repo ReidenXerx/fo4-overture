@@ -26,23 +26,17 @@ WHAT THIS SCRIPT DOES, on the scene's own events:
              chosen, which is after the player picks; and the stamp closes the
              re-greet that follows the reply, 140 ms after it, so the
              conversation hands back to the NPC's own dialogue.
-  OnEnd   -- a second later, the conversation ends: what the next one will read,
-             one line from the Narrator on how it went (O-9), and -- once nobody
-             else has the scene -- the alias let go, the persona and the room
-             forgotten.
+  OnEnd   -- once every reply that began has ended too, the conversation ends:
+             what the next one will read, one line from the Narrator on how it
+             went (O-9), the scene a yes asked for, and -- once nobody else has
+             the scene -- the alias let go, the persona and the room forgotten.
 And on each NPC reply, through Overture:Reply: as the line BEGINS, stage 3's
 verdict (only at the stage-2 land); as it ENDS, the bond, and how far the
 conversation got.
 
-THE DEV CHANNEL, through F4MCP's addon protocol (with no F4MCP.esp the bridge
-resolves to None and none of it registers):
-  approach <npc>         force the scene on this NPC now, eligible or not
-  approach reset <npc>   clear the day stamp, so the next talk opens it again
-  approach forget <npc>  as if never approached: the day, the stage, every marker,
-                         and Rapport's lovers flag (the bond is Rapport's, and stays)
-  approach status <npc>  what the gate sees for this NPC, the markers, the bond
-  approach verdict <npc> what stage 3 would answer now (staged build), changing nothing
-  approach scenes on|off whether a yes really asks Rapport for a scene (staged build)
+THE DEV CHANNEL is Overture:Dev, on the same quest, apart from this script: F4MCP
+is not a requirement, and a script type the VM cannot find should cost the verbs,
+never the approach.
 
 NO GetDisplayName ANYWHERE. It is absent from the decompiled base sources, and
 the compiler reports an unknown method as
@@ -75,7 +69,6 @@ Int Property TIER_AV_ID = 0x00000848 AutoReadOnly
 Int Property SAID_YES_AV_ID = 0x00000849 AutoReadOnly
 Int Property INVITED_UNTIL_AV_ID = 0x0000084A AutoReadOnly
 Int Property JEALOUSY_MARK_AV_ID = 0x0000084B AutoReadOnly
-Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
 
 ; R-10: 3 is dialogue, the reason Rapport keeps for Overture.
@@ -98,7 +91,6 @@ Int Property OUTCOME_NOT_NOW = 10 AutoReadOnly
 ; plugin has none of these records: every lookup below comes back None there,
 ; and every use is guarded.
 Int Property VERDICT_GLOBAL_ID = 0x00000845 AutoReadOnly
-Int Property SCENES_GLOBAL_ID = 0x00000846 AutoReadOnly
 ; What the NPC's current line IS, written as it begins; the scene's phase 2
 ; starts only after a land (tools/overture_stages.py's docstring has why this and
 ; not a phase jump).
@@ -114,14 +106,15 @@ Int Property VERDICT_NOT_HERE = 4 AutoReadOnly
 Int Property VERDICT_NOT_NOW = 5 AutoReadOnly
 ; GameHour, Fallout4.esm -- the clock Rapport's own "night" reads (Pairing.cpp).
 Int Property GAME_HOUR_ID = 0x00000038 AutoReadOnly
-; A yes Rapport could not start at once is retried this often, this many times,
-; after the dialogue has closed (a scene cannot start under an open menu).
+; A yes Rapport could not take at once -- another scene in flight, the bridge not
+; up -- is asked again this often, this many times.
 Int Property YES_TIMER = 2 AutoReadOnly
 Float Property YES_RETRY_SECONDS = 5.0 AutoReadOnly
 Int Property YES_RETRIES = 12 AutoReadOnly
-; A conversation ends this long after its scene's OnEnd (Scene.OnEnd has why).
+; A conversation ends when its scene has AND every reply that began has; this is
+; the fallback, for a reply whose end never comes (a line cut off).
 Int Property END_TIMER = 3 AutoReadOnly
-Float Property END_DELAY = 1.0 AutoReadOnly
+Float Property END_FALLBACK = 3.0 AutoReadOnly
 
 ; Rapport 0.2.1: NarrateLine, Introduce, ObserversNear, the priority lane and
 ; lovers. Older, and none of them is bound -- every call would be a Papyrus
@@ -160,10 +153,16 @@ Int Property JEALOUS_STUNG = 1 AutoReadOnly
 Int Property JEALOUS_THRILLED = 2 AutoReadOnly
 Int Property JEALOUS_SHRUGGED = 3 AutoReadOnly
 
-; O-30: after "not now" or "not here" the day stamp comes down to this far ahead
-; of now (game days; about 14 game minutes), not to 0 -- so nothing of that
-; conversation's own tail can reopen it.
-Float Property REOPEN_AFTER = 0.01 AutoReadOnly
+; Game days. The day stamp never closes before now + STAMP_MARGIN (about 2.4 game
+; hours, seven real minutes at timescale 20), so a conversation that runs past
+; midnight still finds its own re-greet closed (microscope pass 2).
+Float Property STAMP_MARGIN = 0.1 AutoReadOnly
+; O-30: after "not now" or "not here" the stamp comes down to an hour of game time
+; ahead -- "ask again later" means later, not the instant the dialogue closes --
+; and the invitation lasts the rest of the day, never less than INVITE_WINDOW
+; after it reopens: at 23:50 there has to be a "later" too.
+Float Property REOPEN_AFTER = 0.041667 AutoReadOnly
+Float Property INVITE_WINDOW = 0.083333 AutoReadOnly
 
 ; O-16, the player's priority lane (owner, 2026-09-23): Rapport's one scene slot is
 ; HELD for the player and this NPC from the moment the proposition would be a yes,
@@ -183,9 +182,10 @@ Struct Conversation
 	String intro = ""
 	Float bondBefore = 0.0
 	Float bondAfter = 0.0
-	; The last reply: its stage and what it did.
+	; The last reply: its stage, what it did, and the game time it ended.
 	Int stage = 0
 	Int outcome = 0
+	Float at = 0.0
 	; How far it got: a land at stages 1-2, any answer at all at stage 3.
 	Int reached = 0
 	; Stage 3's verdict and why, once decided (0: never).
@@ -197,11 +197,18 @@ Struct Conversation
 	Bool lovers = False
 	; A yes that asked Rapport for a scene (not when scenes are switched off).
 	Bool sceneAsked = False
+	; The replies that began and ended, and whether the scene has: it is over when
+	; the scene is and the two counts are level.
+	Int begun = 0
+	Int ended = 0
+	Bool sceneEnded = False
+	; No Narrator line: a reply that arrived after its conversation had one.
+	Bool quiet = False
 EndStruct
 
 Conversation _current = None
 Int _serial = 0
-; The conversation whose OnEnd started the end timer.
+; The conversation whose OnEnd started the fallback timer.
 Int _endingSerial = 0
 
 Int _api = 0
@@ -209,10 +216,8 @@ Int _why = 0
 Actor _held = None
 Actor _yesWith = None
 Int _yesTries = 0
-
-MCP:Bridge Function Bridge()
-	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
-EndFunction
+; The room, pinned by the dev verb (approach room): 0 measured, 1 public, 2 private.
+Int _roomPinned = 0
 
 Scene Function ApproachScene()
 	Return Game.GetFormFromFile(SCENE_ID, "Overture.esp") as Scene
@@ -236,10 +241,6 @@ EndFunction
 
 GlobalVariable Function VerdictGlobal()
 	Return Game.GetFormFromFile(VERDICT_GLOBAL_ID, "Overture.esp") as GlobalVariable
-EndFunction
-
-GlobalVariable Function ScenesGlobal()
-	Return Game.GetFormFromFile(SCENES_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
 
 GlobalVariable Function LastOutcomeGlobal()
@@ -293,8 +294,7 @@ Event OnQuestInit()
 EndEvent
 
 Event Actor.OnPlayerLoadGame(Actor akSender)
-	; Registrations are re-made on every load: the F4MCP plugin forgets its addons
-	; on a save change, and doing the scene's here too costs nothing.
+	; Registrations are re-made on every load; doing the scene's here costs nothing.
 	Self.Hook()
 EndEvent
 
@@ -306,12 +306,21 @@ Function Hook()
 		Debug.Trace("Overture: Rapport's ApiVersion is " + _api + ", Overture needs " + NEEDS_API + " - no narration, no names, no lovers, and nobody counts as watching", 2)
 		Debug.Notification("Overture needs Rapport 0.2.1 or newer.")
 	EndIf
-	If MCM.IsInstalled() && MCM.GetModSettingFloat("Overture", "fLoverBond:Bars") <= 0.0
-		Debug.Trace("Overture: MCM is installed but has no Overture settings (MCM/Config/Overture/settings.ini missing?) - using the built-in numbers", 1)
+	If MCM.IsInstalled() && !Self.HasSettings()
+		Debug.Trace("Overture: MCM is installed but has not read Overture's settings (MCM/Config/Overture/settings.ini missing?) - the built-in numbers, and no scenes", 1)
 	EndIf
 
-	; A conversation whose end was still owed when the game was saved. Whether its
-	; timer outlived the load or not, it ends now; the timer then finds nobody.
+	; A yes still waiting for its scene when the game was saved: Rapport forgets
+	; every hold on a load, and a retry from before it asks for a moment that has
+	; passed.
+	Self.CancelTimer(YES_TIMER)
+	_held = None
+	If _yesWith != None
+		Debug.Trace("Overture: " + _yesWith.GetFormID() + "'s yes was still waiting for its scene when the game was saved - let go", 1)
+		_yesWith = None
+	EndIf
+	; And a conversation whose end was still owed: it ends now, whether or not its
+	; timer outlived the load; the timer then finds nobody.
 	Self.EndConversation(True)
 
 	; THE ALWAYS-ON HALF. The scene's own events, for every approach the engine
@@ -325,18 +334,6 @@ Function Hook()
 		; nothing but phases.
 		Self.RegisterForRemoteEvent(sc, "OnPhaseBegin")
 	EndIf
-
-	MCP:Bridge bridge = Self.Bridge()
-	If bridge == None
-		; No F4MCP installed. Not an error - this is a dev channel, and a player
-		; without it simply has no verbs.
-		Return
-	EndIf
-	; MANGLED names, and against the DECOMPILED base sources this is not
-	; optional: registering "OnHello" makes the VM answer that it cannot handle
-	; the event, because the handler below compiles under the mangled name.
-	Self.RegisterForCustomEvent(bridge, "mcp:bridge_OnHello")
-	Self.RegisterForCustomEvent(bridge, "mcp:bridge_OnVerb")
 EndFunction
 
 Event Scene.OnBegin(Scene akSender)
@@ -345,14 +342,31 @@ Event Scene.OnBegin(Scene akSender)
 		Debug.Trace("Overture: the approach scene began with NOBODY in the alias - ALFA did not fill it", 1)
 		Return
 	EndIf
-	; What the NPC's first reply reads, FIRST: it is chosen seconds from now.
+	; This conversation is current FIRST, before anything that can yield: an OnEnd
+	; or a reply arriving while the rest of this runs must find it, not the last one.
+	Conversation last = _current
+	Conversation c = new Conversation
+	c.who = who
+	_serial += 1
+	c.serial = _serial
+	_current = c
+	; What the NPC's first reply reads -- chosen seconds from now.
 	String note = Self.Prepare(who)
+	; The last conversation, if its end is still owed (a reply still out, or an OnEnd
+	; that never came): ended with its own facts, and without the tidy-up -- this one
+	; has the alias and the globals now. Before this one's own stamp, so a "not now"
+	; of the same NPC cannot lower it.
+	If last != None
+		Self.Finish(last, False)
+	EndIf
 	Self.Stamp(who)
-	; The last conversation, if its end is still owed -- its OnEnd's second has not
-	; passed, or its OnEnd never came. It ends with its own facts, and without the
-	; tidy-up: this conversation has the alias and the globals now.
-	Self.EndConversation(False)
-	Conversation c = Self.BeginTalk(who)
+	; O-10: a nameless NPC gets a name on their first approach. Rapport decides who
+	; is nameless and keeps it; "" means no new name.
+	If _api >= NEEDS_API
+		c.intro = Rapport:Core.Introduce(who)
+	EndIf
+	c.bondBefore = Rapport:Relations.BondBetween(Game.GetPlayer(), who)
+	c.bondAfter = c.bondBefore
 	note = note + Self.Opening(c)
 	If c.intro != ""
 		note = note + " | introduced as " + c.intro
@@ -365,20 +379,26 @@ Event Scene.OnPhaseBegin(Scene akSender, Int auiPhaseIndex)
 EndEvent
 
 Event Scene.OnEnd(Scene akSender)
-	; NOT NOW. This event and the last reply's own OnEnd (Overture:Reply, another
-	; script object) have no order between them, and that reply's facts are this
-	; conversation's: its stage, its outcome, a yes. A second later they are in;
-	; if the next conversation begins sooner, its OnBegin ends this one first.
-	; (And NOT IsPlaying(): MEASURED 2026-09-23 on a Third Rail Drifter, this event
-	; arrives while the scene still reports it, five seconds later too.)
+	; The conversation ends when its scene has AND every reply that began has: the
+	; last reply's own OnEnd (Overture:Reply, another script object) has no order
+	; against this event, and that reply's facts are this conversation's -- its
+	; stage, its outcome, a yes. Replied ends it when the count comes level; the
+	; timer is only for a reply whose end never comes. (And NOT IsPlaying():
+	; MEASURED 2026-09-23 on a Third Rail Drifter, this event arrives while the
+	; scene still reports it, five seconds later too.)
 	Conversation c = _current
 	If c == None
 		; Nobody's conversation: the tidy-up alone.
 		Self.Tidy(None)
 		Return
 	EndIf
+	c.sceneEnded = True
+	If c.ended >= c.begun
+		Self.EndConversation(True)
+		Return
+	EndIf
 	_endingSerial = c.serial
-	Self.StartTimer(END_DELAY, END_TIMER)
+	Self.StartTimer(END_FALLBACK, END_TIMER)
 EndEvent
 
 Event OnTimer(Int aiTimerID)
@@ -388,29 +408,13 @@ Event OnTimer(Int aiTimerID)
 		; Only the conversation that started it: one that has begun since is not over.
 		Conversation c = _current
 		If c != None && c.serial == _endingSerial
+			Debug.Trace("Overture: a reply of the conversation with " + c.who.GetFormID() + " never ended - ending it without", 1)
 			Self.EndConversation(True)
 		EndIf
 	EndIf
 EndEvent
 
 ; ---- one conversation ---------------------------------------------------------
-
-Conversation Function BeginTalk(Actor who)
-	Conversation c = new Conversation
-	c.who = who
-	_serial += 1
-	c.serial = _serial
-	; Current BEFORE anything that can yield, so a reply that ends meanwhile finds it.
-	_current = c
-	; O-10: a nameless NPC gets a name on their first approach. Rapport decides who
-	; is nameless and keeps it; "" means no new name.
-	If _api >= NEEDS_API
-		c.intro = Rapport:Core.Introduce(who)
-	EndIf
-	c.bondBefore = Rapport:Relations.BondBetween(Game.GetPlayer(), who)
-	c.bondAfter = c.bondBefore
-	Return c
-EndFunction
 
 ; What this conversation opens with, decided as it begins -- seconds before the
 ; player can pick. Returns the note.
@@ -431,13 +435,10 @@ String Function Opening(Conversation c)
 	If verdict == None
 		Return note
 	EndIf
-	Int decided = Self.Decide(who, Rapport:Relations.BondBetween(Game.GetPlayer(), who), Self.RoomIsPublic())
+	Int decided = Self.Decide(who, Rapport:Relations.BondBetween(Game.GetPlayer(), who), Self.RoomIsPublic(), c.serial)
 	c.verdict = decided
 	c.why = _why
 	verdict.SetValue(decided as Float)
-	If decided == VERDICT_ACCEPT
-		Self.Hold(who, HOLD_AT_VERDICT)
-	EndIf
 	Return note + " | opens at the proposition, verdict " + decided + " (why " + c.why + ")"
 EndFunction
 
@@ -455,25 +456,42 @@ Bool Function OpensAtProposition(Actor akWho)
 	Return Self.ValueOf(akWho, INVITED_UNTIL_AV_ID) > Utility.GetCurrentGameTime()
 EndFunction
 
-; The conversation's end, from its OnEnd a second late, from the next one's
-; OnBegin, or from a load -- whichever comes first, and once: it is closed before
-; anything that can yield, so a second caller finds nobody.
+; The current conversation's end: from its OnEnd once its replies are in, from its
+; last reply, from the fallback timer, or from a load. Taken out of _current
+; before anything can yield, so a second caller finds nobody.
 Function EndConversation(Bool abTidy)
 	Conversation c = _current
 	If c == None
 		Return
 	EndIf
 	_current = None
+	Self.Finish(c, abTidy)
+EndFunction
+
+; A conversation's end, for whichever conversation it is -- the caller has already
+; let go of it, so it runs once.
+Function Finish(Conversation c, Bool abTidy)
 	Actor who = c.who
+	Bool yes = c.outcome == OUTCOME_ACCEPT
 	; No yes in this conversation: nothing will ask for the slot it may be holding.
-	If c.outcome != OUTCOME_ACCEPT
+	If !yes
 		Self.LetGo(who)
 	EndIf
+	; Whether a yes asks for its scene -- decided once, here, so the line and the
+	; request cannot disagree.
+	c.sceneAsked = yes && Self.ScenesOn()
 	String note = Self.BetweenConversations(c)
-	Self.Narrate(c)
+	If !c.quiet
+		Self.Narrate(c)
+	EndIf
 	Debug.Trace("Overture: the conversation with " + who.GetFormID() + " ended - last reply stage " + c.stage + " outcome " + c.outcome + note, 0)
 	If abTidy
 		Self.Tidy(who)
+	EndIf
+	; The yes's scene, asked for now that the dialogue has closed. O-16's hold has
+	; kept the slot since the verdict.
+	If yes
+		Self.Proposition(who, c.sceneAsked)
 	EndIf
 EndFunction
 
@@ -489,15 +507,30 @@ String Function BetweenConversations(Conversation c)
 	If c.reached > 0 && Self.RaiseStageReached(who, c.reached)
 		note = note + " | stage reached " + c.reached
 	EndIf
-	; O-30 (owner, 2026-09-23): after "not now" or "not here", the rest of today
-	; opens at the proposition -- no flirt replayed, no bond paid twice -- and the
-	; day stamp comes down, so there is a rest of today (O-13's "not now leaves the
-	; day unstamped"). Until the "not here" follow is built, "not here" gets the same.
+	; O-12: they said yes once, and their conversations open at the proposition from
+	; now on. Overture's marker only -- lovers to the world takes a scene as well (O-27).
+	If c.outcome == OUTCOME_ACCEPT
+		Self.SetTo(who, SAID_YES_AV_ID, 1.0)
+		note = note + " | said yes"
+	EndIf
+	; O-30 (owner, 2026-09-23): after "not now" or "not here", the rest of the day
+	; opens at the proposition -- no flirt replayed, no bond paid twice -- and the day
+	; stamp comes down, so there is a rest of the day (O-13's "not now leaves the day
+	; unstamped"). Until the "not here" follow is built, "not here" gets the same.
+	; The DAY is the reply's, not the end's: a "not now" at 23:59 is today's.
 	If c.outcome == OUTCOME_NOT_NOW || c.outcome == OUTCOME_NOT_HERE
 		Float now = Utility.GetCurrentGameTime()
-		Self.SetTo(who, INVITED_UNTIL_AV_ID, (Math.Floor(now) + 1) as Float)
+		Float said = c.at
+		If said <= 0.0
+			said = now
+		EndIf
+		Float until = (Math.Floor(said) + 1) as Float
+		If until < now + REOPEN_AFTER + INVITE_WINDOW
+			until = now + REOPEN_AFTER + INVITE_WINDOW
+		EndIf
+		Self.SetTo(who, INVITED_UNTIL_AV_ID, until)
 		Self.SetTo(who, NEXT_DAY_AV_ID, now + REOPEN_AFTER)
-		note = note + " | invited back today"
+		note = note + " | invited back until day " + until
 	EndIf
 	If _api >= NEEDS_API
 		note = note + Self.UpdateWorldLovers(c)
@@ -505,11 +538,13 @@ String Function BetweenConversations(Conversation c)
 	Int tier = Self.TierOf(who)
 	Self.SetTo(who, TIER_AV_ID, tier as Float)
 	note = note + " | tier " + tier
-	; O-28: a falling-out ends it on Overture's side too -- the opening a yes
-	; earned. Rapport ends its own lovers flag at the same line.
-	If tier == TIER_FALLEN_OUT && Self.ValueOf(who, SAID_YES_AV_ID) == 1.0
+	; O-28, and the rule that a proposition which could only be refused is never
+	; offered (methodology 2): a falling-out, or someone now spoken for and faithful
+	; enough to always refuse (methodology 7), no longer opens at the proposition on
+	; the strength of an old yes. Rapport ends its own lovers flag at the same line.
+	If Self.ValueOf(who, SAID_YES_AV_ID) == 1.0 && (tier == TIER_FALLEN_OUT || Self.FaithfullyTaken(who))
 		Self.SetTo(who, SAID_YES_AV_ID, 0.0)
-		note = note + " | fallen out: a yes no longer opens at the proposition"
+		note = note + " | a yes no longer opens at the proposition"
 	EndIf
 	Return note
 EndFunction
@@ -531,10 +566,17 @@ Int Function TierOf(Actor akWho)
 	If bond <= BOND_FALLEN_OUT
 		Return TIER_FALLEN_OUT
 	EndIf
-	If bond >= Self.Tuned("fLoverBond:Bars", 0.75) || Rapport:Relations.ArePartners(player, akWho)
-		Return TIER_LOVER
+	Bool close = bond >= Self.Tuned("fLoverBond:Bars", 0.75) || Rapport:Relations.ArePartners(player, akWho)
+	If !close && _api >= NEEDS_API
+		close = Rapport:Core.AreLovers(player.GetFormID(), akWho.GetFormID())
 	EndIf
-	If _api >= NEEDS_API && Rapport:Core.AreLovers(player.GetFormID(), akWho.GetFormID())
+	If close
+		; Close enough to open at the proposition -- unless that proposition could
+		; only be refused: someone spoken for and faithful enough to always refuse
+		; stays close, and keeps the flirt (methodology 2 and 7).
+		If Self.FaithfullyTaken(akWho)
+			Return TIER_CLOSE
+		EndIf
 		Return TIER_LOVER
 	EndIf
 	If bond >= BOND_CLOSE
@@ -543,6 +585,14 @@ Int Function TierOf(Actor akWho)
 		Return TIER_WARM
 	EndIf
 	Return TIER_STRANGER
+EndFunction
+
+; Spoken for, and faithful enough to refuse whatever the bond (methodology 7).
+Bool Function FaithfullyTaken(Actor akWho)
+	If !Self.SpokenFor(akWho)
+		Return False
+	EndIf
+	Return Rapport:Core.FaithfulnessOf(akWho.GetFormID()) >= Self.Tuned("fFaithRefuses:SpokenFor", 0.80)
 EndFunction
 
 ; O-27 (owner, 2026-09-23): lovers to the WORLD -- Rapport's lovers flag, which
@@ -567,6 +617,10 @@ String Function UpdateWorldLovers(Conversation c)
 		Return ""
 	EndIf
 	Rapport:Core.SetLovers(p, id, True)
+	If !Rapport:Core.AreLovers(p, id)
+		; Rapport refused (a death this session, or fallen out): nothing to announce.
+		Return " | lovers refused by Rapport"
+	EndIf
 	; Jealousy counts from here: what the player did before is not this lover's business.
 	Self.SetTo(who, JEALOUSY_MARK_AV_ID, (Rapport:Core.SceneCount(p) - together + 1) as Float)
 	c.lovers = True
@@ -575,13 +629,13 @@ EndFunction
 
 ; O-29 (owner, 2026-09-23): a lover hears about the others. Rapport counts every
 ; scene the player has had and every one with this lover, so the difference is
-; the scenes with anyone else. The mark is that difference, plus one, as this
-; lover last knew it; 0 is "never counted", counted now with nothing to react to,
-; so nobody answers for what happened before they were a lover. What it means is
-; the persona's -- methodology 11's table, which the owner applied to strangers
-; too: the romantic and the reticent take it badly, the mercantile shrugs, the
-; vulgar likes hearing it. Once per conversation, however many there were.
-; Returns the note.
+; the scenes with anyone else; the player's own count never ages out (Rapport
+; 17aac9a). The mark is that difference, plus one, as this lover last knew it; 0
+; is "never counted", counted now with nothing to react to, so nobody answers for
+; what happened before they were a lover. What it means is the persona's --
+; methodology 11's table, which the owner applied to strangers too: the romantic
+; and the reticent take it badly, the mercantile shrugs, the vulgar likes hearing
+; it. Once per conversation, however many there were. Returns the note.
 String Function Jealousy(Conversation c)
 	Actor who = c.who
 	Actor player = Game.GetPlayer()
@@ -622,18 +676,32 @@ EndFunction
 
 ; ---- the numbers --------------------------------------------------------------
 
-; A number the MCM page tunes, or the default when MCM has nothing for Overture:
-; not installed, or MCM/Config/Overture/settings.ini missing. MCM answers 0 for
-; every key then, and fLoverBond can never be 0 -- its slider starts at 0.3 -- so
-; a 0 there means "no settings", never a player's choice. tools/overture_stages.py
-; SETTINGS is the table; tools/make_mcm.py writes the page and the ini from it and
-; refuses to, if any call here names a key it lacks or falls back to a different
-; default.
+; MCM has Overture's settings: installed, AND the shipped settings.ini read.
+; iDefaults:Meta is in that file and on no control, so no slider a player moved
+; can fake it -- MCM answers 0 for every key of a file it never read, and one
+; moved slider used to pass for all of them (microscope pass 2).
+Bool Function HasSettings()
+	Return MCM.IsInstalled() && MCM.GetModSettingInt("Overture", "iDefaults:Meta") == 1
+EndFunction
+
+; A number the MCM page tunes, or the default without Overture's settings.
+; tools/overture_stages.py SETTINGS is the table; tools/make_mcm.py writes the page
+; and the ini from it, and refuses to if a call here names a key it lacks or falls
+; back to a different default.
 Float Function Tuned(String asKey, Float afDefault)
-	If !MCM.IsInstalled() || MCM.GetModSettingFloat("Overture", "fLoverBond:Bars") <= 0.0
+	If !Self.HasSettings()
 		Return afDefault
 	EndIf
 	Return MCM.GetModSettingFloat("Overture", asKey)
+EndFunction
+
+; "A yes starts a scene" -- an MCM setting, like the numbers, so a new default
+; reaches every save. Off without Overture's settings, which is its default.
+Bool Function ScenesOn()
+	If !Self.HasSettings()
+		Return False
+	EndIf
+	Return MCM.GetModSettingBool("Overture", "bScenes:Switches")
 EndFunction
 
 ; What a reply is worth to the bond (docs/methodology.md 3): a fraction of the
@@ -691,8 +759,11 @@ EndFunction
 
 ; Public or private, for this actor, right now: Rapport's own count against its
 ; own tolerance (C-6). Unknown -- no scan yet, or a Rapport too old to count -- is
-; public, as in Prepare.
+; public, as in Prepare. The dev verb can pin it.
 Bool Function InPublic(Actor akWho)
+	If _roomPinned != 0
+		Return _roomPinned == 1
+	EndIf
 	If _api < NEEDS_API
 		Return True
 	EndIf
@@ -735,8 +806,9 @@ EndFunction
 ; (docs/methodology.md 2). The rules are the same for everyone: a lover, or
 ; someone whose conversation opens at the proposition, only skips the flirt --
 ; faithfulness at fFaithRefuses refuses whatever the bond (methodology 7).
-; Leaves the reason in _why, for the caller that wants it.
-Int Function Decide(Actor akWho, Float afBond, Bool abPublic)
+; aiHoldFor is the conversation a yes verdict holds Rapport's slot for; 0 holds
+; nothing (the dev verb's verdict changes nothing). Leaves the reason in _why.
+Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
 	Int persona = Self.PersonaIndex(akWho)
 	If persona < 0
 		_why = WHY_NO_PERSONA
@@ -771,7 +843,16 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic)
 		_why = WHY_SETTING
 		Return VERDICT_NOT_NOW
 	EndIf
+	; Everything but the moment has passed: take the slot BEFORE looking at it, so a
+	; request that slips in between cannot take the scene a yes was just promised
+	; (O-16, microscope pass 2).
+	If aiHoldFor != 0
+		Self.Hold(akWho, HOLD_AT_VERDICT, aiHoldFor)
+	EndIf
 	If Rapport:Core.Busy() || Rapport:Core.CanRun(Self.ScenarioFor(akWho, persona), Game.GetPlayer(), akWho) < 0
+		If aiHoldFor != 0
+			Self.LetGo(akWho)
+		EndIf
 		_why = WHY_BUSY
 		Return VERDICT_NOT_NOW
 	EndIf
@@ -781,6 +862,15 @@ EndFunction
 
 ; ---- the replies --------------------------------------------------------------
 
+; The current conversation, if akWho is the one it is with.
+Conversation Function Theirs(Actor akWho)
+	Conversation c = _current
+	If c != None && c.who != akWho
+		Return None
+	EndIf
+	Return c
+EndFunction
+
 ; Called by Overture:Reply as an NPC's reply line BEGINS. The one thing decided
 ; here is stage 3's verdict, at the start of the stage-2 land: the land line
 ; itself runs about 4.5 s and the phase-3 gate is read only when it ENDS, so
@@ -788,6 +878,12 @@ EndFunction
 Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 	If akWho == None
 		Return
+	EndIf
+	; Counted FIRST, before anything that can yield: the conversation waits for
+	; every reply that began to end.
+	Conversation c = Self.Theirs(akWho)
+	If c != None
+		c.begun += 1
 	EndIf
 	; The branch: the next phase reads this when the line ENDS. The reticent's
 	; first-meeting land records no land here -- R-8, nothing more the first time
@@ -807,19 +903,19 @@ Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 	If verdict == None || aiStage != 2 || aiOutcome != OUTCOME_LAND
 		Return
 	EndIf
+	Int holdFor = 0
+	If c != None
+		holdFor = c.serial
+	EndIf
 	Float bond = Self.AfterLand(Rapport:Relations.BondBetween(Game.GetPlayer(), akWho), Self.Tuned("fLandSecond:Words", 0.07))
-	Int decided = Self.Decide(akWho, bond, Self.RoomIsPublic())
+	Int decided = Self.Decide(akWho, bond, Self.RoomIsPublic(), holdFor)
 	Int why = _why
 	verdict.SetValue(decided as Float)
-	Conversation c = _current
-	If c != None && c.who == akWho
+	If c != None
 		c.verdict = decided
 		c.why = why
 	EndIf
 	Debug.Trace("Overture: " + akWho.GetFormID() + " stage 3 verdict " + decided + " (why " + why + ") on bond " + bond, 0)
-	If decided == VERDICT_ACCEPT
-		Self.Hold(akWho, HOLD_AT_VERDICT)
-	EndIf
 EndFunction
 
 ; Called by Overture:Reply when an NPC's reply line has been said. Writes the
@@ -829,25 +925,28 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 	If akWho == None
 		Return
 	EndIf
-	; This conversation's facts FIRST, before anything that can yield: its end may
-	; be waiting on exactly this reply.
+	; This conversation's facts FIRST, before anything that can yield: its end
+	; waits on exactly this reply.
 	Int reached = 0
 	If aiOutcome == OUTCOME_LAND || aiStage == 3
 		reached = aiStage
 	EndIf
-	Conversation c = _current
-	If c != None && c.who != akWho
-		c = None
-	EndIf
+	Conversation c = Self.Theirs(akWho)
 	If c != None
 		c.stage = aiStage
 		c.outcome = aiOutcome
 		If reached > c.reached
 			c.reached = reached
 		EndIf
+		c.ended += 1
 	EndIf
 	String note = "Overture: " + akWho.GetFormID() + " replied, stage " + aiStage + " outcome " + aiOutcome
 	Float worth = Self.Worth(aiStage, aiOutcome)
+	; A refusal the words did not cause costs nothing: when the verdict itself was a
+	; refusal every register was refused, and the Narrator says it was not the words.
+	If aiOutcome == OUTCOME_REFUSE && c != None && c.verdict == VERDICT_REFUSE
+		worth = 0.0
+	EndIf
 	If worth != 0.0
 		Float before = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
 		Float after = Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, worth, REASON_DIALOGUE)
@@ -856,38 +955,36 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 			c.bondAfter = after
 		EndIf
 	EndIf
-	If c == None && reached > 0 && Self.RaiseStageReached(akWho, reached)
-		; Its conversation had already ended: nothing reads a stage mid-conversation
-		; any more, so it goes straight in.
-		note = note + " | stage reached " + reached + ", after its conversation ended"
+	If c == None
+		; Its conversation had already ended -- this reply's end came after the
+		; fallback. What its end would have written for this reply, written now; no
+		; line, since that conversation's own was said.
+		Conversation late = new Conversation
+		late.who = akWho
+		late.stage = aiStage
+		late.outcome = aiOutcome
+		late.reached = reached
+		late.quiet = True
+		Debug.Trace(note + " | after its conversation ended", 1)
+		Self.Finish(late, False)
+		Return
 	EndIf
-	If aiOutcome == OUTCOME_ACCEPT
-		; O-12: they said yes once, and their conversations open at the proposition
-		; from now on. Overture's marker only -- lovers to the world takes a scene
-		; as well (O-27).
-		Self.SetTo(akWho, SAID_YES_AV_ID, 1.0)
-		Bool asked = Self.ScenesOn()
-		If c != None
-			c.sceneAsked = asked
-		EndIf
-		Self.Proposition(akWho, asked)
-		note = note + " | said yes"
-	EndIf
+	c.at = Utility.GetCurrentGameTime()
 	Debug.Trace(note, 0)
+	; The last reply of a scene that has already ended: the conversation is complete.
+	Conversation now = _current
+	If c.sceneEnded && c.ended >= c.begun && now != None && now.serial == c.serial
+		Self.EndConversation(True)
+	EndIf
 EndFunction
 
 ; ---- a yes --------------------------------------------------------------------
 
-Bool Function ScenesOn()
-	GlobalVariable scenes = Self.ScenesGlobal()
-	Return scenes != None && scenes.GetValue() != 0.0
-EndFunction
-
-; Stage 4, behind OvertureScenesEnabled until a Rapport scene with the player in
+; Stage 4, behind "A yes starts a scene" until a Rapport scene with the player in
 ; it has been watched end to end (methodology 5).
 Function Proposition(Actor akWho, Bool abScenes)
 	If !abScenes
-		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; scenes are off (OvertureScenesEnabled 0)", 0)
+		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; scenes are off (MCM: A yes starts a scene)", 0)
 		Self.LetGo(akWho)
 		Return
 	EndIf
@@ -895,10 +992,10 @@ Function Proposition(Actor akWho, Bool abScenes)
 		; The player has moved on to someone else: the older yes gives way, and says so.
 		Self.GiveUpYes("the player said yes to someone else first")
 	EndIf
-	Self.Hold(akWho, HOLD_AT_YES)
-	; Seconds have passed since the verdict checked Rapport was free, and Chemistry
-	; can take the only scene slot in between -- so ask now, and keep asking for a
-	; minute rather than letting a yes vanish.
+	Self.Hold(akWho, HOLD_AT_YES, 0)
+	; Seconds have passed since the verdict checked Rapport was free, and the scene
+	; slot can still be taken (the hold is only as old as the verdict) -- so ask now,
+	; and keep asking for a minute rather than letting a yes vanish.
 	_yesWith = akWho
 	_yesTries = 0
 	Self.AskForTheScene()
@@ -907,6 +1004,11 @@ EndFunction
 Function AskForTheScene()
 	Actor akWho = _yesWith
 	If akWho == None
+		Return
+	EndIf
+	If akWho.IsDead() || !akWho.Is3DLoaded()
+		; Gone -- dead, or left behind by a fast travel: no scene will ever take.
+		Self.GiveUpYes("they are gone")
 		Return
 	EndIf
 	Actor player = Game.GetPlayer()
@@ -943,6 +1045,8 @@ Function AskForTheScene()
 		Self.GiveUpYes("Rapport never had a free slot")
 		Return
 	EndIf
+	; One retry chain, whatever StartTimer does with a pending id.
+	Self.CancelTimer(YES_TIMER)
 	Self.StartTimer(YES_RETRY_SECONDS, YES_TIMER)
 EndFunction
 
@@ -953,6 +1057,7 @@ Function GiveUpYes(String asWhy)
 		Return
 	EndIf
 	_yesWith = None
+	Self.CancelTimer(YES_TIMER)
 	Debug.Trace("Overture: " + who.GetFormID() + " said yes and " + asWhy + " - the yes is lost", 1)
 	If _api >= NEEDS_API
 		Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), who.GetFormID(), "{second} said yes, but the moment passed.", "")
@@ -961,17 +1066,26 @@ Function GiveUpYes(String asWhy)
 EndFunction
 
 ; Hold Rapport's slot for the player and this NPC (O-16) -- only when a yes would
-; really ask for a scene, and never over a yes still waiting for its own: the
-; slot has one hold, and a verdict is not a yes.
-Function Hold(Actor akWho, Float afSeconds)
+; really ask for a scene, never over a yes still waiting for its own (the slot has
+; one hold, and a verdict is not a yes), and, for a verdict, only while its
+; conversation is going: once it has ended, nothing would ever let the hold go.
+; aiSerial 0: no conversation to wait on (a yes, after its conversation).
+Function Hold(Actor akWho, Float afSeconds, Int aiSerial)
 	If _api < NEEDS_API || !Self.ScenesOn()
 		Return
 	EndIf
 	If _yesWith != None && _yesWith != akWho
 		Return
 	EndIf
+	If aiSerial != 0 && (_current == None || _current.serial != aiSerial)
+		Return
+	EndIf
 	Rapport:Core.ReservePlayerScene(akWho, afSeconds)
 	_held = akWho
+	If aiSerial != 0 && (_current == None || _current.serial != aiSerial)
+		; It ended while the hold went in.
+		Self.LetGo(akWho)
+	EndIf
 EndFunction
 
 ; Let this NPC's hold go, if this script holds one for them. A release names its
@@ -995,8 +1109,8 @@ EndFunction
 ; the place, the time, patience, another way. It NEVER names a persona -- the
 ; README's rule, "you are never told who they are", stands over this too.
 ; On a yes that asked for a scene, only what Rapport's own line cannot know --
-; lovers now, and a lover's jealousy -- since that line says who and why as the
-; scene starts.
+; the world's news of a couple, and a lover's jealousy -- since that line says
+; who and why as the scene starts.
 Function Narrate(Conversation c)
 	If _api < NEEDS_API
 		Return
@@ -1012,11 +1126,16 @@ Function Narrate(Conversation c)
 		named = True
 	EndIf
 	If c.lovers
-		headline = Self.Then(headline, "You and {second} are lovers now.")
+		; O-27 is what the WORLD sees: Chemistry treats them as spoken for from now on.
+		headline = Self.Then(headline, "Word gets around - you and {second} are a couple now.")
 		named = True
 	EndIf
 	If c.jealous == JEALOUS_STUNG
-		headline = Self.Then(headline, Self.Subject(named) + " heard you've been with someone else. It stung.")
+		If yes
+			headline = Self.Then(headline, Self.Subject(named) + " heard you've been with someone else - and said yes anyway.")
+		Else
+			headline = Self.Then(headline, Self.Subject(named) + " heard you've been with someone else. It stung.")
+		EndIf
 		named = True
 	ElseIf c.jealous == JEALOUS_THRILLED
 		headline = Self.Then(headline, Self.Subject(named) + " heard you've been with someone else - and liked hearing it.")
@@ -1110,7 +1229,9 @@ String Function TalkLine(Conversation c, Bool abNamed)
 	ElseIf outcome == OUTCOME_NOTYET
 		Return "Close. A little more time with you, and " + s + " might."
 	ElseIf outcome == OUTCOME_NOT_HERE
-		Return s + " would - somewhere without an audience. Ask again later today."
+		; The place is what is wrong, so the hint is the place (microscope pass 2):
+		; "later" in the same crowd is the same answer.
+		Return s + " would - somewhere without an audience. Catch {them} alone."
 	ElseIf outcome == OUTCOME_NOT_NOW
 		If c.why == WHY_SETTING
 			Return s + " would - indoors, or after dark. Ask again later today."
@@ -1120,7 +1241,7 @@ String Function TalkLine(Conversation c, Bool abNamed)
 		If c.verdict == VERDICT_REFUSE
 			; Even the right words would have been refused (a conversation that
 			; opened at the proposition asks whatever the verdict), so the words are
-			; not the reason.
+			; not the reason -- and the refusal costs nothing (Replied).
 			Return s + " turned you down" + Self.WhyNot(c.why, " Not yet - keep coming back.")
 		EndIf
 		Return s + " turned you down. That wasn't the way to ask."
@@ -1160,10 +1281,18 @@ EndFunction
 
 ; ---- the scene ----------------------------------------------------------------
 
-; Once a game day (O-8). The greeting compares this against GameDaysPassed, so
-; the NPC opens again with tomorrow's first conversation. No timer, no list.
+; Once a game day (O-8): the greeting compares this against GameDaysPassed, so
+; the NPC opens again with tomorrow's first conversation. No timer, no list. And
+; never before now + STAMP_MARGIN: the stamp also closes the hand-back's re-greet,
+; and a conversation that runs past midnight must not find it open (microscope
+; pass 2).
 Function Stamp(Actor who)
-	Self.SetTo(who, NEXT_DAY_AV_ID, (Math.Floor(Utility.GetCurrentGameTime()) + 1) as Float)
+	Float now = Utility.GetCurrentGameTime()
+	Float tomorrow = (Math.Floor(now) + 1) as Float
+	If tomorrow < now + STAMP_MARGIN
+		tomorrow = now + STAMP_MARGIN
+	EndIf
+	Self.SetTo(who, NEXT_DAY_AV_ID, tomorrow)
 EndFunction
 
 ; The persona and the room, for whoever the approach is with. Returns the note.
@@ -1192,7 +1321,13 @@ String Function Prepare(Actor who)
 		If _api >= NEEDS_API
 			watching = Rapport:Core.ObserversNear(who.GetFormID())
 		EndIf
-		If watching < 0
+		If _roomPinned == 1
+			inPublic.SetValue(1.0)
+			note = note + " | room PINNED public (approach room)"
+		ElseIf _roomPinned == 2
+			inPublic.SetValue(0.0)
+			note = note + " | room PINNED private (approach room)"
+		ElseIf watching < 0
 			; No scan has published yet, or this Rapport cannot count. NOT the same
 			; as nobody watching, so assume public: a recoil the player did not
 			; expect is a smaller mistake than a proposition shouted across a room.
@@ -1229,17 +1364,19 @@ EndFunction
 ; says it instead: ALFA puts the next speaker in it before their scene begins, so
 ; while it holds nobody else, nobody else has the scene.
 Function Tidy(Actor akWas)
+	If _current != None
+		; A conversation has begun since: the alias and the globals are its.
+		Return
+	EndIf
 	Actor inAlias = Self.TargetAlias().GetActorReference()
 	If inAlias != None && inAlias != akWas
 		Debug.Trace("Overture: " + inAlias.GetFormID() + " already holds the alias - left as it is", 0)
 		Return
 	EndIf
-	Debug.Trace("Overture: alias let go, persona and room forgotten", 0)
-	Self.TargetAlias().Clear()
-	; And forget who it was: a persona or a room left in the globals is the next
-	; NPC's reply if their own OnBegin is late. -1 matches no reply (the staged
-	; plugin's fallback says a neutral beat and hands back), and an unknown room
-	; is public, as everywhere else here.
+	; Forget who it was: a persona, a room or a verdict left in the globals is the
+	; next NPC's reply if their own OnBegin is late. -1 matches no reply (the staged
+	; plugin's fallback says a neutral beat and hands back), an unknown room is
+	; public, as everywhere else here, and 0 is "no verdict" and "no last line".
 	GlobalVariable pg = Self.PersonaGlobal()
 	If pg != None
 		pg.SetValue(-1.0)
@@ -1248,171 +1385,57 @@ Function Tidy(Actor akWas)
 	If inPublic != None
 		inPublic.SetValue(1.0)
 	EndIf
+	GlobalVariable verdict = Self.VerdictGlobal()
+	If verdict != None
+		verdict.SetValue(0.0)
+	EndIf
+	GlobalVariable last = Self.LastOutcomeGlobal()
+	If last != None
+		last.SetValue(0.0)
+	EndIf
+	; The alias last, and looked at again: the next speaker may have taken it while
+	; the globals were reset.
+	If _current != None
+		Return
+	EndIf
+	inAlias = Self.TargetAlias().GetActorReference()
+	If inAlias == None || inAlias == akWas
+		Debug.Trace("Overture: alias let go, persona and room forgotten", 0)
+		Self.TargetAlias().Clear()
+	EndIf
 EndFunction
 
-; ---- the dev channel ----------------------------------------------------------
+; ---- for Overture:Dev (the F4MCP verbs) ---------------------------------------
 
-Event MCP:Bridge.OnHello(MCP:Bridge akSender, Var[] akArgs)
-	MCP:Core.RegisterAddon("overture", "approach")
-EndEvent
+; Why the last Decide came out as it did.
+Int Function LastWhy()
+	Return _why
+EndFunction
 
-Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
-	; akArgs is FLAT: [0] verb, [1] rest, [2] tag, [3] token count, then
-	; (token as String, token as form id) pairs from [4]. Fallout 4's Papyrus
-	; cannot split a string, so the plugin hands over both readings.
-	String verb = akArgs[0] as String
-	If verb != "approach"
-		Return
-	EndIf
-	String tag = akArgs[2] as String
-	Int count = akArgs[3] as Int
-	String first = ""
-	If count > 0
-		first = akArgs[4] as String
-	EndIf
+Bool Function HasApi()
+	Return _api >= NEEDS_API
+EndFunction
 
-	; approach scenes on|off -- whether a yes really asks Rapport for a scene.
-	; No actor: the switch is global.
-	If first == "scenes"
-		GlobalVariable scenes = Self.ScenesGlobal()
-		If scenes == None
-			MCP:Core.Reply(tag, "approach scenes: this Overture.esp has no OvertureScenesEnabled - build with --stages 3")
-			Return
-		EndIf
-		If count > 1 && (akArgs[6] as String) == "on"
-			scenes.SetValue(1.0)
-		ElseIf count > 1 && (akArgs[6] as String) == "off"
-			scenes.SetValue(0.0)
-		EndIf
-		MCP:Core.Reply(tag, "approach scenes: " + scenes.GetValue())
-		Return
-	EndIf
+; 0 measured, 1 public, 2 private.
+Function PinRoom(Int aiRoom)
+	_roomPinned = aiRoom
+EndFunction
 
-	; WHICH ACTOR. After a keyword (reset/forget/status/verdict) the actor is the
-	; SECOND token; without one it is the FIRST. A token that is there and does not
-	; resolve is NOT DONE -- never "whoever is nearest": `approach forget <typo>`
-	; must not wipe a bystander (review 2026-09-23; F4MCP's own rule).
-	; ("keyword" would be the Keyword type to a case-insensitive compiler.)
-	Bool afterKeyword = first == "reset" || first == "forget" || first == "status" || first == "verdict"
-	Int actorToken = 1
-	If afterKeyword
-		actorToken = 2
-	EndIf
-	Actor who = None
-	If count >= actorToken
-		Int formID = akArgs[3 + 2 * actorToken] as Int
-		If formID != 0
-			who = Game.GetForm(formID) as Actor
-		EndIf
-		If who == None
-			MCP:Core.Reply(tag, "approach: NOT DONE - '" + (akArgs[2 + 2 * actorToken] as String) + "' is not a loaded actor reference")
-			Return
-		EndIf
-	Else
-		; No actor named: the nearest -- but FindClosestActorFromRef is a plain
-		; radius search around the player's own position (decompiled Game.psc),
-		; so it can hand back the player.
-		who = Game.FindClosestActorFromRef(Game.GetPlayer(), 600.0)
-		If who == Game.GetPlayer()
-			who = None
-		EndIf
-	EndIf
-	If who == None
-		MCP:Core.Reply(tag, "approach: NOT DONE - nobody but the player within 600 units; name the actor")
-		Return
-	EndIf
+Int Function RoomPinned()
+	Return _roomPinned
+EndFunction
 
-	If first == "reset"
-		If Self.AV(NEXT_DAY_AV_ID) == None
-			MCP:Core.Reply(tag, "approach reset: the next-day actor value did not resolve")
-			Return
-		EndIf
-		Self.SetTo(who, NEXT_DAY_AV_ID, 0.0)
-		MCP:Core.Reply(tag, "approach reset: " + who.GetFormID() + " may be approached again today")
-		Return
+; The scenes switch, as the MCM page would set it. False if MCM is not there to
+; keep it.
+Bool Function SetScenes(Bool abOn)
+	If !MCM.IsInstalled()
+		Return False
 	EndIf
+	MCM.SetModSettingBool("Overture", "bScenes:Switches", abOn)
+	Return True
+EndFunction
 
-	; approach forget <npc> -- as if the player had never approached them: the day
-	; stamp, the stage reached, every marker, and Rapport's lovers flag. The bond is
-	; Rapport's, and stays -- so the next conversation's end may find the lover tier
-	; again, which is the bond talking, not memory.
-	If first == "forget"
-		Self.SetTo(who, NEXT_DAY_AV_ID, 0.0)
-		Self.SetTo(who, STAGE_REACHED_AV_ID, 0.0)
-		Self.SetTo(who, TIER_AV_ID, 0.0)
-		Self.SetTo(who, SAID_YES_AV_ID, 0.0)
-		Self.SetTo(who, INVITED_UNTIL_AV_ID, 0.0)
-		Self.SetTo(who, JEALOUSY_MARK_AV_ID, 0.0)
-		If _api >= NEEDS_API
-			Rapport:Core.SetLovers(Game.GetPlayer().GetFormID(), who.GetFormID(), False)
-		EndIf
-		MCP:Core.Reply(tag, "approach forget: " + who.GetFormID() + " starts again at stage 1, today, and is nobody's lover")
-		Return
-	EndIf
-
-	; approach verdict <npc> -- what stage 3 would answer right now, changing
-	; nothing. Its OWN room, not the global the last conversation left behind.
-	If first == "verdict"
-		Float bond = Rapport:Relations.BondBetween(Game.GetPlayer(), who)
-		Bool room = Self.InPublic(who)
-		MCP:Core.Reply(tag, "approach verdict: " + who.GetFormID() + " | verdict=" + Self.Decide(who, bond, room) + " (1 refuse 2 notyet 3 accept 4 not here 5 not now) why=" + _why + " | bond=" + bond + " | bar=" + Self.Threshold(Self.PersonaIndex(who)) + " | public=" + room + " | spokenFor=" + Self.SpokenFor(who))
-		Return
-	EndIf
-
-	If first == "status"
-		Float stamp = Self.ValueOf(who, NEXT_DAY_AV_ID)
-		Float today = Utility.GetCurrentGameTime()
-		String s = "approach status: " + who.GetFormID() + " | stamp=" + stamp + " days=" + today
-		If stamp <= today
-			s = s + " (open today)"
-		Else
-			s = s + " (closed until day " + stamp + ")"
-		EndIf
-		s = s + " | persona=" + Self.PersonaIndex(who) + " | teammate=" + who.IsPlayerTeammate()
-		s = s + " | combat=" + who.IsInCombat() + " | scene=" + who.IsInScene() + " | child=" + who.IsChild()
-		GlobalVariable en = Self.EnabledGlobal()
-		If en != None
-			s = s + " | enabled=" + en.GetValue()
-		EndIf
-		s = s + " | stageReached=" + Self.ValueOf(who, STAGE_REACHED_AV_ID) + " tier=" + Self.ValueOf(who, TIER_AV_ID)
-		s = s + " saidYes=" + Self.ValueOf(who, SAID_YES_AV_ID) + " invitedUntil=" + Self.ValueOf(who, INVITED_UNTIL_AV_ID)
-		s = s + " | opensAtProposition=" + Self.OpensAtProposition(who)
-		Actor player = Game.GetPlayer()
-		s = s + " | bond=" + Rapport:Relations.BondBetween(player, who)
-		If _api >= NEEDS_API
-			s = s + " | lovers=" + Rapport:Core.AreLovers(player.GetFormID(), who.GetFormID()) + " scenesTogether=" + Rapport:Core.PairSceneCount(player.GetFormID(), who.GetFormID()) + " jealousyMark=" + Self.ValueOf(who, JEALOUSY_MARK_AV_ID)
-		EndIf
-		MCP:Core.Reply(tag, s)
-		Return
-	EndIf
-
-	; Force the scene on this NPC now, eligible or not. OnBegin prepares and stamps.
-	Scene sc = Self.ApproachScene()
-	ReferenceAlias target = Self.TargetAlias()
-	If sc == None || target == None
-		MCP:Core.Reply(tag, "approach: Overture.esp did not resolve - the scene or the alias came back None")
-		Return
-	EndIf
-	; Start() does not restart a playing scene: OnBegin would never fire, and the
-	; new NPC would get the last one's persona, room and verdict and no stamp.
-	If sc.IsPlaying()
-		MCP:Core.Reply(tag, "approach: NOT DONE - the approach scene is already playing; end that conversation first")
-		Return
-	EndIf
-	; A conversation whose end is still owed ends before the alias changes hands.
-	Self.EndConversation(True)
-	If !(Self as Quest).IsRunning()
-		(Self as Quest).Start()
-	EndIf
-	target.ForceRefTo(who)
-	; Report what the engine THINKS, not what we asked for: Scene.Start() is void.
-	sc.Start()
-	Utility.Wait(0.5)
-	String note = "approach: forced on " + who.GetFormID() + " | playing after Start=" + sc.IsPlaying()
-	If !sc.IsPlaying()
-		sc.ForceStart()
-		Utility.Wait(0.5)
-		note = note + " | after ForceStart=" + sc.IsPlaying()
-	EndIf
-	MCP:Core.Reply(tag, note)
-EndEvent
+; Is a conversation going on?
+Bool Function Talking()
+	Return _current != None
+EndFunction

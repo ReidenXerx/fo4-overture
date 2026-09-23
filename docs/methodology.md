@@ -52,9 +52,11 @@ convenience, and gating it off in a release build is a packaging item.)
       |                                     miss   -> their own dialogue (hand-back)
       |                                     recoil -> their own dialogue
       +-- landed on an earlier day ----> STAGE 2: four registers
-                                            land   -> STAGE 3, IF it has a chance (the verdict is "not yet" or better)
-                                                      else hand-back: a proposition that could only be refused is never offered
-                                            miss / recoil -> hand-back
+      |                                     land   -> STAGE 3, IF it has a chance (the verdict is "not yet" or better)
+      |                                               else hand-back: a proposition that could only be refused is never offered
+      |                                     miss / recoil -> hand-back
+      +-- said yes before, the lover tier, or "not now" / "not here" earlier today (§5a)
+                                       -> STAGE 3 at once; its verdict is decided as the scene begins
   STAGE 3  the proposition, in each of the four registers
       their register  -> ACCEPT (-> STAGE 4) | NOT YET | NOT HERE (public; §6) | NOT NOW (the moment; §2)
       any other       -> REFUSE
@@ -142,6 +144,13 @@ The inputs:
 too early and charged them for it; the review's point stands — the player cannot see the bond, and the
 wheel offered nothing else, so it punished them for taking the only path on it. Now stage 3 opens only
 when the verdict is "not yet" or better, and its appearing IS the visible progress.
+
+One exception, and it is fenced. A conversation that opens AT the proposition (§5a) opens it whatever
+the verdict: the markers are all the scene's conditions can read in time. So the refusals by nature are
+kept out of the markers -- someone spoken for and faithful enough to always refuse is never the lover
+tier, and a falling-out or a faithful partner clears an old yes -- and whatever is left (a bond that
+fell far, no persona) is refused for nothing: it costs no bond, and the Narrator says it was not the
+words (microscope pass 2).
 
 ---
 
@@ -269,11 +278,19 @@ faithful spouse an automatic yes and wrote Rapport's lovers flag on a promise; O
   The verdict is decided as the scene begins, by **the same rules as everyone's**: the bar, the place,
   the moment, and a faithful spouse (0.8) refuses whatever the bond (§7). Skipping the flirt is all the
   markers buy. Someone who said yes, or the lover tier, gets one of four persona-neutral lover greetings
-  (DRAFT); an invitation keeps the stranger's. The slot is held on a yes verdict, when scenes are on.
+  (DRAFT); an invitation keeps the stranger's. The slot is held from a yes verdict when scenes are on,
+  taken BEFORE Rapport is asked whether it is busy, so nothing can slip in between.
+- **Never a proposition that can only be refused, on a marker's strength** (§2): someone spoken for
+  and faithful enough to always refuse stays at the close tier and keeps the flirt, and an old yes stops
+  opening at the proposition once they fall out or are faithfully taken.
+- **A yes asks for its scene when the conversation ends**, after the dialogue has closed; the hold has
+  kept Rapport's slot since the verdict. The said-yes marker is written then too, with the others.
 - **Lovers to the world (O-27)**: Rapport's lovers flag, which Chemistry reads as spoken for, is set at
   a bond of `fLoverBond` AND at least one scene together, checked as a conversation opens and as it
-  ends. Not at the yes: a yes is a promise, the scene is the fact. The Narrator says so ("You and X are
-  lovers now.").
+  ends. Not at the yes: a yes is a promise, the scene is the fact. The Narrator says it as the world's
+  news: "Word gets around - you and X are a couple now." It can lag the scene that made it true until the
+  player next talks to them: Overture hears of no scene's end (Rapport's addons can, through their own
+  AAF listeners; a "scene recorded" event from Rapport would be the clean way, and is not built).
 - **Falling out ends it (O-28)**: Rapport ends its lovers flag at -0.25, and Overture, at the end of the
   next conversation, sees the fallen-out tier and forgets that a yes once opened at the proposition.
 - **Jealousy (O-29)**: as a lover's conversation opens, Overture compares the player's scenes with anyone
@@ -282,16 +299,21 @@ faithful spouse an automatic yes and wrote Rapport's lovers flag on a promise; O
   sting (`fJealousySting`, -0.06, a bond event), the vulgar a small thrill (`fJealousyThrill`, +0.03),
   the mercantile shrugs. The Narrator tells the player. What they knew before becoming lovers doesn't
   count.
-- **"Not now" and "not here" invite you back (O-13, O-30)**: the day stamp comes down to a few game
-  minutes ahead, and the rest of today opens at the proposition. Nothing is replayed and no bond is paid
-  twice. "Not here" gets the same until its follow is built.
+- **"Not now" and "not here" invite you back (O-13, O-30)**: the day stamp comes down to an hour of
+  game time ahead, and the rest of the day opens at the proposition -- never less than two game hours
+  after it reopens, so a "not now" at 23:50 still has a later. The day is the reply's, not the end's.
+  Nothing is replayed and no bond is paid twice. "Not here" gets the same until its follow is built, and
+  its hint is the place ("Catch them alone"): in a room that is always public, like the Third Rail,
+  "later" is the same answer. `approach room private` pins the room for a test.
 
 **Not built yet:** the warm, close and fallen-out tiers' greetings and entry stages. The tier is written
 at every conversation's end (`OvertureTier`, -1 to 3), and only the lover tier is read. A fallen-out NPC
-still gets the stranger's approach. Keeping Overture out, as the table below proposed, needs more than
-lines: the tier is refreshed only when a conversation ends, so a greeting that shut the fallen-out out
-could never see the bond recover through anything else, and the NPC would stay locked out for good. Also
-not built: O-13's "not here" follow, a Rapport helper.
+still gets the stranger's approach. Keeping Overture out, as the table below proposed, needs the cold
+line AND a script on it: the tier is refreshed only when a conversation ends, so a greeting that shut
+the fallen-out out would never see the bond recover -- unless the cold line itself refreshes the tier
+each time it is said, the shape `Overture:Reply` already has. That is how it should be built. (Longer
+term, Rapport could keep the player's bond in an actor value conditions can read, and the tier copy would
+go.) Also not built: O-13's "not here" follow, a Rapport helper.
 
 Today the store is a GATE: the player↔NPC bond has one reader (stage 3's threshold) and one writer
 (Overture's replies, and Rapport's scenes). A lover of twenty scenes, an engine friend, the player's own
@@ -319,15 +341,16 @@ for companions (§11). None built; the tiers and the lover state are poll items.
 
 ## 5b. The Narrator and names (O-9, O-10)
 
-**One line per conversation**, spoken when it has really ended: a second after the scene's `OnEnd`,
-because the last reply's own event may still be on its way, or as the next conversation begins, if that
+**One line per conversation**, spoken when it has really ended: once the scene has ended AND every reply
+that began has ended too (the last reply's own event has no order against the scene's), with a
+three-second fallback for a reply whose end never comes, or as the next conversation begins, if that
 comes first. It describes the conversation's LAST reply, with the bond before and after on the numbers line
 (`bond +0.12 -> +0.17`), shown only when the bond moved.
 `{second}` is the NPC's name, and `{they}` / `{their}` their pronouns, which Rapport fills in and
 capitalises. Never a literal pronoun: Papyrus pools strings case-insensitively, and a literal "He" came
 back "he". The first sentence names them, and the ones after it use the pronoun. Every sentence puts a
 pronoun subject before a past tense or a modal, so "they" never needs a different verb. A lover's news
-comes first: *You and X are lovers now.*, then jealousy, then the table below.
+comes first: *Word gets around - you and X are a couple now.*, then jealousy, then the table below.
 
 | last reply | the line (after "Her name is X." on a first approach) |
 | --- | --- |
@@ -343,12 +366,12 @@ comes first: *You and X are lovers now.*, then jealousy, then the table below.
 | stage 2 land, verdict refuse: the bond is too low | *X enjoyed that. Only talk, for now - keep coming back.* |
 | stage 2 land, stage 3 offered, the player left | *X enjoyed that. You could have asked for more.* |
 | stage 3 not yet | *Close. A little more time with you, and X might.* |
-| stage 3 not here | *X would - somewhere without an audience. Ask again later today.* |
+| stage 3 not here | *X would - somewhere without an audience. Catch them alone.* |
 | stage 3 not now: the romantic's setting | *X would - indoors, or after dark. Ask again later today.* |
 | stage 3 not now: Rapport busy | *X would - just not right now. Ask again later today.* |
 | stage 3 refuse (wrong register) | *X turned you down. That wasn't the way to ask.* |
 | stage 3 refuse, when even the right words would have been (a conversation that opened at the proposition) | *X turned you down - but there's someone else.* / *- but there's bad blood between you.* / *. Not yet - keep coming back.* |
-| a yes | nothing, not even the name: Rapport's own scene-start line names them both. Only a lover's news (lovers now, a sting or a thrill) is said |
+| a yes | nothing, not even the name: Rapport's own scene-start line names them both. Only a lover's news is said: a couple now, *X heard you've been with someone else - and said yes anyway.*, or the thrill |
 | a yes, with scenes switched off | *X said yes.* |
 | a yes Rapport never had a slot for, or one the player left for somebody else's | *X said yes, but the moment passed.* |
 | a lover heard about the others (O-29) | *X heard you've been with someone else. It stung.* / *- and liked hearing it.* / *, and didn't mind.* |
@@ -359,10 +382,13 @@ or after dark" (the romantic) and "some people take time" (the reticent). A play
 rules can read the persona from those, the same way they can from the NPC's own reply. That's the level
 built tonight: hint, never label. The owner decides it (§13, #16).
 
-**Names (O-10).** `BeginTalk` calls `Rapport:Core.Introduce(npc)` at every approach. Rapport answers with
+**Names (O-10).** `OnBegin` calls `Rapport:Core.Introduce(npc)` at every approach. Rapport answers with
 a new name only the first time, and only for a nameless NPC (base not Unique, no custom name), so
 Overture keeps no list of its own.
 
+---
+
+## 6. Place (N-3)
 
 Built: **public or private**, from Rapport's own count and tolerance, and the recoil (O-4).
 
@@ -434,7 +460,7 @@ actually talked to (R-5's rule, for free), and gone with the actor:
 
 | AV | meaning | status |
 | --- | --- | --- |
-| `OvertureNextApproachDay` | the game day they may be approached again; after "not now" or "not here", a few game minutes from then (O-30) | built, verified (O-8) |
+| `OvertureNextApproachDay` | the game day they may be approached again, and never sooner than 2.4 game hours after a conversation begins, so one that runs past midnight cannot re-open itself; after "not now" or "not here", an hour of game time from then (O-30) | built, verified (O-8) |
 | `OvertureStageReached` | 0 never landed, 1 stage 1, 2 stage 2, 3 reached stage 3 (any answer) | built; written as a conversation ENDS — phase 2 reads it the moment stage 1 ends, and a reticent's first land written earlier opened stage 2 on the day R-8 forbids it |
 | `OvertureTier` | §5a's tier: -1 fallen out, 0 stranger, 1 warm, 2 close, 3 lover | built; only 3 is read so far |
 | `OvertureSaidYes` | 1 once they have said yes (O-12); cleared at a falling-out (O-28) | built |
@@ -443,8 +469,9 @@ actually talked to (R-5's rule, for free), and gone with the actor:
 
 And four GLOBALS that belong to one conversation at a time, reset as each scene begins:
 `OverturePersona`, `OverturePublic` (both also forgotten when a conversation really ends),
-`OvertureVerdict` and `OvertureLastOutcome` (§9). No list, and no co-save of Overture's own. One timer:
-a conversation ends a second after its scene does.
+`OvertureVerdict` and `OvertureLastOutcome` (§9), all four forgotten when a conversation ends. No list,
+and no co-save of Overture's own. Two timers: a yes's retries, and the fallback that ends a conversation
+whose last reply never ends.
 
 ---
 
@@ -458,12 +485,13 @@ a conversation ends a second after its scene does.
 | stages | scene PHASES (`tools/overture_stages.py`, `--stages 3`), 1-based in the log: 1 empty (the alias settles), 2 stage 1 if `OvertureStageReached == 0` on the alias, 3 stage 2 if `OvertureLastOutcome` is a land OR a stage was reached on an earlier day, 4 stage 3 if the verdict is "not yet" or better, 5 HandBack (End Scene Say Greeting) unless the last line was a yes | **VERIFIED, every branch** (G1-G4, `dialogue-route.md`), with `console set` standing in for `Reply.pex` |
 | the proposition opening | phases 2 and 3 also require that none of §8's three markers opens it (said yes, the lover tier, an invitation still running: `OvertureInvitedUntil > GameDaysPassed`, Use Global); phase 4 opens on any of them, as one OR group. `Approach.OpensAtProposition` is the same test, and decides the verdict as the scene begins | built, bytes checked; not yet run |
 | "what the reply decided" | `Overture:Reply` on each NPC reply INFO, `extends TopicInfo` — vanilla's own pattern (`CA_DialogueBump_BaseScript`). `OnBegin`, as the line STARTS: `OvertureLastOutcome`, and the verdict at the stage-2 land — the scene moves on only when the line ENDS, so nothing races. `OnEnd`: the bond, and how far the conversation got | built; the engine binds it on every reply INFO; runs once the owner's Deploy puts `Reply.pex` in Data |
-| a conversation's end | a second after the scene's `OnEnd` (a timer), or at the next `OnBegin` if sooner: the last reply's `OnEnd` is another script object's event, with no order against the scene's. Each conversation is its own struct, closed before anything can yield, so an end never reads the next conversation's facts | built; not yet run |
+| a conversation's end | when the scene has ended and every reply that began has ended (counted in the conversation's own struct), a three-second fallback, or the next `OnBegin` if sooner: the last reply's `OnEnd` is another script object's event, with no order against the scene's. Each conversation is its own struct, current from the first line of its `OnBegin` and closed before anything can yield, so an end never reads another conversation's facts | built; not yet run |
+| the dev channel | `Overture:Dev`, a second script on the quest: every F4MCP type is there, so a player without F4MCP loses the verbs and nothing else (it was in `Overture:Approach`, in the function that registers the scene's events) | built; whether the VM would have refused the old script is unmeasured |
 | INFO VMAD | one plain script with two Int properties (`Stage`, `Outcome`), no fragment block — the shape of Fallout4.esm INFO `0001DABE` (xEdit `wbVMADFragmentedINFO`, fragments optional from 3) | **VERIFIED parsed** (the engine binds by it) |
 | stage-3 verdict | `Overture:Approach.Decide(npc, bond, public)` at the stage-2 land's `OnBegin`, on the bond that land will write (`AfterLand`), into `OvertureVerdict` | built; the gate and every answer set **VERIFIED** with the verdict set by console |
 | no line ends the scene | no reply carries ENAM `0x40` — XDI turns it into the option's `endsScene` for its menu (xdi `DialogueEx.cpp` 301), and the yes showed as `[ends scene]` on the wheel | **VERIFIED** (G2b) |
 | failed, do not retry | `0x40` on the ending replies (it ended the scene before HandBack); a TSCE + NAM0 phase jump (the engine restarted the scene from phase 1, with and without Start Scene on End) | measured 2026-09-23 |
-| stage 4 | the accept line's `OnEnd` → `RequestScene(player, npc, scenario)` re-checked and retried, then `NoteAffair` if it took, behind `OvertureScenesEnabled` (0 by default; `approach scenes on`) | built, OFF; to prove: the player in a Rapport scene (and Rapport's barks, §5) |
+| stage 4 | the conversation's end, after a yes → `RequestScene(player, npc, scenario)` re-checked and retried, then `NoteAffair` if it took, behind the MCM setting "A yes starts a scene" (off by default; `approach scenes on`) | built, OFF; to prove: the player in a Rapport scene (and Rapport's barks, §5) |
 | scenario | vulgar → `quickie` outdoors, `athome` indoors; romantic → `tender`; mercantile and reticent → `athome` indoors, `tender` outdoors — ASSUMED | |
 | the follow | a second alias with a follow package, filled by the "not here" reply's script, cleared on scene or lapse | to prove; poll |
 

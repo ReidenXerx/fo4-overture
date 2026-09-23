@@ -69,7 +69,7 @@ INFO_BASE_S2 = 0x01000B00
 RECOIL_BASE_S2 = 0x01000B80
 INFO_BASE_S3 = 0x01000C00
 VERDICT_GLOBAL = 0x01000845     # Overture:Approach.VERDICT_*; the stage-3 replies read it
-SCENES_GLOBAL = 0x01000846      # 1 = an accept really asks Rapport for a scene; 0 until proven
+# 0x846 was OvertureScenesEnabled: an MCM setting now (SWITCHES), and retired.
 
 ENAM_END_RUNNING_SCENE = 0x40   # only the YES carries it now (see the docstring)
 HAND_BACK = 'HandBack'          # the last phase's name (for the log and the CK; nothing jumps to it)
@@ -87,10 +87,13 @@ OUTCOME_ACCEPT, OUTCOME_NOTYET, OUTCOME_REFUSE, OUTCOME_NOT_HERE, OUTCOME_NOT_NO
 # "not yet", which told the player to try harder at the one thing that was not
 # the problem (design review 2026-09-23).
 VERDICT_REFUSE, VERDICT_NOTYET, VERDICT_ACCEPT, VERDICT_NOT_HERE, VERDICT_NOT_NOW = 1, 2, 3, 4, 5
-# Phase 3 opens only for a verdict that has a chance: a proposition that could
-# only be refused is never offered, so the player is not punished for taking the
-# only path on the wheel (design review 2026-09-23). The verdict is decided as
-# the stage-2 land BEGINS and the gate is read when it ENDS -- no race.
+# Phase 3 opens, after a stage-2 land, only for a verdict that has a chance: a
+# proposition that could only be refused is never offered there, so the player is
+# not punished for taking the only path on the wheel (design review 2026-09-23).
+# The verdict is decided as the land BEGINS and the gate is read when it ENDS --
+# no race. A conversation that opens AT the proposition opens it whatever the
+# verdict (its markers are all the gate can read in time); Approach keeps the
+# only-refusable case out of those markers, and a refusal there costs nothing.
 # Five verdict sets of two lines per (register, persona) cell.
 S3_CELL = 16
 
@@ -126,8 +129,8 @@ SETTINGS = [
     ('fBarReticent', 'Bars', 0.30, 'How close before a yes', 'Reticent',
      'They take days to open up.', 0.0, 1.0, 0.01),
     ('fLoverBond', 'Bars', 0.75, 'How close before a yes', 'Lovers from a bond of',
-     'At this bond, conversations open at the proposition. With a scene together as well, you are lovers '
-     'to everyone else too.', 0.3, 1.0, 0.05),
+     'At this bond, conversations open at the proposition - from the next one after a conversation ends '
+     'there. With a scene together as well, you are a couple to everyone else too.', 0.3, 1.0, 0.05),
     ('fFaithRefuses', 'SpokenFor', 0.80, 'Spoken for', 'Faithful enough to always refuse',
      'Someone married or courting refuses outright at this faithfulness or above.', 0.0, 1.0, 0.05),
     ('fFaithWeight', 'SpokenFor', 0.40, 'Spoken for', 'How much being spoken for raises the bar',
@@ -138,10 +141,16 @@ SETTINGS = [
     ('fJealousyThrill', 'Jealousy', 0.03, 'Jealousy', 'When it thrills',
      "What a vulgar lover's bond gains on hearing it. The mercantile shrug.", 0.0, 0.2, 0.01),
 ]
-# The one key MCM can never legitimately answer 0 for -- its slider starts at 0.3.
-# A 0 there means MCM has no Overture settings, and Approach.Tuned falls back to
-# the defaults it carries.
-SENTINEL = 'fLoverBond:Bars'
+# The switches that are MCM settings (the other, OvertureEnabled, is a global: the
+# greeting's own conditions read it).  (key, ini section, default, label, help)
+SWITCHES = [
+    ('bScenes', 'Switches', False, 'A yes starts a scene',
+     'When someone says yes, Rapport starts the scene. Off: they say yes and nothing more happens.'),
+]
+# In settings.ini and on no control: Approach.HasSettings's proof that MCM read THIS
+# file. A key that is a slider cannot prove it -- a player's one moved slider made
+# MCM answer for it while every other key read 0 (microscope pass 2).
+META = 'iDefaults:Meta'
 
 
 def glob(form_id, edid, value):
@@ -193,7 +202,7 @@ def build_staged():
     ids = [(m.QUEST_FORMID, 'quest'), (m.SCENE_FORMID, 'scene'),
            (m.PERSONA_GLOBAL, 'persona global'), (m.PUBLIC_GLOBAL, 'public global'),
            (m.ENABLED_GLOBAL, 'enabled global'), (VERDICT_GLOBAL, 'verdict global'),
-           (SCENES_GLOBAL, 'scenes global'), (LAST_OUTCOME_GLOBAL, 'last-outcome global'),
+           (LAST_OUTCOME_GLOBAL, 'last-outcome global'),
            (m.NEXT_DAY_AV, 'next-day actor value'), (m.STAGE_REACHED_AV, 'stage-reached actor value'),
            (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
            (m.INVITED_UNTIL_AV, 'invited-until actor value'), (m.JEALOUSY_MARK_AV, 'jealousy-mark actor value'),
@@ -337,10 +346,9 @@ def build_staged():
         raise SystemExit('more lover greetings than 0x832..0x83F holds')
     children += m.greeting(lover_lines)
     children += scene_staged(topics)
-    quest_blob = m.quest() + m.child_group(m.QUEST_FORMID, 10, children)
+    quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
-             + glob(SCENES_GLOBAL, 'OvertureScenesEnabled', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob)
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
@@ -409,9 +417,11 @@ def not_at_proposition():
 
 def scene_staged(topics):
     """Five phases: 0 empty (the alias settles), 1 stage 1 (first meetings only),
-    2 stage 2 (after a land, or for a returning NPC), 3 stage 3 (only for a verdict
-    of "not yet" or better), 4 HandBack -- the type-4 End Scene Say Greeting action
-    the one-exchange scene ends with, which every ending reply jumps to."""
+    2 stage 2 (after a land, or for a returning NPC), 3 stage 3 (for a verdict of
+    "not yet" or better, or a conversation that opens at the proposition), 4
+    HandBack -- the type-4 End Scene Say Greeting action the one-exchange scene
+    ends with, reached by falling through after any line but a yes (nothing jumps
+    to it)."""
     f = m.field('EDID', m.zstring(m.SCENE_EDID))
     f += m.field('FNAM', struct.pack('<I', 0x00000024))
     # Stage 1: nothing reached yet, AND not a conversation that opens at the
@@ -430,14 +440,14 @@ def scene_staged(topics):
     # player can pick; the gate reads only markers written before the conversation
     # began, so it cannot race -- and it opens even for a verdict that can only be
     # refused, which the Narrator then says is not the player's words.
-    has_a_chance = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, VERDICT_GLOBAL,
-                                               value=float(VERDICT_NOTYET), op=m.CTDA_OP_GE | m.CTDA_OR))
-    has_a_chance += at_proposition()
+    stage_three = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, VERDICT_GLOBAL,
+                                              value=float(VERDICT_NOTYET), op=m.CTDA_OP_GE | m.CTDA_OR))
+    stage_three += at_proposition()
     # HandBack: after anything but a yes. After a yes the scene simply ends -- the
     # dialogue closes so Rapport's scene can start, with no re-greet on top.
     not_after_yes = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
                                                 value=float(OUTCOME_ACCEPT), op=m.CTDA_OP_NE))
-    f += (phase() + phase(first_meeting) + phase(stage_two) + phase(has_a_chance)
+    f += (phase() + phase(first_meeting) + phase(stage_two) + phase(stage_three)
           + phase(not_after_yes, name=HAND_BACK))
     # The actor list: alias 0, as the one-exchange scene has it.
     f += m.field('ALID', struct.pack('<I', m.ALIAS_INDEX))

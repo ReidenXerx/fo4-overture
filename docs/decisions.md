@@ -152,7 +152,7 @@ know, *"in not vibe destroying way"*, what is happening and how when they act.
   found a free scene slot does get a line ("said yes, but the moment passed"), so it doesn't vanish without
   a word.
 
-Built 2026-09-23 (`Approach.psc`: `BeginTalk`, `Narrate`, `TalkLine`). The line table is in methodology §5b.
+Built 2026-09-23 (`Approach.psc`: `Narrate`, `TalkLine`; the conversation it speaks for is `Conversation`, from `OnBegin` to `Finish`). The line table is in methodology §5b.
 
 ## O-10 — The nameless get a name when the player first approaches them (owner, 2026-09-23)
 
@@ -236,10 +236,27 @@ Four readings made while building it, each reversible, recorded so they can be o
   "said yes, opens at the proposition" is the same lover state seen from the conversation, so the fallen-out
   tier clears it at the next conversation's end.
 - **The fallen-out still get the stranger's approach.** O-14's table had Overture stay out for them. The
-  tier is only refreshed when a conversation ends, so a greeting that shut them out could never see the bond
-  recover any other way, and they would be locked out for good. It waits for the fallen-out lines and a
-  refresh path.
+  tier is only refreshed when a conversation ends, so a greeting that shut them out would never see the
+  bond recover any other way. It waits for the fallen-out lines -- and the cold line needs a script of its
+  own that refreshes the tier each time it is said (Overture:Reply's shape), which lifts the lockout.
+  (Corrected by microscope pass 2: the first version of this said the lockout could not be avoided.)
 - **Jealousy counts only what happened after they became lovers**, once per conversation, however many
   scenes there were. Scenes with the player's engine spouse count like any other.
 - **Lovers to the world are checked when a conversation opens and when it ends**, the two moments Overture
   hears of. Overture has no event for a scene's end, so the flag can lag a scene until the next talk.
+  (Addons can hear a scene end through their own AAF listeners, and a Rapport "scene recorded" event would
+  be the clean way; neither is built.)
+
+Microscope pass 2 (the same evening) settled four more, also reversible:
+- **A proposition that can only be refused is never offered on a marker's strength.** The design review's
+  rule and O-27..O-30's "a lover only skips the flirt" disagreed for a faithful spouse at a bond of 0.75:
+  every visit would have opened at a proposition that could only be refused, and each refusal cost bond.
+  Now someone spoken for and faithful enough to always refuse is never the lover tier, an old yes stops
+  opening at the proposition once they are faithfully taken (as at a falling-out), and a refusal where
+  even the right words would have been refused costs nothing. Both rules hold.
+- **On a yes, the Narrator still says a lover's news** -- a couple now, a sting or a thrill -- which
+  Rapport's scene-start line cannot know. O-9's "nothing on a yes" was about what that line already says.
+- **O-27's line is the world's news**: "Word gets around - you and X are a couple now." Lover greetings
+  began at the first yes, so "lovers now" would have announced what the player took to be true already.
+- **"A yes starts a scene" is an MCM setting, like the numbers.** A global's value is frozen into every
+  save, and this is the one switch whose default is meant to change once stage 4 is proven.
