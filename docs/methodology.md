@@ -67,6 +67,16 @@ clue: *"If you are buying, then I am listening"* and *"Oh. Hello. Did you need s
 two different people, and the player who listens to the greeting reads the persona before choosing.
 **ASSUMED** — a second trait that makes stage 2 its own puzzle is in the poll list, as a later idea.
 
+**OPEN — the clue is not in the game yet.** Today's greeting is a neutral `"..."`: the greeting is
+the line that STARTS the scene, so it is chosen before any script has run, and the persona global is
+set in the scene's `OnBegin` — too late for it. Three ways out, none built: (a) a persona FACTION set
+on the NPC at their first approach, which a greeting condition can read — so the clue arrives from the
+second meeting on, and the first meeting is read from the first reply; (b) an NPC line in phase 0,
+after the persona is set — which needs a delay the scene can express, and races `OnBegin` without one;
+(c) Rapport putting every NPC it scans into a persona faction — the clue from the first meeting, at the
+price of writing a faction to every actor the player walks past, which is what R-5 exists to refuse.
+(a) is the cheapest honest one.
+
 **Returning conversations start at stage 2.** Stage-1 lines are first-meeting lines (*"You are still
 here. Most people are not."*); hearing them on day five is wrong. Overture keeps one fact of its own on
 the NPC for this — the stage they last reached (§8) — because it is a fact about THIS mod's
