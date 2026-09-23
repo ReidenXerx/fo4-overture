@@ -17,9 +17,9 @@ WHAT THIS SCRIPT DOES, on the scene's own events:
              before the NPC's reply is chosen, which is after the player picks;
              and the stamp closes the re-greet that follows the reply, 140 ms
              after it, so the conversation hands back to the NPC's own dialogue.
-  OnEnd   -- once the scene has really ended: one line from the Narrator on how
-             it went (O-9), then the alias is let go, and the persona and the
-             room are forgotten.
+  OnEnd   -- one line from the Narrator on how it went (O-9); then, once the
+             scene has really stopped, the alias is let go, and the persona and
+             the room are forgotten.
 And on a nameless NPC's first approach, Rapport gives them a name (O-10).
 And on each NPC reply, through Overture:Reply: as the line BEGINS, stage 3's
 verdict (only at the stage-2 land); as it ENDS, the bond and the stage reached.
@@ -252,12 +252,26 @@ Event Scene.OnPhaseBegin(Scene akSender, Int auiPhaseIndex)
 EndEvent
 
 Event Scene.OnEnd(Scene akSender)
-	; One scene serves every conversation, so a late OnEnd can arrive after the
-	; NEXT conversation has already begun. Only an ended scene is ours to tidy.
+	; The line FIRST, and unconditionally. MEASURED 2026-09-23 on a Third Rail
+	; Drifter, twice: this event arrives while the scene still reports
+	; IsPlaying(), so the guard that used to stand here turned away every real end
+	; and each line was spoken one conversation late, by the next OnBegin. The
+	; facts in _talk* are this conversation's either way: events arrive in order,
+	; so the next conversation's OnBegin cannot have run before this one.
+	Bool playingAtEnd = akSender.IsPlaying()
+	Self.Narrate()
+	; The tidy-up is different. One scene serves every conversation, and clearing
+	; the alias under one that has already begun would break it. So wait, briefly,
+	; for the scene to really stop, and tidy only if nobody has it by then.
+	Int waited = 0
+	While akSender.IsPlaying() && waited < 20
+		Utility.Wait(0.25)
+		waited += 1
+	EndWhile
+	Debug.Trace("Overture: scene ended - IsPlaying at the event " + playingAtEnd + ", after " + (waited * 0.25) + " s " + akSender.IsPlaying(), 0)
 	If akSender.IsPlaying()
 		Return
 	EndIf
-	Self.Narrate()
 	Self.TargetAlias().Clear()
 	; And forget who it was: a persona or a room left in the globals is the next
 	; NPC's reply if their own OnBegin is late. -1 matches no reply (the staged

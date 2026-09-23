@@ -161,9 +161,12 @@ player approach them"*, *"if it's not very hassle"*.
 
 - **Rapport owns it** (O-1): `Rapport:Core.Introduce(actor)` in 0.2.1. It works for any mod, not only
   Overture.
-- **Who counts as nameless:** an NPC whose base is not flagged Unique (Settler, Drifter, Diamond City
-  Resident), never the player, and never someone who already has a custom name (the player's own rename,
-  another mod's).
+- **Who counts as nameless:** an NPC whose base is not flagged Unique, OR whose name is a label that
+  three or more NPC records share (Settler, Drifter, Diamond City Resident). Never the player, never
+  anyone who has ever been a companion, and never someone who already has a custom name (the player's
+  own rename, another mod's). The label rule was added the same day, after a measurement: TrainBar.esp's
+  thirteen Third Rail patrons are all flagged Unique and all called "Drifter", so the Unique flag
+  alone left them nameless. A count works in every language, where a list of label words would not.
 - **Persistent:** the name is derived from the form id, so the same person always gets the same name and
   the name costs the save nothing. The save keeps only WHO was introduced. A death forgets them: a dead
   stranger's id can go to somebody new once the body is cleaned up, and a stranger must never walk in
