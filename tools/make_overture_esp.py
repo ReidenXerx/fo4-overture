@@ -1,10 +1,8 @@
-"""Build Overture.esp: one dialogue quest, one scene, four player options.
+"""Build Overture.esp: one dialogue quest, one scene, four player options, and
+the NPC's answer to each -- chosen by the NPC's persona, overridden by the room.
 
-THE THINNEST LOOP FIRST (fo4-rapport N-2). This makes four player options
-appear on the wheel in the four slots and nothing else -- no persona
-conditions, no NPC responses selected by persona, no stages. Prove the options
-appear, then add the matrix. Building all sixteen conditioned lines before one
-option has ever shown up would be building it twice.
+It began as the thinnest loop (fo4-rapport N-2): four options on the wheel and
+nothing else, proved in game before the matrix went on top.
 
 EVERY BYTE SHAPE HERE IS TRANSCRIBED from FFGoodneighbor02 (QUST 0010B654) and
 FFGoodneighbor02RewardScene (SCEN 0010BECF) -- the smallest quest in
@@ -19,9 +17,10 @@ THE FOUR FACTS THAT DECIDE THE SHAPE:
    RNAM sit under topics whose SNAM is "SCEN". A free-standing topic attached
    to an NPC is a record the engine never looks at.
 2. The wheel slot is which SCEN field points at the topic -- PTOP positive,
-   NTOP neutral, NETO negative, QTOP question -- NOT the DIAL category. All
+   NTOP NEGATIVE, NETO NEUTRAL, QTOP question -- NOT the DIAL category. All
    eight of the template's topics are category 15 and they sit in different
-   slots.
+   slots. (The names read the other way round, and the first build believed
+   them; XDI's optionIDs settled it in game: Negative 1 came from NTOP.)
 3. Scene topics carry NO Dialogue Branch. Only 1,290 of 35,443 DIAL records
    have a BNAM. This is the opposite of the bark case, where a missing DLBR
    left 211 topics silent, so do not "fix" a topic here by adding one.
@@ -29,6 +28,10 @@ THE FOUR FACTS THAT DECIDE THE SHAPE:
    Fallout4.esm because it sets TES4 flag 0x80 and is localized; this plugin
    does not, so copying the base game's four bytes would put garbage in every
    subtitle.
+5. A player option's INFO is what the PLAYER says. The NPC answers from a
+   SECOND topic per slot, named by the action's NPOT/NNGT/NNUT/NQUT. The
+   template has four of each; the first builds had only the player's four and
+   put the NPC's words in them.
 
     python tools/make_overture_esp.py build/Overture.esp
 """
@@ -68,6 +71,13 @@ PERSONAS = ['mercantile', 'romantic', 'vulgar', 'reticent']
 # Form ids are spaced this far apart per cell so variants never collide.
 MAX_VARIANTS = 8
 
+# INFO ENAM: uint16 flags, then uint16 reset hours. Names from xEdit's
+# wbDefinitionsFO4.pas (dev-4.1.6, "Response flags"), checked against how
+# Fallout4.esm uses them with tools/random_groups.py -- not from memory.
+ENAM_RANDOM = 0x02       # pick among the valid lines of this run
+ENAM_SAY_ONCE = 0x04     # the line is never said again after the first time
+ENAM_RANDOM_END = 0x20   # closes a Random run; the next Random line starts a new one
+
 QUEST_EDID = 'OvertureDialogueQuest'
 SCRIPT_NAME = 'Overture:Approach'
 SCENE_EDID = 'OvertureApproachScene'
@@ -92,6 +102,22 @@ SLOTS = [
     ('NTOP', 'blunt'),    # Negative
     ('QTOP', 'linger'),   # question
 ]
+
+# WHERE THE NPC ANSWERS. A player option's own INFO is what the PLAYER says --
+# XDI's list shows exactly that text (xdi src/DialogueEx.cpp:265-295 reads the
+# player info's response), and in vanilla the chosen INFO is played by the
+# player before the NPC speaks. The NPC's reply lives in a SECOND topic per
+# slot, named by the action's second set of fields. MEASURED on SCEN 0010BECF:
+# PTOP 0010BEB7 -> NPOT 0010BEBB, NTOP 0010BEB6 -> NNGT 0010BEBA,
+# NETO 0010BEB5 -> NNUT 0010BEB9, QTOP 0010BEB4 -> NQUT 0010BEB8. xEdit names
+# them "NPC Positive/Negative/Neutral/Question Response".
+#
+# The first builds wrote these four as 0 on the belief that they were "where
+# an option leads", and put every NPC reply into the player's own INFO: the
+# persona matrix picked the right sentence and handed it to the wrong speaker.
+NPC_SLOT = {'PTOP': 'NPOT', 'NTOP': 'NNGT', 'NETO': 'NNUT', 'QTOP': 'NQUT'}
+NPC_TOPIC_BASE = 0x01000820     # one reply topic per register
+PLAYER_INFO_BASE = 0x01000900   # the player's one line per register
 
 
 # --------------------------------------------------------------------------
@@ -223,11 +249,15 @@ def topic(topic_id, edid, infos=1):
     return record('DIAL', topic_id, f)
 
 
-def line(info_id, player_prompt, npc_response, persona_index=None, public=None):
-    """One INFO. Transcribed from INFO 0010BEC4.
+def line(info_id, player_prompt, spoken, persona_index=None, public=None,
+         enam=ENAM_RANDOM):
+    """One INFO. Transcribed from INFO 0010BEC4 (a player line) and 0010BEBD
+    (an NPC reply), which differ in exactly one field: the player's has RNAM.
 
-    RNAM is the PLAYER's menu text and NAM1 the NPC's spoken reply, both
-    literal (fact 4).
+    NAM1 is what the SPEAKER of this line says -- the player on a player topic,
+    the NPC on a reply topic. RNAM is the menu prompt and exists only on a
+    player's line; pass player_prompt=None for an NPC reply. Both literal
+    (fact 4).
 
     TRDA's first four bytes are the emotion id; ffffffff is none. Its second
     field is the RESPONSE NUMBER, which is the "_1" in the audio file name
@@ -238,9 +268,14 @@ def line(info_id, player_prompt, npc_response, persona_index=None, public=None):
     fo4-rapport's barks work without it.
     """
     trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
-    f = field('ENAM', struct.pack('<I', 0))
+    # ENAM bit 0x02 = "one of several", the engine's Random flag. Ours was 0 and
+    # every read returned the same line even though two passed their conditions.
+    # MEASURED across every dialogue INFO in Fallout4.esm: of lines carrying
+    # ENAM 2, 87% sit in a topic that holds more than one line (15,022 of
+    # 17,269); of lines carrying 0, only 31% do. tools/info_enam.py is the check.
+    f = field('ENAM', struct.pack('<HH', enam, 0))
     f += field('TRDA', trda)
-    f += field('NAM1', zstring(npc_response))
+    f += field('NAM1', zstring(spoken))
     f += field('NAM2', b'\0')
     f += field('NAM3', b'\0')
     f += field('NAM4', b'\0')
@@ -253,7 +288,8 @@ def line(info_id, player_prompt, npc_response, persona_index=None, public=None):
         # AND, not OR: two CTDAs with the OR bit clear both have to pass.
         f += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, PUBLIC_GLOBAL,
                                      value=float(public), runon=0))
-    f += field('RNAM', zstring(player_prompt))
+    if player_prompt is not None:
+        f += field('RNAM', zstring(player_prompt))
     f += field('NAM0', b'\0')
     f += field('INAM', struct.pack('<I', 1))
     return record('INFO', info_id, f)
@@ -330,7 +366,10 @@ def greeting():
     topic = record('DIAL', GREET_TOPIC, f)
 
     trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
-    g = field('ENAM', struct.pack('<I', 4))      # 4 on the template's greeting
+    # NOT the template's 4. That is ENAM_SAY_ONCE: right for FFGoodneighbor02,
+    # whose greeting starts its quest's scene one time, and wrong for a greeting
+    # that has to open the approach every time the player talks to someone (O-7).
+    g = field('ENAM', struct.pack('<HH', 0, 0))
     g += field('TRDA', trda)
     g += field('NAM1', zstring('...'))           # the NPC's greeting line
     g += field('NAM2', b'\0')
@@ -351,12 +390,13 @@ def greeting():
 def scene(topic_ids):
     """The SCEN. Transcribed field for field from SCEN 0010BECF.
 
-    `topic_ids` is {slot: form id} for PTOP/NTOP/NETO/QTOP.
+    `topic_ids` is {field: form id} for all eight: the player's PTOP/NTOP/
+    NETO/QTOP and the NPC's NPOT/NNGT/NNUT/NQUT.
 
-    The second set of four slots -- NPOT/NNGT/NNUT/NQUT -- is where each option
-    LEADS. With one phase there is nowhere to lead, so they are written as 0.
-    That is the one deliberate difference from the template, which points them
-    at four further topics.
+    The second four are the NPC's RESPONSE topics, one per slot, exactly as the
+    template has them. The first builds wrote them as 0, reading them as "where
+    an option leads" -- and so the NPC had nothing to say and the reply text sat
+    in the player's own line.
 
     Several fields are copied verbatim because their meaning is not established:
     LNAM, DNAM, the action FNAM, VNAM and XNAM. They are marked below. Copying
@@ -390,13 +430,25 @@ def scene(topic_ids):
     f += field('NAM0', b'\0')
     f += field('ALID', struct.pack('<I', ALIAS_INDEX))
     f += field('INAM', struct.pack('<I', 1))
-    f += field('FNAM', struct.pack('<I', 0x00228000))   # verbatim: action flags
+    # Action flags: Camera Speaker Target (bit 21) only -- the configuration
+    # VERIFIED in game 2026-09-23 (the NPC answered, variants rotated, the recoil
+    # fence held). It is NOT known to be necessary. The template's 0x00228000
+    # adds Face Target (15) and Headtrack Player (17), as 2,406 of the base
+    # game's 2,422 player-dialogue actions do, while Whitechapel Charlie's own
+    # scene 00075E89 carries 0x00200800 (tools/action_flags.py; names from xEdit
+    # wbDefinitionsFO4.pas). Dropping Face Target was a response to a menu that
+    # hung on Charlie -- and that theory DIED: his own vanilla scene hung the
+    # same way from the same spot. What decided it was the player's position:
+    # with Charlie (seated in bar furniture, sit=3) under the crosshair it
+    # works; from the end of the bar, crosshair on a door, nothing does.
+    # OPEN: A/B Face Target with the player positioned properly. With it, an
+    # approached NPC turns to face the player, which is what vanilla does.
+    f += field('FNAM', struct.pack('<I', 0x00200000))
     f += field('SNAM', struct.pack('<I', 0))            # start phase
     f += field('ENAM', struct.pack('<I', 0))            # end phase
-    for slot, _register in SLOTS:
+    # The template's order, player then NPC, positive-negative-neutral-question.
+    for slot in ('PTOP', 'NTOP', 'NETO', 'QTOP', 'NPOT', 'NNGT', 'NNUT', 'NQUT'):
         f += field(slot, struct.pack('<I', topic_ids[slot]))
-    for slot in ('NPOT', 'NNGT', 'NNUT', 'NQUT'):
-        f += field(slot, struct.pack('<I', 0))          # nowhere to lead yet
     f += field('DTGT', struct.pack('<I', ALIAS_INDEX))
     f += field('ANAM', b'')
 
@@ -470,9 +522,26 @@ def build():
                (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
+        prompt = by_register[register]
+
+        # THE PLAYER'S OPTION: one line, the player's own words. RNAM is the menu
+        # text, NAM1 what the player then says -- empty for linger, whose whole
+        # content is saying nothing. No conditions: every register is always on
+        # the menu, and it is the ANSWER that depends on who is listening.
         tid = TOPIC_BASE + n
+        pid = PLAYER_INFO_BASE + n
         topic_ids[slot] = tid
-        all_ids.append((tid, f'topic {register}'))
+        all_ids += [(tid, f'player topic {register}'), (pid, f'player line {register}')]
+        children += topic(tid, f'OvertureTopic{register.capitalize()}', infos=1)
+        children += child_group(tid, 7, line(pid, prompt['text'],
+                                             prompt.get('spoken', prompt['text']), enam=0))
+        count += 2
+
+        # THE NPC'S ANSWER, in its own topic, which the scene names in the
+        # NPC-response field for the same slot (NPC_SLOT).
+        rtid = NPC_TOPIC_BASE + n
+        topic_ids[NPC_SLOT[slot]] = rtid
+        all_ids.append((rtid, f'reply topic {register}'))
 
         # EVERY variant, not just the first. Four lines exist per cell and the
         # engine picks among the INFOs whose conditions pass -- measured on the
@@ -485,13 +554,25 @@ def build():
         # the first INFO whose conditions pass, so a recoil ahead of the normal
         # reply wins whenever the room is public and is skipped when it is not.
         # Put them after and they would never be reached.
+        #
+        # BUT RANDOM POOLS A RUN, NOT A CONDITION. Every line here is Random so
+        # a cell's variants rotate, and consecutive Random lines form ONE run
+        # the engine picks from -- so without a fence a public room would pick
+        # among the recoils AND the normal replies, and the override becomes a
+        # coin flip. The base game fences runs with Random End: 706 of its 722
+        # Random End lines close a run of Random lines, and 178 are followed at
+        # once by another Random line, which is two groups back to back exactly
+        # like these. Each persona's LAST recoil carries it.
         if register == INTIMATE_REGISTER:
             for k, persona in enumerate(PERSONAS):
-                for v, text in enumerate(recoil.get(persona, [])):
+                texts = recoil.get(persona, [])
+                for v, text in enumerate(texts):
                     rid = RECOIL_BASE + k * MAX_VARIANTS + v
                     all_ids.append((rid, f'recoil {persona} variant {v}'))
-                    block += line(rid, by_register[register]['text'], text,
-                                  persona_index=k, public=1)
+                    last = v == len(texts) - 1
+                    block += line(rid, None, text,
+                                  persona_index=k, public=1,
+                                  enam=ENAM_RANDOM | (ENAM_RANDOM_END if last else 0))
                     n_infos += 1
 
         for k, persona in enumerate(PERSONAS):
@@ -504,15 +585,14 @@ def build():
             for v, text in enumerate(texts):
                 iid = INFO_BASE + (n * len(PERSONAS) + k) * MAX_VARIANTS + v
                 all_ids.append((iid, f'{register}/{persona} variant {v}'))
-                block += line(iid, by_register[register]['text'], text,
-                              persona_index=k)
+                block += line(iid, None, text, persona_index=k)
                 n_infos += 1
 
         # The lines are built before the topic, so TIFC is the REAL count. An
         # earlier version wrote the topic first with a placeholder and never went
         # back, leaving every topic claiming one line while holding sixteen.
-        children += topic(tid, f'OvertureTopic{register.capitalize()}', infos=n_infos)
-        children += child_group(tid, 7, block)
+        children += topic(rtid, f'OvertureReply{register.capitalize()}', infos=n_infos)
+        children += child_group(rtid, 7, block)
         count += 1 + n_infos
 
     # The greeting, then the scene -- and the SCEN goes INSIDE the quest's child
@@ -529,9 +609,9 @@ def build():
     blob = group('GLOB', persona_global() + public_global()) + group('QUST', quest_blob)
 
     records = 2 + 1 + 1 + 2 + count  # globs, quest, scene, greeting pair, the rest
-    next_object = max(SCENE_FORMID, TOPIC_BASE + len(SLOTS),
-                      INFO_BASE + len(SLOTS) * len(PERSONAS),
-                      GREET_INFO, PERSONA_GLOBAL) + 1
+    # From every id actually used. The hand-listed version predated the variant
+    # and recoil ranges and named an id below half of them.
+    next_object = max(i for i, _what in all_ids) + 1
     hedr = struct.pack('<fiI', 1.0, records, next_object)
     head = field('HEDR', hedr)
     head += field('CNAM', zstring(AUTHOR))
@@ -552,7 +632,8 @@ def main():
     print(f'  quest {QUEST_EDID} {QUEST_FORMID:08X}, alias {ALIAS_NAME} index {ALIAS_INDEX}')
     print(f'  scene {SCENE_EDID} {SCENE_FORMID:08X}')
     for slot, register in SLOTS:
-        print(f'  {slot}  {register:7} topic {topic_ids[slot]:08X}')
+        print(f'  {slot}  {register:7} topic {topic_ids[slot]:08X}   '
+              f'the NPC answers from {NPC_SLOT[slot]} {topic_ids[NPC_SLOT[slot]]:08X}')
     print(f'  persona global {PERSONA_GLOBAL:08X}: ' +
           ', '.join(f'{k}={n}' for k, n in enumerate(PERSONAS)))
     print(f'  public global  {PUBLIC_GLOBAL:08X}: 1 = others can see them')

@@ -271,6 +271,11 @@ That is O-4 exactly. Before the swap, blunt was in neutral and offer in negative
 
 ## The matrix works — 2026-09-23
 
+> **CORRECTION, same night.** The conditions worked; the speaker was wrong. Every "he answers" below
+> was read from XDI's option list, whose line is the text of the PLAYER's INFO. These builds put the
+> NPC's reply in the player's own line, so picking an option would have had the PLAYER say it. Fixed
+> and re-verified with the engine's own speaker events — see "The NPC was never speaking" below.
+
 Sixteen conditioned replies, four registers x four personas, gated on a global the script sets from
 Rapport's own persona before the scene starts.
 
@@ -300,6 +305,10 @@ every NPC gets somebody else's reply **and nothing errors**. Both carry a commen
 
 ## Place overrides persona — O-4's recoil, running (2026-09-23)
 
+> **Same correction as above**, and one more: once every reply was flagged Random, "order is the
+> mechanism" stopped being enough, because Random pools a run of consecutive Random lines. Both are
+> fixed and re-verified below: 5 of 5 public blunt picks drew a recoil, never a normal reply.
+
 In the Third Rail, with **20 people watching**, Whitechapel Charlie (vulgar) answers the blunt
 register with:
 
@@ -323,12 +332,74 @@ public and is skipped when it is not. Put them after and they would never be rea
 first 25 seconds after a load the snapshot is empty, and treating that as "nobody is watching" would
 have had NPCs propositioned across a crowded bar every time the player reloaded.
 
+## The NPC was never speaking — and the three other things the engine does (2026-09-23, night)
+
+Measured with F4MCP's `[event topic]` source, which names the speaker and the form id of every line
+the engine plays. That turned "what XDI's list says" into "who said which record".
+
+**1. A player option's INFO is what the PLAYER says.** In vanilla, on Magnolia: `Richard (00000014)
+begins line 00075370` — the chosen option, in the player's voice — then `Magnolia begins line
+001103B6`, her answer, from a different record. XDI's list shows the player INFO's text (xdi
+`src/DialogueEx.cpp:265-295`). The NPC answers from the scene action's `NPOT/NNGT/NNUT/NQUT` topics,
+which Overture had written as 0. So every reply in the lines bank had been the player's line.
+
+Rebuilt the template's way: each player topic holds ONE line, the player's own words (`spoken` in
+`voice/player-prompts.json`; empty for linger), and four new reply topics hold the persona lines. On
+Charlie, picking offer:
+
+```
+Richard (00000014)   begins line 27000901   "I brought you something."
+Whitechapel Charlie  begins line 27001031   the vulgar persona's answer
+```
+
+**2. Variants rotate.** ENAM `0x02` is Random (xEdit, `wbDefinitionsFO4.pas`). Six picks of offer:
+`1031 1030 1030 1031 1031 1031` — both lines, at random, not alternating.
+
+**3. Random pools a RUN, so the recoil needed a fence — and it holds.** With every line Random, a
+public room would pick among recoils and normal replies alike. Each persona's last recoil now carries
+Random End (`0x20`), the base game's fence (706 of its 722 Random End lines close a Random run;
+`tools/random_groups.py`). Five blunt picks with 21 watching: `2010 2010 2011 2010 2011` — recoils
+only, rotating, never the normal reply.
+
+**4. The copied greeting was Say Once (`0x04`).** It opened the scene once per session; on the second
+approach Charlie's own greeting won. The template carries two greetings for this, one Say Once and one
+repeatable. Ours is now repeatable — which exposed the next problem below.
+
+### Traps found on the way
+
+- **`choose n` takes XDI's LIST position**, which runs Question, Positive, Negative, Neutral: linger 0,
+  charm 1, blunt 2, offer 3. It is not the wheel slot.
+- **A harness-opened dialogue can hang for ever.** On Charlie, from the end of the bar with the
+  crosshair on a door, the engine never raised `awaitingPlayerInput`: every choice refused, Charlie
+  looping his waiting-for-player (`WFPI`) lines, no list on screen, and it did so in HIS OWN vanilla
+  scene too. Walked to 90u with `look 00022688` / `look off` — "WHITECHAPEL CHARLIE, E) TALK" under the
+  crosshair — it takes the choice at +5 s. Charlie sits in bar furniture (`sit=3`). A player pressing E
+  always has the NPC under the crosshair, so this is a harness trap first; whether a real player can
+  hit it is open. The owner called the crosshair before the data did.
+- **RETRACTED the same hour: "Face Target causes the hang."** Our action carried the template's
+  `0x00228000` (Face Target, Headtrack Player, Camera Speaker Target) where Charlie's own scene carries
+  `0x00200800` (`tools/action_flags.py`). Plausible, and dead: his own scene hung identically from the
+  same spot. The build keeps `0x00200000` only because that is the configuration verified above.
+- **Stopping the quest mid-dialogue crashed the game** (Windows error 1000 in KERNELBASE, no Addictol
+  log), about a second after `stopquest OvertureDialogueQuest` with our scene's dialogue open. Prime
+  suspect, not proven. End the dialogue first.
+
+### What is broken now
+
+**The approach never lets go.** After the reply our scene ends, the conversation re-greets, our
+repeatable greeting wins again because the alias still holds the NPC, and the player is back at
+Overture's four options — for ever. The approach has to be ONE exchange: clear the alias (or mark the
+NPC as approached) when the reply finishes, so the next greeting is the NPC's own. That is the first
+job of the next build.
+
 ## Status
 
 | | |
 | --- | --- |
-| Player's unvoiced half | **Solved** — XDI, verified in its own docs and its shipped keywords |
+| Player's unvoiced half | **Solved** — XDI; the player's line now plays as the player's (`27000901`) |
+| The NPC's answer | **Verified in game** — from its own reply topic, persona-conditioned |
+| Variant rotation | **Verified in game** — 6 picks, both variants |
+| Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
+| Hand-back to the NPC's own dialogue | **BROKEN** — the repeatable greeting loops; clear the alias after the exchange |
 | Lip generation | **Tool proven, output unverified in game** |
-| Bark topic records | Prior art, working, in `fo4-rapport` |
-| Player topic records | **Shape derived** from real records — they are scene dialogue, see `player-topic-shape.md`. Builder not written. |
-| The lines | 128 authored, 6,177 characters, matrix complete |
+| The lines | 128 authored NPC lines + 4 player lines |

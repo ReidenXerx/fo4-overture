@@ -41,15 +41,21 @@ is not the slot.
 **The slot is which field of the SCEN record points at the topic.** That is the real mechanism, and
 it is in the scene record's action block:
 
-| field | slot |
-| --- | --- |
-| `PTOP` | positive |
-| `NTOP` | neutral |
-| `NETO` | negative |
-| `QTOP` | question |
+| field | slot | the NPC answers from |
+| --- | --- | --- |
+| `PTOP` | positive | `NPOT` |
+| `NTOP` | **negative** | `NNGT` |
+| `NETO` | **neutral** | `NNUT` |
+| `QTOP` | question | `NQUT` |
 
-with a second set — `NPOT`, `NNGT`, `NNUT`, `NQUT` — holding four more topic ids, which appear to be
-where each option leads next.
+**CORRECTED 2026-09-23, twice over.** This table first said `NTOP` neutral and `NETO` negative; XDI's
+optionIDs showed the opposite in game, and xEdit names them "Player Negative Response" and "Player
+Neutral Response". And the second set — `NPOT`, `NNGT`, `NNUT`, `NQUT` — was described here as
+"where each option leads next". It is not. xEdit names them **"NPC Positive/Negative/Neutral/Question
+Response"**: the topic the NPC ANSWERS from. The template pairs them slot for slot (PTOP `BEB7` → NPOT
+`BEBB`, NTOP `BEB6` → NNGT `BEBA`, NETO `BEB5` → NNUT `BEB9`, QTOP `BEB4` → NQUT `BEB8`). Reading them
+as "leads to" is why the first builds wrote them as 0 and put the NPC's reply into the player's own
+line — see `dialogue-route.md`, "The NPC was never speaking".
 
 Two things follow that matter more than the correction itself. **Four slots, and Overture has
 exactly four registers**, so the base game's own structure fits the design with nothing left over.
@@ -70,9 +76,10 @@ DIAL 0007D58A
   TIFC  4   1          how many INFOs this topic holds
 
 INFO 0007D5A3
-  ENAM  4   0          flags
+  ENAM  4   0          flags (uint16) + reset hours (uint16); 0x02 Random, 0x04 Say Once, 0x20 Random End
   TRDA  20            response data (emotion, emotion value, ...)
-  NAM1  4   string id  the NPC's spoken response
+  NAM1  4   string id  what the PLAYER says -- a player topic's line is spoken by the player
+                       (corrected 2026-09-23; this said "the NPC's spoken response")
   NAM2  1   0          script notes
   NAM3  1   0          edits
   NAM4  1   0
@@ -94,13 +101,16 @@ part of it, and nothing spare:
 ```
 QUST  <quest>                       EDID, DNAM, one ALID alias for the NPC
   GRUP type 10 <quest>              the quest's children
-    DIAL <topic>                    PNAM 50.0f · QNAM <quest> · DATA cat 15 · SNAM "SCEN" · TIFC 1
+    DIAL <topic> x4 (player)        PNAM 50.0f · QNAM <quest> · DATA cat 15 · SNAM "SCEN" · TIFC 1
       GRUP type 7 <topic>
-        INFO <line>                 ENAM 0 · NAM1 <npc text> · NAM2/3/4 0 · NAM9
+        INFO <line>                 ENAM 0 · NAM1 <the PLAYER's line> · NAM2/3/4 0 · NAM9
                                     · RNAM <player prompt> · NAM0 0 · INAM 1
-    ... one DIAL+INFO pair per option ...
+    DIAL <topic> x4 (NPC reply)     the same DIAL shape; its INFO has NO RNAM and may hold
+                                    several TRDA+NAM1 responses said in sequence
+    DIAL GREE                       two INFOs, both TSCE -> the scene: one Say Once, one repeatable
 
-SCEN  <scene>                       top level, NOT inside the quest
+SCEN  <scene>                       INSIDE the quest's GRUP type 10, a sibling of the topics
+                                    (this line said "top level" until the first run proved otherwise)
   EDID · FNAM flags
   phase blocks                      HNAM · NEXT · NEXT · WNAM · CTDA
   action block                      ALID <alias> · ANAM <type> · SNAM/ENAM start+end phase

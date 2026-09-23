@@ -1,10 +1,11 @@
 {
   "_": "The PLAYER's four approach lines - the menu options themselves. The line bank in lines.json is NPC-side only; N-5 left the player's half open and XDI settled it (O-3), so these are new and need the owner's eye like any other line. They are UNVOICED by design: XDI presents them as text and keeps the camera off the player's still face.",
-  "_slots": "Slot per O-4, tone-faithful: charm=PTOP positive, offer=NTOP neutral, blunt=NETO negative, linger=QTOP question.",
+  "_slots": "Slot per O-4, tone-faithful: charm=PTOP positive, offer=NETO neutral, blunt=NTOP negative, linger=QTOP question. NTOP is NEGATIVE and NETO NEUTRAL - measured through XDI's optionIDs, and named so by xEdit ('Player Negative Response', 'Player Neutral Response').",
+  "_fields": "text = the menu PROMPT (the INFO's RNAM). spoken = what the player then SAYS (the INFO's NAM1). That is the player's line and never the NPC's: the NPC answers from its own topic (NPOT/NNGT/NNUT/NQUT). spoken defaults to text when absent.",
   "prompts": [
     {
       "register": "offer",
-      "slot": "NTOP",
+      "slot": "NETO",
       "text": "I brought you something.",
       "note": "Material. Deliberately flat - the point is the thing, not the words."
     },
@@ -16,7 +17,7 @@
     },
     {
       "register": "blunt",
-      "slot": "NETO",
+      "slot": "NTOP",
       "text": "I want to fuck you. Here, against that wall, I don't care.",
       "note": "Owner asked for harder. It names the act and a place, which also sets up the public recoil: the vulgar NPC wants it and still does not want it in front of the whole settlement. If this reads as coy the register is broken (O-6)."
     },
@@ -24,7 +25,8 @@
       "register": "linger",
       "slot": "QTOP",
       "text": "(Say nothing. Stay where you are.)",
-      "note": "Parenthesised because the player does not speak it. The only option whose content is an absence, which is why it sits in the question slot."
+      "spoken": "",
+      "note": "Parenthesised because the player does not speak it, so spoken is empty. The only option whose content is an absence, which is why it sits in the question slot."
     }
   ]
 }
