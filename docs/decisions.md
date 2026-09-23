@@ -210,3 +210,22 @@ section named is where it gets built.
 - Rapport e248fe0 and Chemistry 8d30da6: O-15's lovers.
 - The lover state and the "not now" day (O-12, O-13's second half, O-14's lover tier), in the commit
   that adds this line.
+
+## O-27 to O-30 — Lovers, and the day after "not now" (owner poll, 2026-09-23 ~15:30)
+
+Asked after the microscope pass found the lover state as first built was wrong in two ways. First, a
+faithful spouse became an automatic yes once the bond tier reached 0.75. Second, Rapport's world-wide
+lovers flag was written on a promise (the yes), on a trigger nobody had approved.
+
+| # | question | answer |
+| --- | --- | --- |
+| O-27 | what makes an NPC the player's lover to the WORLD (Chemistry's "spoken for", affairs against the player) | **a bond of 0.75 AND at least one scene together**, the methodology's original section 7 idea, not the first yes (the recommendation was "the first scene that happens"). Their conversations skipping the flirt after a yes (O-12) stays as it is |
+| O-28 | can someone stop being the player's lover | **yes, when they fall out** (bond at -0.25 or below). Not by the player's choice, not "never" |
+| O-29 | several lovers | **jealousy now** (not the recommended "fine for now"): the persona table section 11 planned for companions applies to stranger lovers too. Romantic and reticent take it badly (a bond event against the player), the mercantile shrugs, the vulgar likes hearing it |
+| O-30 | after "not now" or "not here", where the rest of the day reopens | **at the proposition** (recommended): no flirt replayed, no bond paid twice. Until the follow (O-13) is built, "not here" gets the same same-day invitation |
+
+What the microscope pass changes without a poll, because the recorded rules already answered it:
+- **Faithfulness >= 0.8 refuses whatever the bond** (methodology section 7). A lover, or someone whose
+  conversation opens at the proposition, only skips the flirt. The verdict's rules are the same for everyone.
+- **"Stage reached" stays 0-3.** The proposition opening gets its own markers: said yes before (O-12),
+  the lover tier (O-14), and invited back today (O-30).
