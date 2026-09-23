@@ -278,7 +278,8 @@ for companions (§11). None built; the tiers and the lover state are poll items.
 
 **One line per conversation**, spoken when the scene has really ended (the same `IsPlaying()` guard the
 tidy-up uses; a line whose end was missed is spoken as the next conversation begins). It describes the
-conversation's LAST reply, with the bond before and after on the numbers line (`bond +0.12 -> +0.17`).
+conversation's LAST reply, with the bond before and after on the numbers line (`bond +0.12 -> +0.17`),
+shown only when the bond moved.
 `{second}` is the NPC's name, which Rapport fills in. After an introduction, the name comes first and the
 sentence after it uses a pronoun. Every sentence puts a pronoun subject before a past tense or a modal, so
 "they" never needs a different verb.

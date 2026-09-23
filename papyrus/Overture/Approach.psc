@@ -602,12 +602,12 @@ Function Narrate()
 		Return
 	EndIf
 	String headline = Self.TalkLine(who)
+	; Only a bond that MOVED. "bond +0.00" under a miss read as a change of nothing
+	; when it was the bond itself (first run, 2026-09-23), and a line that says
+	; nothing moved needs no number to prove it.
 	String numbers = ""
-	If headline != ""
-		numbers = "bond " + Self.Signed(_talkBondBefore)
-		If _talkBondAfter != _talkBondBefore
-			numbers = numbers + " -> " + Self.Signed(_talkBondAfter)
-		EndIf
+	If headline != "" && _talkBondAfter != _talkBondBefore
+		numbers = "bond " + Self.Signed(_talkBondBefore) + " -> " + Self.Signed(_talkBondAfter)
 	EndIf
 	If _talkIntro != ""
 		; The name comes first, and the sentence after it says "she", not the name
