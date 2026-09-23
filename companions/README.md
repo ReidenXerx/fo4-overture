@@ -45,11 +45,12 @@ fo4-anatomy draws this, so its meaning is fixed here:
 | id | record | what |
 | --- | --- | --- |
 | `0x851` | AVIF OvertureCompanionDesire | wanting, above. **PUBLISHED** (below) |
-| `0x853` | AVIF OvertureCompanionMoment | 0 not ours, 1 vouched (the player may start), 2 a moment is open |
+| `0x853` | AVIF OvertureCompanionMoment | 0 not ours, 1 vouched (the player may ask), 2 a moment is open, 3 the player just asked |
 | `0x855` | QUST OvertureCompanionsQuest | Registry, the adapters, Feeders, Moments, IvyNative |
 | `0x856` | AVIF OvertureCompanionLastTick | the game day the feeders last counted |
 | `0x857` | AVIF OvertureCompanionFall | the negative level counted in the current fall (0, -1 Disdain, -2 Hatred) |
 | `0x858` | AVIF OvertureCompanionPairSeen | the player's scene count WITH them, plus one, as they last knew it |
+| `0x859` | PERK OvertureAskPerk | O-35: "Ask for a moment" on the companion's prompt (fragment `Overture:Fragments:AskPerk`) |
 | `0x85A` | AVIF OvertureCompanionSeenScene | the player's scene count with anyone else, plus one, as they last knew it |
 | `0x85B` | AVIF OvertureCompanionAffinityTier | the highest level of their own affinity ever counted (0-4) |
 | `0x860`-`0x863` | INFO | the companion greetings, in the approach's greeting topic `0x830` |
@@ -57,7 +58,7 @@ fo4-anatomy draws this, so its meaning is fixed here:
 | `0xE10`-`0xEF9` | INFO | the companion's answers, one set per persona and verdict behind each proposition |
 
 `0x850`, `0x852` and `0x854` stay reserved for the variants not built (B's Trust and Devotion, A's
-mirror). `0x859` and `0x85C`-`0x85F` are unused. `tools/make_overture_esp.py` has the whole id map, and
+mirror). `0x85C`-`0x85F` are unused. `tools/make_overture_esp.py` has the whole id map, and
 `finish()` checks every id actually written.
 
 **`0x851` is PUBLISHED: never renumber it.** fo4-anatomy's `Anatomy:Arousal` (its commit ced951f) reads
@@ -79,7 +80,8 @@ this list the same way.
 - **MEASURE in game** (methodology §12; dev verbs `approach companion`, `approach moment`,
   `approach desire`):
   - a moment opening Overture's phase 4;
-  - whether talking to a companion while sneaking reaches a greeting at all (O-23);
+  - "Ask for a moment" showing on the companion's prompt and opening phase 4 (O-35, a new record type for
+    Overture);
   - what Amazing Follower Tweaks does to the follower system's Companion alias;
   - Ivy's phase log and her recorded bond;
   - with scenes on: pausing her scene while AAF moves her, and her warper quest during a Rapport scene.

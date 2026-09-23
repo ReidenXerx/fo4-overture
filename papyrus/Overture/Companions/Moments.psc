@@ -13,8 +13,10 @@ companion_greetings), and what they read is written here:
     0  not ours: no adapter vouches for them (C6), they have an intimate scene of
        their own (C3), they are not an adult human or ghoul (O-25), their own state
        says no right now (C2), or Overture is switched off
-    1  vouched: the PLAYER may start (O-23)
+    1  vouched: the PLAYER may ask (O-23, O-35)
     2  a MOMENT is open: the companion speaks first
+    3  the player has just ASKED -- "Ask for a moment" on the companion's prompt, the
+       perk OvertureAskPerk (O-35) -- so their next talk opens it (held ASK_DAYS)
 
 A MOMENT (reworked by microscope wave 3; the first build opened one on an edge of
 wanting and never re-armed it, so a companion asked once per recruitment):
@@ -43,6 +45,12 @@ Int Property APPROACH_QUEST_ID = 0x00000800 AutoReadOnly
 Int Property MOMENT_NOT_OURS = 0 AutoReadOnly
 Int Property MOMENT_VOUCHED = 1 AutoReadOnly
 Int Property MOMENT_OPEN = 2 AutoReadOnly
+Int Property MOMENT_ASKED = 3 AutoReadOnly
+; O-35's perk, given to the player on every load (Hook).
+Int Property ASK_PERK_ID = 0x00000859 AutoReadOnly
+; How long an ASKED mark waits for the talk it asks for: a few game minutes (about a
+; real minute at timescale 20), so a choice made and walked away from does not linger.
+Float Property ASK_DAYS = 0.012 AutoReadOnly
 Int Property POLL_TIMER = 1 AutoReadOnly
 Float Property POLL_SECONDS = 20.0 AutoReadOnly
 ; Two game hours, in days (GetCurrentGameTime's unit). ASSUMED.
@@ -56,6 +64,7 @@ Bool _owed = False
 Float _openUntil = 0.0
 Float _cooldownUntil = 0.0
 Bool _inCombat = False
+Float _askedAt = 0.0
 
 Overture:Companions:Registry Function Registry()
 	Return (Self as Quest) as Overture:Companions:Registry
@@ -84,7 +93,14 @@ EndEvent
 ; On the quest's start and every load: Ivy's ids checked, registrations re-made,
 ; the clock restarted.
 Function Hook()
-	Self.RegisterForRemoteEvent(Game.GetPlayer(), "OnPlayerLoadGame")
+	Actor player = Game.GetPlayer()
+	Self.RegisterForRemoteEvent(player, "OnPlayerLoadGame")
+	; O-35's "Ask for a moment": the perk that puts it on a companion's prompt. Its own
+	; conditions decide when it shows.
+	Perk ask = Game.GetFormFromFile(ASK_PERK_ID, "Overture.esp") as Perk
+	If ask != None && !player.HasPerk(ask)
+		player.AddPerk(ask, False)
+	EndIf
 	Overture:Companions:IvyAdapter ivyAdapter = (Self as Quest) as Overture:Companions:IvyAdapter
 	If ivyAdapter != None
 		ivyAdapter.Revalidate()
@@ -189,6 +205,11 @@ Function Evaluate(Actor akWho)
 		Return
 	EndIf
 	Float now = Utility.GetCurrentGameTime()
+	ActorValue momentAV = Self.OurAV(MOMENT_AV_ID)
+	If momentAV != None && akWho.GetValue(momentAV) == MOMENT_ASKED as Float && now < _askedAt + ASK_DAYS
+		; The player has just asked (O-35): the mark waits for the talk it asks for.
+		Return
+	EndIf
 	Overture:Companions:Feeders feeders = Self.Feeders()
 	If _openUntil > 0.0 && now >= _openUntil
 		; The window lapsed unused: spent, and the next one waits out the cooldown.
@@ -236,9 +257,28 @@ Function Ended(Actor akWho, Bool abKeepMoment)
 	_openUntil = 0.0
 	_cooldownUntil = now + Self.Feeders().Tuned("fMomentCooldown:Companions", 2.0)
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
-	If av != None && akWho.GetValue(av) == MOMENT_OPEN as Float
+	If av != None && akWho.GetValue(av) >= MOMENT_OPEN as Float
 		akWho.SetValue(av, MOMENT_VOUCHED as Float)
 	EndIf
+EndFunction
+
+; O-35: the player chose "Ask for a moment" on the companion's prompt (the perk's
+; fragment, Overture:Fragments:AskPerk). Marked ASKED, then activated the way a talk
+; is -- default processing only, so no perk choice runs again -- and Overture's
+; greeting, whose second run needs ASKED, opens the conversation. Its conditions still
+; decide: the perk shows only where they would pass.
+Function Ask(Actor akWho)
+	If akWho == None || akWho != _watching
+		Return
+	EndIf
+	ActorValue av = Self.OurAV(MOMENT_AV_ID)
+	If av == None || akWho.GetValue(av) < MOMENT_VOUCHED as Float
+		Return
+	EndIf
+	akWho.SetValue(av, MOMENT_ASKED as Float)
+	_askedAt = Utility.GetCurrentGameTime()
+	Debug.Trace("Overture companions: the player asked " + akWho.GetFormID() + " for a moment", 0)
+	akWho.Activate(Game.GetPlayer(), True)
 EndFunction
 
 ; The dev verb's: a moment owed and opened now, on the current companion, whatever

@@ -32,15 +32,20 @@ $pex = Join-Path $root 'build\papyrus'
 if (-not (Test-Path $esp)) { throw "No $esp. Run tools/make_overture_esp.py first." }
 if (-not (Test-Path $pex)) { throw "No $pex. Run scripts/build-papyrus.ps1 first." }
 
-New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture') | Out-Null
 Copy-Item $esp (Join-Path $Staging 'Overture.esp') -Force
-Copy-Item (Join-Path $pex 'Overture\*.pex') (Join-Path $Staging 'Scripts\Overture') -Force
-# The companion module's scripts (Overture:Companions:*), in their own namespace folder.
-# Missing from Data, the companions quest runs with no script and nothing says so.
-$companions = Join-Path $pex 'Overture\Companions'
-if (-not (Test-Path (Join-Path $companions 'Moments.pex'))) { throw "No $companions\Moments.pex. Run scripts/build-papyrus.ps1 first." }
-New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture\Companions') | Out-Null
-Copy-Item (Join-Path $companions '*.pex') (Join-Path $Staging 'Scripts\Overture\Companions') -Force
+# EVERY compiled script, namespace folders included (Overture:Companions:*, the perk's
+# Overture:Fragments:AskPerk). A folder copied by name is a folder the next namespace is
+# missing from: the perk's fragment was, once, and its choice would have done nothing.
+# A script missing from Data fails without a word.
+$pexRoot = Join-Path $pex 'Overture'
+foreach ($required in @('Approach.pex', 'Companions\Moments.pex', 'Fragments\AskPerk.pex')) {
+    if (-not (Test-Path (Join-Path $pexRoot $required))) { throw "No $pexRoot\$required. Run scripts/build-papyrus.ps1 first." }
+}
+Get-ChildItem -Path $pexRoot -Recurse -Filter *.pex | ForEach-Object {
+    $dst = Join-Path (Join-Path $Staging 'Scripts\Overture') $_.FullName.Substring($pexRoot.Length + 1)
+    New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null
+    Copy-Item $_.FullName $dst -Force
+}
 
 # The MCM page (tools/make_mcm.py). A new file the first time: Vortex's Deploy puts it in Data.
 $mcm = Join-Path $root 'data\MCM'

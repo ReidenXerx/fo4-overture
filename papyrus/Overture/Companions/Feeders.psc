@@ -253,6 +253,29 @@ Function Tick(Actor akWho)
 	EndIf
 	Self.Thresholds(akWho)
 	Self.Jealousy(akWho)
+	Self.OwnRomance(akWho)
+EndFunction
+
+; O-36 (owner, 2026-09-23): their OWN romance -- vanilla's romance success, Ivy's love
+; flag -- makes them the player's lover to the world, as a bond of 0.75 and a scene
+; together does (O-27): Chemistry treats them as spoken for from then on. Rapport
+; refuses it at a falling-out (O-28), and ends it there too; their own story ending
+; (Ivy's breakup) does not end it here -- the fall-out rule is the one way out.
+Function OwnRomance(Actor akWho)
+	Overture:Companions:Adapter a = Self.Registry().AdapterFor(akWho)
+	If a == None || !a.IsRomanced(akWho)
+		Return
+	EndIf
+	Int p = Game.GetPlayer().GetFormID()
+	Int id = akWho.GetFormID()
+	If Rapport:Core.AreLovers(p, id)
+		Return
+	EndIf
+	Rapport:Core.SetLovers(p, id, True)
+	If Rapport:Core.AreLovers(p, id)
+		Rapport:Core.NarrateLine(p, id, "Word gets around - you and {second} are a couple now.", "")
+		Debug.Trace("Overture companions: " + id + " is romanced by their own romance - lovers to the world (O-36)", 0)
+	EndIf
 EndFunction
 
 Function Thresholds(Actor akWho)

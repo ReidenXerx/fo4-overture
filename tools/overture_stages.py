@@ -97,6 +97,12 @@ COMPANION_TIER_AV = 0x0100085B       # the highest level of their own affinity e
 # so the 20 s between Moments' polls cannot let ours beat it (microscope wave 3).
 CA_WANTS_TO_TALK_AV = 0x000FA86B
 COMPANION_GREET_BASE = 0x01000860    # four: the moment's two, then the player's start's two
+# O-35 (owner, 2026-09-23): the player's own way in, "Ask for a moment" on the companion's
+# activation prompt -- a perk Activate choice on the player, like vanilla's "Pet" and "Hack".
+COMPANION_ASK_PERK = 0x01000859
+COMPANION_ASK_PERK_EDID = 'OvertureAskPerk'
+COMPANION_ASK_FRAGMENT = 'Overture:Fragments:AskPerk'
+COMPANION_ASK_LABEL = 'Ask for a moment'
 COMPANION_PLAYER_TOPIC = 0x01000864  # four, one per wheel slot
 COMPANION_PLAYER_INFO = 0x01000868
 COMPANION_NPC_TOPIC = 0x0100086C
@@ -108,9 +114,10 @@ COMPANION_SCRIPTS = ('Overture:Companions:Registry', 'Overture:Companions:Engine
                      'Overture:Companions:Feeders', 'Overture:Companions:Moments',
                      'Overture:Companions:IvyNative')
 # OvertureCompanionMoment. 0: not ours to open (C6 -- no adapter vouches, their own
-# scene, their state says no). 1: vouched, so the player may start (O-23). 2: a
-# moment is open (C), so the companion speaks first.
-MOMENT_VOUCHED, MOMENT_OPEN = 1, 2
+# scene, their state says no). 1: vouched, so the player may ask (O-23, O-35). 2: a
+# moment is open (C), so the companion speaks first. 3: the player has just ASKED
+# (the perk's choice), so their next talk opens it.
+MOMENT_VOUCHED, MOMENT_OPEN, MOMENT_ASKED = 1, 2, 3
 # The companion wheel. The offer's NEUTRAL slot holds the costless "Later."
 # (voice/companion-lines.json has why); the other three are stage 3's propositions.
 # Registers decide nothing here: a companion's answer is their state and their
@@ -302,7 +309,8 @@ def build_staged():
            (COMPANIONS_QUEST, 'companions quest'), (COMPANION_DESIRE_AV, 'companion desire'),
            (COMPANION_MOMENT_AV, 'companion moment'), (COMPANION_LAST_TICK_AV, 'companion last tick'),
            (COMPANION_SEEN_SCENE_AV, 'companion seen scene'), (COMPANION_TIER_AV, 'companion affinity tier'),
-           (COMPANION_FALL_AV, 'companion fall'), (COMPANION_PAIR_SEEN_AV, 'companion pair seen')]
+           (COMPANION_FALL_AV, 'companion fall'), (COMPANION_PAIR_SEEN_AV, 'companion pair seen'),
+           (COMPANION_ASK_PERK, 'companion ask perk')]
     children, count = b'', 0
     topics = {1: {}, 2: {}, 3: {}}
 
@@ -473,6 +481,7 @@ def build_staged():
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest())
+    blob += m.group('PERK', ask_perk())
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
@@ -551,8 +560,8 @@ def companion_greetings(lines, ids):
       a MOMENT (OvertureCompanionMoment == 2): Overture:Companions:Moments opened
       one -- their wanting crossed its bar, or their own system's arousal rose --
       and the companion speaks first;
-      the PLAYER'S START (the moment AV >= 1, and the player SNEAKING -- vanilla's
-      own test, IsSneaking run on PlayerRef): O-23, the player can start too.
+      the PLAYER'S START (the moment AV == 3): the player chose "Ask for a moment" on
+      the companion's prompt (O-23, O-35).
 
     The AV's 1 is an adapter vouching for this companion (C6): 0 keeps a mod
     companion with voiced content of their own -- Ivy included -- invisible."""
@@ -564,15 +573,12 @@ def companion_greetings(lines, ids):
                                                runon=m.RUNON_SUBJECT))
     open_now = theirs_first + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
                                                           value=float(MOMENT_OPEN), runon=m.RUNON_SUBJECT))
-    # Parameter 3 is -1, as on every run-on-2 condition in Fallout4.esm (4,226 of them,
-    # the 11 player-sneaking INFOs included); the builder's default 0 is run-on 0's.
-    player_starts = (theirs_first
-                     + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
-                                                   value=float(MOMENT_VOUCHED), op=m.CTDA_OP_GE,
-                                                   runon=m.RUNON_SUBJECT))
-                     + m.field('CTDA', m.condition(m.FUNC_IS_SNEAKING, 0, value=1.0,
-                                                   runon=m.RUNON_REFERENCE, reference=m.PLAYER_REF,
-                                                   alias=-1)))
+    # O-35: the player asked through the perk's choice, which marks them ASKED and
+    # activates them. (The first build's sneaking test is gone: vanilla never greets on
+    # a sneaking E, and stealth players would have met it every day.)
+    player_starts = theirs_first + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
+                                                               value=float(MOMENT_ASKED),
+                                                               runon=m.RUNON_SUBJECT))
     infos, fid = b'', COMPANION_GREET_BASE
     for kind, group, gate in (('moment', moment, open_now), ('start', start, player_starts)):
         for i, text in enumerate(group):
@@ -648,6 +654,65 @@ def companion_wheel(bank, ids):
         children += m.topic(rtid, f'OvertureCompanionReply{key.capitalize()}', infos=n_infos)
         children += m.child_group(rtid, 7, block)
     return topics, children
+
+
+def perk_vmad(fragment_script, fragments):
+    """A PERK's VMAD: no scripts of its own, then the perk-fragment block -- MEASURED on
+    CC_PetDogs_PetPerk 0024A158, MisterSandman01 0004B258 and RoboticsExpert01 0004D889:
+    a version byte (3), the fragment script as a script entry (name, status 0, its
+    properties -- none here), the fragment count, and per fragment its entry index, an
+    int16 0, an int8 0, a byte 1, the script name again and the function's name."""
+    f = struct.pack('<hhH', 6, 2, 0)
+    f += bytes([3]) + m.wstring(fragment_script) + bytes([0]) + struct.pack('<H', 0)
+    f += struct.pack('<H', len(fragments))
+    for entry, function in fragments:
+        f += struct.pack('<Hhb', entry, 0, 0) + bytes([1]) + m.wstring(fragment_script) + m.wstring(function)
+    return f
+
+
+def ask_perk():
+    """O-35 (owner, 2026-09-23): "Ask for a moment" on the companion's activation prompt.
+
+    Transcribed from CC_PetDogs_PetPerk (0024A158), vanilla's plainest Activate choice
+    on an actor:
+      DATA  00 00 01 00 01   not a trait, level 0, one rank, not playable, hidden
+      PRKE  02 00 00          an entry point, rank 0, priority 0
+      DATA  0E 09 02          entry point Activate (0x0E), Add Activate Choice (0x09),
+                              two condition tabs
+      PRKC  01                tab 1: the TARGET, the actor the prompt is on
+      EPFT  04                a button label and a script fragment
+      EPFB  00 00             fragment 0
+      EPF2                    the label -- literal text, this plugin is not localized
+      EPF3  00 00             no flags: an EXTRA choice beside their own Talk, never a
+                              replacement (a replacement would take their menu, C1's
+                              spirit)
+    Shown only when a conversation could really open: their Moment value vouched (1-3),
+    the day's stamp open, their own conversation not waiting, not in combat. Touches no
+    record of theirs (C1). Moments.Hook gives the perk to the player."""
+    target = b''
+    for func, param, value, op, glob in (
+            (m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, 1.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_VALUE, COMPANION_MOMENT_AV, float(MOMENT_VOUCHED), m.CTDA_OP_GE, None),
+            (m.FUNC_GET_VALUE, m.NEXT_DAY_AV, 0.0, m.CTDA_OP_LE, m.GLOB_GAME_DAYS_PASSED),
+            (m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None)):
+        target += m.field('CTDA', m.condition(func, param, value=value, op=op, runon=m.RUNON_SUBJECT,
+                                              value_global=glob))
+    f = m.field('EDID', m.zstring(COMPANION_ASK_PERK_EDID))
+    f += m.field('VMAD', perk_vmad(COMPANION_ASK_FRAGMENT, [(0, 'Fragment_Entry_00')]))
+    f += m.field('DESC', m.zstring(''))
+    f += m.field('DATA', bytes([0x00, 0x00, 0x01, 0x00, 0x01]))
+    f += m.field('PRKE', bytes([0x02, 0x00, 0x00]))
+    f += m.field('DATA', bytes([0x0E, 0x09, 0x02]))
+    f += m.field('PRKC', bytes([0x01]))
+    f += target
+    f += m.field('EPFT', bytes([0x04]))
+    f += m.field('EPFB', struct.pack('<H', 0))
+    f += m.field('EPF2', m.zstring(COMPANION_ASK_LABEL))
+    f += m.field('EPF3', struct.pack('<H', 0))
+    f += m.field('PRKF', b'')
+    return m.record('PERK', COMPANION_ASK_PERK, f)
 
 
 def companions_quest():

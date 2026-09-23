@@ -452,3 +452,30 @@ cannot cross. The code did not. **Fixed the same night, NOT YET RUN IN GAME:**
   - whether a companion's own romance makes you lovers to the world (O-27);
   - "Later." on the negative slot;
   - the bond's bar in a companion's yes.
+
+## O-35 to O-38 — After the third microscope pass (owner poll, 2026-09-23 night)
+
+| # | question | answer |
+| --- | --- | --- |
+| O-35 | how the player starts a companion's conversation (O-23) | **a prompt on the companion** (recommended): "Ask for a moment" beside their own Talk. It replaces the sneak-and-talk the first build tried, which was unproven (vanilla never greets on a sneaking E, and it may pickpocket) and which stealth players would have met every day |
+| O-36 | does a companion's OWN romance make you lovers to the world (O-27) | **yes** (recommended): vanilla's romance success or Ivy's love flag counts as O-27's bond-and-scene does, so Chemistry treats them as spoken for |
+| O-37 | where "Later." sits on the companion's wheel | **the neutral slot, as built** (recommended): the stranger wheel's layout, so the player learns one wheel |
+| O-38 | does the bond also gate a companion's yes | **no** (recommended): their own gates and their wanting decide. The bond still refuses at fallen-out |
+
+**Built the same night, NOT YET RUN IN GAME:**
+- **O-35:** a perk, `OvertureAskPerk` (`0x859`), given to the player on every load.
+  - It is an Activate entry point that adds the choice "Ask for a moment", transcribed field for field from
+    vanilla's own (CC_PetDogs_PetPerk's "Pet"; the fragment layout also read on RoboticsExpert01 and
+    MisterSandman01).
+  - It shows only on the current companion, and only when a conversation could open: vouched (the Moment
+    value 1 or more), the day's stamp open, their own conversation not waiting, not in combat, Overture on.
+  - Its fragment (`Overture:Fragments:AskPerk`) marks them ASKED (the Moment value 3) and activates them
+    by default processing. The greeting's second run needs ASKED, so the verified O-7 mechanism opens the
+    conversation.
+  - The choice sits BESIDE their Talk and never replaces it, which keeps C1's spirit.
+- **O-36:** Feeders asks Rapport for lovers as soon as their own romance is done. Rapport refuses and ends
+  it at a falling-out (O-28). A reading made while building it: their own story ending (Ivy's breakup)
+  does not end it here, because the falling-out rule stays the one way out.
+- O-37 and O-38 needed nothing: they are what was built.
+
+**The O-26 table**, owed since the morning, went to the owner with this report for review.

@@ -762,7 +762,10 @@ of Rapport's own script-holder quest):
 
 **Records** — two greeting runs at the head of the approach's greeting topic:
 - the moment's, when the Moment AV is 2;
-- the player's start, when it is at least 1 and the player is sneaking (O-23).
+- the player's start, when it is 3: the player chose "Ask for a moment" on the companion's prompt. That
+  is a perk Activate choice (O-35, `0x859`), shown only when a conversation could open.
+
+The first build's sneaking test is gone (decisions O-35).
 
 Both require the CURRENT companion, and the strangers' own rule for the rest (O-25). The approach scene
 gains a sixth phase: phases 1-3 refuse a current companion, and phase 4 is theirs. Its wheel holds three
@@ -830,9 +833,8 @@ checks every script's `Tuned` calls, not Approach's alone (three mutants caught)
 - **The companion module** (§11.6):
   - (a) with a moment open, talking to a base-game companion opens Overture's phase 4, and their own
     talk menu follows the hand-back;
-  - (b) O-23, talking to them WHILE SNEAKING opens it with no moment. Vanilla's sneaking checks are
-    hellos and idles, never a greeting, so whether a sneaking player's E even reaches a greeting is
-    unproven;
+  - (b) O-35, "Ask for a moment" appears on the companion's prompt only when it could open, and choosing
+    it opens Overture's phase 4. This is the first Activate perk Overture writes;
   - (c) Ivy's `Favor_Sex` logs phases 1-3 and its end records the bond;
   - (d) with scenes on, her fade becomes a Rapport scene, and her own scene resumes after it.
 - **The voice** (`scripts/stage-voice.py`). The files are named for an ESL plugin by the rule measured

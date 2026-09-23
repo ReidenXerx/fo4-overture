@@ -55,8 +55,8 @@ Every number is on the MCM page. Every stranger's line is voiced in the six core
 
 Built, not yet run in game: **the companion module** (O-19, `companions/README.md`). A base-game companion
 you travel with gets wanting of their own, which builds with days on the road together. When it
-turns, a *moment* opens and they ask you for a minute. You can also start it yourself, by talking to them
-while sneaking. Their answer is their own state and their own romance, never the words you picked.
+turns, a *moment* opens and they ask you for a minute. You can also ask yourself: "Ask for a moment" on their
+prompt, whenever a conversation could open. Their answer is their own state and their own romance, never the words you picked.
 Their days, fights and affinity levels feed Rapport's bond. Ivy keeps her own scenes, which now count,
 and with scenes on her fade to black becomes a Rapport scene. Companion lines are subtitles, since every
 companion has a voice of their own. 26 more DRAFTS.
