@@ -618,6 +618,39 @@ staged plugin is exactly the verified one-exchange conversation with its hand-ba
 build is what is in Data now: after the owner's Deploy it becomes the whole conversation, with nothing
 else to switch.
 
+## The Narrator and names, first run (2026-09-23 12:00, Third Rail)
+
+Rapport 0.2.1 + Approach.pex with O-9/O-10, save `f4mcp-morphtest`, the TrainBar.esp Drifter
+`330036F8` (persona 2, vulgar; 20 watching, so PUBLIC).
+
+**`Reply.pex` runs.** After the owner's Deploy: `Overture: 855652088 replied, stage 1 outcome 2`, then
+`outcome 5` on the second talk. OnEnd reaches `Replied` with the INFO's own Stage and Outcome. The bond
+write itself is still unseen: a miss and a public recoil are both worth 0.
+
+**The Narrator line is right, and one conversation late.**
+
+```
+12:05:59 narrator: Drifter didn't take to that. Another day, another way. bond +0.00
+12:08:29 narrator: Drifter liked that - just not with people watching. bond +0.00
+```
+
+Each was spoken by the NEXT conversation's `OnBegin`, the fallback for a missed end. `Scene.OnEnd`
+arrives while the scene still reports `IsPlaying()`, so the guard in front of the tidy-up turned away
+every real end. The same fault means the staged build's tidy-up never ran. The persona and room globals
+kept the last NPC's values until the next `OnBegin` set them, which the verified flows never relied on.
+Fixed in 94e4cd2: the line is spoken first, and the tidy-up waits up to 5 s for the scene to stop and
+traces what `IsPlaying()` said. **Not yet run.**
+
+**Nobody was named, and correctly by the rule then in force.** `Lindsey Hebert` (base ACBS 0x31) and
+`Harold Roach` (0x30) are flagged Unique and keep their names. But so are TrainBar.esp's thirteen patrons
+(`ModActor3`, ACBS 0x30), and every one of them is called "Drifter". The rule was widened in Rapport
+66bba3e: a name three or more NPC records share is a label, so its owner is nameless. **Not yet run.**
+
+**Two harness facts.** F4MCP's `load <n>` counts from the OLDEST save: `load 5` opened a May save missing
+two plugins, and its message box can't be pressed by injected input. `session.sh` without an index
+loads `last`. And `f4mcp-morphtest` has `OvertureEnabled = 0` stored. Some session switched the
+approach off; the console set it back to 1 for this run only, unsaved.
+
 ## Status
 
 | | |
@@ -626,9 +659,11 @@ else to switch.
 | The NPC's answer | **Verified in game** — from its own reply topic, persona-conditioned |
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
-| Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start; alias released at scene end |
+| Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start. "Alias released at scene end" held for the one-exchange build; the staged build's `OnEnd` arrives with the scene still playing, so its tidy-up never ran (fix in 94e4cd2, not yet run) |
 | The staged conversation (`--stages 3`) | **Verified in game, every branch** (G1-G4) with the console standing in for `Reply.pex`; deployed |
-| Replies write the bond (`Overture:Reply`, INFO VMAD) | **Half verified** -- the game reads the scripts on all 40 INFOs; `Reply.pex` awaits the owner's Vortex Deploy |
+| Replies write the bond (`Overture:Reply`, INFO VMAD) | **Script verified** — deployed, and `Replied` runs with each INFO's Stage and Outcome; a bond-moving outcome is not yet watched |
+| The Narrator (O-9) | **Text verified** (a miss, a public recoil); spoken a conversation late until 94e4cd2, which is not yet run |
+| Names for the nameless (O-10) | **Uniques verified kept**; the label rule for Unique-flagged "Drifter"s (Rapport 66bba3e) not yet run |
 | Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
 | Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |
 | Lip generation | **Tool proven, output unverified in game** |
