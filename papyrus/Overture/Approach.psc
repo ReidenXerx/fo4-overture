@@ -582,7 +582,19 @@ Function Narrate()
 	If who == None || _api < NEEDS_API
 		Return
 	EndIf
+	If _talkOutcome == OUTCOME_ACCEPT
+		; Nothing on a yes, not even the name: Rapport's own line names them both
+		; as the scene starts, and two lines at once is the noise O-9 rules out.
+		Return
+	EndIf
 	String headline = Self.TalkLine(who)
+	String numbers = ""
+	If headline != ""
+		numbers = "bond " + Self.Signed(_talkBondBefore)
+		If _talkBondAfter != _talkBondBefore
+			numbers = numbers + " -> " + Self.Signed(_talkBondAfter)
+		EndIf
+	EndIf
 	If _talkIntro != ""
 		; The name comes first, and the sentence after it says "she", not the name
 		; twice (Subject).
@@ -595,10 +607,6 @@ Function Narrate()
 	EndIf
 	If headline == ""
 		Return
-	EndIf
-	String numbers = "bond " + Self.Signed(_talkBondBefore)
-	If _talkBondAfter != _talkBondBefore
-		numbers = numbers + " -> " + Self.Signed(_talkBondAfter)
 	EndIf
 	Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), who.GetFormID(), headline, numbers)
 EndFunction

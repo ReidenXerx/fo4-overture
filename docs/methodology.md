@@ -300,7 +300,7 @@ sentence after it uses a pronoun. Every sentence puts a pronoun subject before a
 | stage 3 not now: the romantic's setting | *X would - indoors, or after dark.* |
 | stage 3 not now: Rapport busy | *X would - just not right now.* |
 | stage 3 refuse (wrong register) | *X turned you down. That wasn't the way to ask.* |
-| a yes | nothing: Rapport's own scene-start line |
+| a yes | nothing, not even the name: Rapport's own scene-start line names them both |
 | a yes Rapport never had a slot for | *X said yes, but the moment passed.* |
 | nothing chosen, a fallback beat, or no persona | nothing (only the name, if they were just introduced) |
 
