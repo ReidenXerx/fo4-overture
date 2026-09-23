@@ -50,9 +50,15 @@ Linked, never bundled — its author asks for that.
 | slot | register | |
 | --- | --- | --- |
 | `PTOP` positive | `charm` | fancy words, patience, a compliment |
-| `NTOP` neutral | `offer` | caps, a gift, something material |
-| `NETO` negative | `blunt` | crude, direct, explicit |
+| `NETO` neutral | `offer` | caps, a gift, something material |
+| `NTOP` negative | `blunt` | crude, direct, explicit |
 | `QTOP` question | `linger` | say little, stay, simply be present |
+
+**Field names corrected 2026-09-23; the decision is unchanged.** This table first had `NTOP` neutral and
+`NETO` negative, the way the names read. Measured through XDI's optionIDs, and named so by xEdit, `NTOP`
+is the NEGATIVE slot and `NETO` the NEUTRAL one (`dialogue-route.md`; `tools/make_overture_esp.py`
+`SLOTS`). The owner's decision -- the crude option where the aggressive one lives, the material one in
+the neutral slot -- is exactly what the build does.
 
 Each register sits in the slot whose engine meaning it resembles, so the wheel's own colouring and
 position work for us rather than against us. The crude option lands where the aggressive one
@@ -120,3 +126,9 @@ Two readings of the owner's words, made without asking and recorded here so they
 excluded; a gen-3 synth is in, because to these conditions it is a human), and "companion" means the CURRENT one
 (`GetPlayerTeammate`) -- a dismissed companion standing in a settlement is approachable by Overture
 until the companion module (N-7) claims them.
+
+**The companion reading was REVISED the same night** (design review, 2026-09-23): "companions" now means
+anyone who has EVER been one (`HasBeenCompanionFaction`, which recruitment adds and nothing removes). The
+owner's option read "minus companions", and tonight's brief says companions get a module "unlike other
+npcs"; the narrower reading let a dismissed Ivy be approached as a stranger at priority 100, in subtitles
+over her own voice. One condition on the greeting, reversible; the morning poll asks the owner to confirm.
