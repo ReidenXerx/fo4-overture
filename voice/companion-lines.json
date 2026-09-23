@@ -128,11 +128,43 @@
       "text": "About fucking time. Strip, whore, and spread your legs for me."
     },
     {
+      "id": "co_vulgar_accept_f1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "accept",
+      "text": "About fucking time. Get on your knees and eat my pussy, whore.",
+      "gender": "f"
+    },
+    {
+      "id": "co_vulgar_accept_m1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "accept",
+      "text": "About fucking time. Get on your knees and suck my cock, whore.",
+      "gender": "m"
+    },
+    {
       "id": "co_vulgar_notyet_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "notyet",
       "text": "Not yet, you desperate slut. Beg me a few more nights and maybe I'll let you taste me."
+    },
+    {
+      "id": "co_vulgar_notyet_f1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "notyet",
+      "text": "Not yet, slut. Beg a few more nights and maybe you'll get to taste my pussy.",
+      "gender": "f"
+    },
+    {
+      "id": "co_vulgar_notyet_m1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "notyet",
+      "text": "Not yet, slut. Beg a few more nights and maybe you'll get to taste my cock.",
+      "gender": "m"
     },
     {
       "id": "co_vulgar_refuse_01",
@@ -142,6 +174,22 @@
       "text": "Fuck off. Go dry-hump a Protectron, you sad little pervert."
     },
     {
+      "id": "co_vulgar_refuse_f1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "refuse",
+      "text": "Fuck off. My pussy's not for you, you sad little pervert.",
+      "gender": "f"
+    },
+    {
+      "id": "co_vulgar_refuse_m1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "refuse",
+      "text": "Fuck off. My cock's not for you, you sad little pervert.",
+      "gender": "m"
+    },
+    {
       "id": "co_vulgar_nothere_01",
       "kind": "companion_answer",
       "persona": "vulgar",
@@ -149,11 +197,43 @@
       "text": "Not with all these eyes on us, you filthy animal. Get me alone and I'll fuck you senseless."
     },
     {
+      "id": "co_vulgar_nothere_f1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Not with an audience, you filthy animal. Get me alone and my pussy's all yours.",
+      "gender": "f"
+    },
+    {
+      "id": "co_vulgar_nothere_m1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Not with an audience, you filthy animal. Get me alone and my cock's all yours.",
+      "gender": "m"
+    },
+    {
       "id": "co_vulgar_notnow_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "notnow",
       "text": "Keep it in your pants for now, fucktoy. Later I'm going to fuck you until you can't walk."
+    },
+    {
+      "id": "co_vulgar_notnow_f1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Keep it in your pants for now, fucktoy. Later you're eating my pussy until your jaw aches.",
+      "gender": "f"
+    },
+    {
+      "id": "co_vulgar_notnow_m1",
+      "kind": "companion_answer",
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Keep it in your pants for now, fucktoy. Later you're choking on my cock until your eyes water.",
+      "gender": "m"
     },
     {
       "id": "co_reticent_accept_01",

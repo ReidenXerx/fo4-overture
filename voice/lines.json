@@ -50,16 +50,16 @@
       "kind": "greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "You going to keep staring at my tits, or say something?",
-      "chars": 55
+      "text": "Keep staring, you horny little shit, and tell me which hole you were picturing.",
+      "chars": 79
     },
     {
       "id": "ov_vulgar_greet_02",
       "kind": "greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Come to talk, or come to fuck? Only one of those interests me.",
-      "chars": 62
+      "text": "Come to talk or come to fuck, slut? Talking bores me, so make it the second one.",
+      "chars": 80
     },
     {
       "id": "ov_reticent_greet_01",
@@ -244,8 +244,8 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Caps? I was hoping you wanted to fuck, not shop.",
-      "chars": 48
+      "text": "A gift? I do not want your junk, you cheap fuck. I want your mouth between my legs.",
+      "chars": 83
     },
     {
       "id": "ov_vulgar_offer_miss_02",
@@ -254,8 +254,30 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Put your money away and tell me what you want to do to me.",
-      "chars": 58
+      "text": "Keep your shit and tell me exactly what you want to do to me, you spineless little pervert.",
+      "chars": 91
+    },
+    {
+      "id": "ov_vulgar_offer_miss_f1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "offer",
+      "outcome": "miss",
+      "text": "Stuff your gift, you cheap slut. The only thing I want tonight is your tongue in my pussy.",
+      "chars": 90,
+      "gender": "f"
+    },
+    {
+      "id": "ov_vulgar_offer_miss_m1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "offer",
+      "outcome": "miss",
+      "text": "Stuff your gift, you cheap slut. The only present I want is your lips wrapped around my cock.",
+      "chars": 93,
+      "gender": "m"
     },
     {
       "id": "ov_vulgar_charm_miss_01",
@@ -264,8 +286,8 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "All that talk and you still have not said the word fuck once.",
-      "chars": 61
+      "text": "Sweet talk? Pathetic. Tell me how you want to fuck me, you prissy little shit.",
+      "chars": 78
     },
     {
       "id": "ov_vulgar_charm_miss_02",
@@ -274,8 +296,30 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "Very pretty. Now say the filthy version and mean it.",
-      "chars": 52
+      "text": "Very pretty. Now say the filthy version, slut, and name every hole you want.",
+      "chars": 76
+    },
+    {
+      "id": "ov_vulgar_charm_miss_f1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "charm",
+      "outcome": "miss",
+      "text": "Compliments do not get my pussy wet, you soppy fuck. Filth does. Try again.",
+      "chars": 75,
+      "gender": "f"
+    },
+    {
+      "id": "ov_vulgar_charm_miss_m1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "charm",
+      "outcome": "miss",
+      "text": "Compliments do not get my cock hard, you soppy fuck. Filth does. Try again.",
+      "chars": 75,
+      "gender": "m"
     },
     {
       "id": "ov_vulgar_blunt_land_01",
@@ -284,8 +328,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Finally. Somebody who says fuck like it is not a swear word.",
-      "chars": 60
+      "text": "Finally, a filthy fucking mouth. Say it again, slut, while I picture your face between my thighs.",
+      "chars": 97
     },
     {
       "id": "ov_vulgar_blunt_land_02",
@@ -294,8 +338,30 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Say that again slower. I want to picture all of it.",
-      "chars": 51
+      "text": "Against the wall? Good. Pinned there, fucked stupid, begging me not to stop, you filthy pervert.",
+      "chars": 96
+    },
+    {
+      "id": "ov_vulgar_blunt_land_f1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "land",
+      "text": "Keep talking like that and my pussy is going to soak right through these clothes, you dirty fuck.",
+      "chars": 97,
+      "gender": "f"
+    },
+    {
+      "id": "ov_vulgar_blunt_land_m1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "land",
+      "text": "Keep talking like that and my cock is going to tear through these pants, you dirty fuck.",
+      "chars": 88,
+      "gender": "m"
     },
     {
       "id": "ov_vulgar_linger_miss_01",
@@ -304,8 +370,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Standing there quiet is not going to get my legs open.",
-      "chars": 54
+      "text": "Standing there silent will not get my fucking legs open, you useless little mute.",
+      "chars": 81
     },
     {
       "id": "ov_vulgar_linger_miss_02",
@@ -314,8 +380,30 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "You have got a mouth. Use it for words or use it on me.",
-      "chars": 55
+      "text": "You have got a mouth, you timid little shit. Talk dirty with it or shove it between my legs.",
+      "chars": 92
+    },
+    {
+      "id": "ov_vulgar_linger_miss_f1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "linger",
+      "outcome": "miss",
+      "text": "Silent? Fine, you dumb slut. Get on your knees and put that quiet mouth on my pussy.",
+      "chars": 84,
+      "gender": "f"
+    },
+    {
+      "id": "ov_vulgar_linger_miss_m1",
+      "kind": "response",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "linger",
+      "outcome": "miss",
+      "text": "Silent? Fine, you dumb slut. Get on your knees and put that quiet mouth on my cock.",
+      "chars": 83,
+      "gender": "m"
     },
     {
       "id": "ov_reticent_offer_miss_01",
@@ -444,8 +532,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "I want your hands on me and there are twelve people watching.",
-      "chars": 61
+      "text": "Fuck, yes, but there are twelve people watching, you shameless slut. Get me behind a door.",
+      "chars": 90
     },
     {
       "id": "ov_vulgar_recoil_02",
@@ -454,8 +542,30 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "Say that again somewhere with a door. Loud as you like, then.",
-      "chars": 61
+      "text": "Say that again somewhere private, you filthy animal, and say it loud while I ride you.",
+      "chars": 86
+    },
+    {
+      "id": "ov_vulgar_recoil_f1",
+      "kind": "recoil",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "recoil",
+      "text": "Not in front of all of them, pervert. My tits and my pussy are yours the second we are alone.",
+      "chars": 93,
+      "gender": "f"
+    },
+    {
+      "id": "ov_vulgar_recoil_m1",
+      "kind": "recoil",
+      "stage": 1,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "recoil",
+      "text": "Not in front of all of them, pervert. My cock is yours the second we are alone.",
+      "chars": 79,
+      "gender": "m"
     },
     {
       "id": "ov_reticent_recoil_01",
@@ -644,8 +754,8 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Caps again? I do not want paying, I want fucking.",
-      "chars": 49
+      "text": "Caps again? I do not want paying, whore. I want fucking, and I want it rough.",
+      "chars": 77
     },
     {
       "id": "ov2_vulgar_offer_miss_02",
@@ -654,8 +764,30 @@
       "persona": "vulgar",
       "register": "offer",
       "outcome": "miss",
-      "text": "Put it away and tell me where you want your hands.",
-      "chars": 50
+      "text": "Put your trinket away, you cheap fuck, and tell me where you want your hands on me.",
+      "chars": 83
+    },
+    {
+      "id": "ov2_vulgar_offer_miss_f1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "offer",
+      "outcome": "miss",
+      "text": "Another gift? Shove it. Shove your tongue in my pussy instead, you cheap little slut.",
+      "chars": 85,
+      "gender": "f"
+    },
+    {
+      "id": "ov2_vulgar_offer_miss_m1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "offer",
+      "outcome": "miss",
+      "text": "Another gift? Shove it. Get your mouth on my cock instead, you cheap little slut.",
+      "chars": 81,
+      "gender": "m"
     },
     {
       "id": "ov2_vulgar_charm_miss_01",
@@ -664,8 +796,8 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "Beautiful. Completely useless. Say the filthy version.",
-      "chars": 54
+      "text": "Beautiful. Completely fucking useless. Tell me how hard you want to fuck me, you soft little shit.",
+      "chars": 98
     },
     {
       "id": "ov2_vulgar_charm_miss_02",
@@ -674,8 +806,30 @@
       "persona": "vulgar",
       "register": "charm",
       "outcome": "miss",
-      "text": "Less poetry. More detail, and use the ugly words.",
-      "chars": 49
+      "text": "Less poetry, more filth, slut. Tell me which part of me you want to taste first.",
+      "chars": 80
+    },
+    {
+      "id": "ov2_vulgar_charm_miss_f1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "charm",
+      "outcome": "miss",
+      "text": "Walk past all you like, pervert. My pussy wants your tongue, not your poetry.",
+      "chars": 77,
+      "gender": "f"
+    },
+    {
+      "id": "ov2_vulgar_charm_miss_m1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "charm",
+      "outcome": "miss",
+      "text": "Walk past all you like, pervert. My cock wants your mouth, not your poetry.",
+      "chars": 75,
+      "gender": "m"
     },
     {
       "id": "ov2_vulgar_blunt_land_01",
@@ -684,8 +838,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Keep talking and I will have you against that wall.",
-      "chars": 51
+      "text": "Keep talking like that and I will pin you to that wall and fuck you until you scream, slut.",
+      "chars": 91
     },
     {
       "id": "ov2_vulgar_blunt_land_02",
@@ -694,8 +848,30 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "land",
-      "text": "Filthy mouth. I want it on me before you use it again.",
-      "chars": 54
+      "text": "Fuck. Say that again, slut, and you can hear it from underneath me while I ride your face.",
+      "chars": 90
+    },
+    {
+      "id": "ov2_vulgar_blunt_land_f1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "land",
+      "text": "You want to hear me come? Then eat my pussy until I do, you greedy little whore.",
+      "chars": 80,
+      "gender": "f"
+    },
+    {
+      "id": "ov2_vulgar_blunt_land_m1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "land",
+      "text": "You want to hear me come? Then suck my cock until I do, you greedy little whore.",
+      "chars": 80,
+      "gender": "m"
     },
     {
       "id": "ov2_vulgar_linger_miss_01",
@@ -704,8 +880,8 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Breathing at me is not foreplay. Say something filthy.",
-      "chars": 54
+      "text": "Breathing at me is not foreplay, you useless fuck. Tell me what you want to do to my body.",
+      "chars": 90
     },
     {
       "id": "ov2_vulgar_linger_miss_02",
@@ -714,8 +890,30 @@
       "persona": "vulgar",
       "register": "linger",
       "outcome": "miss",
-      "text": "Still nothing? My own hand is more decisive than you are.",
-      "chars": 57
+      "text": "Still nothing? My own fingers fuck me better than you talk, you limp little coward.",
+      "chars": 83
+    },
+    {
+      "id": "ov2_vulgar_linger_miss_f1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "linger",
+      "outcome": "miss",
+      "text": "Still silent? Then shut up properly and put your face in my pussy, you timid slut.",
+      "chars": 82,
+      "gender": "f"
+    },
+    {
+      "id": "ov2_vulgar_linger_miss_m1",
+      "kind": "response",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "linger",
+      "outcome": "miss",
+      "text": "Still silent? Then shut up properly and put that mouth on my cock, you timid slut.",
+      "chars": 82,
+      "gender": "m"
     },
     {
       "id": "ov2_reticent_offer_miss_01",
@@ -844,8 +1042,8 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "You are killing me. Four walls and a door, right now.",
-      "chars": 53
+      "text": "You are fucking killing me, slut. Four walls and a door, then you are mine to use.",
+      "chars": 82
     },
     {
       "id": "ov2_vulgar_recoil_02",
@@ -854,8 +1052,30 @@
       "persona": "vulgar",
       "register": "blunt",
       "outcome": "recoil",
-      "text": "Yes. Yes to all of it. Not in front of the whole settlement.",
-      "chars": 60
+      "text": "Yes to all of it, pervert. Just not with the whole fucking settlement watching me ride you.",
+      "chars": 91
+    },
+    {
+      "id": "ov2_vulgar_recoil_f1",
+      "kind": "recoil",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "recoil",
+      "text": "Not here, slut. Get me alone and you can hear me come with your tongue in my pussy.",
+      "chars": 83,
+      "gender": "f"
+    },
+    {
+      "id": "ov2_vulgar_recoil_m1",
+      "kind": "recoil",
+      "stage": 2,
+      "persona": "vulgar",
+      "register": "blunt",
+      "outcome": "recoil",
+      "text": "Not here, slut. Get me alone and you can hear me come with my cock down your throat.",
+      "chars": 84,
+      "gender": "m"
     },
     {
       "id": "ov2_reticent_recoil_01",
@@ -919,8 +1139,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "accept",
-      "text": "Finally. Find us a door and I will show you what I meant.",
-      "chars": 57
+      "text": "Finally. Strip, you filthy slut. I am going to use you until you cannot stand.",
+      "chars": 78
     },
     {
       "id": "ov3_vulgar_accept_02",
@@ -928,8 +1148,28 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "accept",
-      "text": "Yes. And I have been thinking about your mouth since you walked in.",
-      "chars": 67
+      "text": "Fuck, yes. I have wanted that filthy mouth on me since you walked in, whore. Get over here.",
+      "chars": 91
+    },
+    {
+      "id": "ov3_vulgar_accept_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "accept",
+      "text": "Yes. Get on your knees, slut, and eat my pussy like you mean it.",
+      "chars": 64,
+      "gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_accept_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "accept",
+      "text": "Yes. Get on your knees, slut, and suck my cock like you mean it.",
+      "chars": 64,
+      "gender": "m"
     },
     {
       "id": "ov3_reticent_accept_01",
@@ -991,8 +1231,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "refuse",
-      "text": "No. You bored me, and boring me is worse than offending me.",
-      "chars": 59
+      "text": "No. Fuck off, you pathetic little worm. I would sooner fuck a feral ghoul.",
+      "chars": 74
     },
     {
       "id": "ov3_vulgar_refuse_02",
@@ -1000,8 +1240,28 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "refuse",
-      "text": "Not a chance. You could not even say what you wanted out loud.",
-      "chars": 62
+      "text": "Not a fucking chance, you desperate slut. Go rub yourself raw somewhere I cannot see it.",
+      "chars": 88
+    },
+    {
+      "id": "ov3_vulgar_refuse_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "refuse",
+      "text": "No. My pussy is not for you, you sad little fuck. Walk away.",
+      "chars": 60,
+      "gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_refuse_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "refuse",
+      "text": "No. My cock is not for you, you sad little fuck. Walk away.",
+      "chars": 59,
+      "gender": "m"
     },
     {
       "id": "ov3_reticent_refuse_01",
@@ -1063,8 +1323,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notyet",
-      "text": "You are close. Say one more filthy thing and I am yours.",
-      "chars": 56
+      "text": "Not yet, greedy slut. Keep coming back with that filthy mouth, and soon I will be riding it.",
+      "chars": 92
     },
     {
       "id": "ov3_vulgar_notyet_02",
@@ -1072,8 +1332,28 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notyet",
-      "text": "Almost. One more filthy sentence and I am dragging you off.",
-      "chars": 59
+      "text": "Almost, pervert. Beg me a few more nights and I will fuck you stupid.",
+      "chars": 69
+    },
+    {
+      "id": "ov3_vulgar_notyet_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notyet",
+      "text": "Not yet. Keep begging, slut, and one night soon I will be grinding my pussy on your face.",
+      "chars": 89,
+      "gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_notyet_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notyet",
+      "text": "Not yet. Keep begging, slut, and one night soon my cock will be down your throat.",
+      "chars": 81,
+      "gender": "m"
     },
     {
       "id": "ov3_reticent_notyet_01",
@@ -1130,16 +1410,16 @@
       "kind": "farewell",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Go on. I will be thinking about fucking you either way.",
-      "chars": 55
+      "text": "Run along, you fucking tease. I will touch myself tonight and picture that filthy mouth.",
+      "chars": 88
     },
     {
       "id": "ov_vulgar_farewell_02",
       "kind": "farewell",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Leave, then. You know which bed is mine.",
-      "chars": 40
+      "text": "Leave, then, you gutless fuck. You know which bed is mine, and I sleep naked.",
+      "chars": 77
     },
     {
       "id": "ov_reticent_farewell_01",
@@ -1194,16 +1474,16 @@
       "kind": "returning",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Look who came back. Thought about my mouth all week, then?",
-      "chars": 58
+      "text": "Look who crawled back. Been touching yourself over me all week, you sad little pervert?",
+      "chars": 87
     },
     {
       "id": "ov_vulgar_returning_02",
       "kind": "returning",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Knew you would be back. You have got that desperate look.",
-      "chars": 57
+      "text": "Knew you would be back, slut. You have got that dripping, desperate look.",
+      "chars": 73
     },
     {
       "id": "ov_reticent_returning_01",
@@ -1276,6 +1556,26 @@
       "chars": 89
     },
     {
+      "id": "ov3_vulgar_nothere_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Not with them watching, you shameless slut. Get me behind a door and my pussy is all yours.",
+      "chars": 91,
+      "gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_nothere_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nothere",
+      "text": "Not with them watching, you shameless slut. Get me behind a door and my cock is all yours.",
+      "chars": 90,
+      "gender": "m"
+    },
+    {
       "id": "ov3_reticent_nothere_01",
       "kind": "propose",
       "stage": 3,
@@ -1346,6 +1646,26 @@
       "outcome": "notnow",
       "text": "Hold that fucking thought, pervert. Later I ride you until you are a begging, dripping mess.",
       "chars": 92
+    },
+    {
+      "id": "ov3_vulgar_notnow_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Not now, pervert. Later my pussy is going to drip all over that filthy face of yours.",
+      "chars": 85,
+      "gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_notnow_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "notnow",
+      "text": "Not now, pervert. Later my cock is going to be buried in that filthy mouth of yours.",
+      "chars": 84,
+      "gender": "m"
     },
     {
       "id": "ov3_reticent_notnow_01",
@@ -1444,6 +1764,24 @@
       "persona": "vulgar",
       "text": "So you have been fucking around, you shameless slut. Good. Show me what they taught you.",
       "chars": 88
+    },
+    {
+      "id": "ov_jealous_vulgar_f1",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "vulgar",
+      "text": "Heard you have been whoring around. Good. My pussy got wet just hearing about it, slut.",
+      "chars": 87,
+      "gender": "f"
+    },
+    {
+      "id": "ov_jealous_vulgar_m1",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "vulgar",
+      "text": "Heard you have been whoring around. Good. My cock got hard just hearing about it, slut.",
+      "chars": 87,
+      "gender": "m"
     },
     {
       "id": "ov_jealous_reticent_01",

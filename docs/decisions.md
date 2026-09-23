@@ -517,3 +517,31 @@ line has never played in game. Corrected to the owner the same night.
 
 **Measured before the rewrite:** of the persona's 32 approved lines, 7 contain an obscene word, and the
 only insults are "Completely useless" and "that desperate look".
+
+**Applied the same night (O-40b and O-40c).** The owner approved the 74-line draft: "Yeah I agree".
+- **The lines:**
+  - the 32 older lines, rewritten to O-40's rule;
+  - 32 new stranger lines, a female and a male version in each of the persona's 16 cells the plugin
+    speaks: stages 1 and 2 five cells each, stage 3's five verdicts, and the jealous greeting;
+  - 10 companion answers, a female and a male version for each verdict.
+- **Voice constraints:** a gendered line is recorded only in its own sex's three voices. Voiced lines keep
+  the bank's no-contraction style, with no hyphen, compound or digit (the STT gate).
+- **The plugin** went from 393 INFOs to 491. 98 are new:
+  - 10 at stage 1 and 10 at stage 2;
+  - 46 at stage 3, where O-31's lover sets repeat each answer in every register, and a refusal seven times;
+  - 30 companion answers and 2 jealous greetings.
+- **Nothing existing moved:** none removed, and no existing id moved, so every voice file keeps its name.
+  50 existing INFOs changed text: the 26 rewritten lines the plugin speaks, repeated across branches.
+- **Deploy:** the new INFOs mean NEW voice files, which need the owner's Vortex Deploy.
+- **Still unused:** the 6 `greeting`, `farewell` and `returning` lines are rewritten and recorded, and the
+  plugin still does not use them.
+- **Builder:** O-40c's support is `tools/make_overture_esp.py` `sex_conditions` / `variant_ids` /
+  `fenced_order`, checked by `tools/check_gendered.py`. That check caught one builder bug before
+  anything shipped: the jealous greetings' cap counted gendered lines against the plain range.
+- **Recording:** 288 takes, 24,084 characters.
+  - 286 matched their words on the first pass: 284 on eleven_v3, and 2 needed eleven_multilingual_v2.
+  - The other 2 failed all 6 attempts: MaleBoston and MaleRough on `ov_vulgar_offer_miss_m1`.
+- **One word changed after the owner's OK, for that reason.** "...your lips wrapped round my cock" became
+  "...wrapped AROUND my cock". The meaning is the same. The male voices say "around": a diagnostic take
+  transcribed v3 as "around", and only v2 managed "round", once. The line's three male takes were all
+  re-recorded on the new words, verbatim first time.
