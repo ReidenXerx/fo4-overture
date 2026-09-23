@@ -68,6 +68,11 @@ PLAYER_INFO_S3 = 0x01000908
 INFO_BASE_S2 = 0x01000B00
 RECOIL_BASE_S2 = 0x01000B80
 INFO_BASE_S3 = 0x01000C00
+# O-40c's male and female versions of a stage-3 answer. Stage 3's own layout gives each
+# verdict set two slots and no spare, so gendered lines live in the free 0xF00 range:
+# + (register slot * 4 + persona) * 16 + verdict set * 2 + (0 or 1). Up to two per set;
+# O-31's lover sets reach set 5, so the highest id is 0xFFB.
+GENDERED_S3_BASE = 0x01000F00
 VERDICT_GLOBAL = 0x01000845     # Overture:Approach.VERDICT_*; the stage-3 replies read it
 # 0x846 was OvertureScenesEnabled: an MCM setting now (SWITCHES), and retired.
 
@@ -109,6 +114,10 @@ COMPANION_NPC_TOPIC = 0x0100086C
 COMPANION_ANSWER_BASE = 0x01000E10   # + slot * 0x40; persona * 10 + verdict set * 2 + variant
 COMPANION_SLOT_STRIDE = 0x40
 COMPANION_FALLBACK = 0x28            # within a slot: + 0 no persona, + 1 no verdict
+# O-40c's male and female companion answers, which the stride has no room for:
+# + ((proposition * 4 + persona) * 5 + verdict set) * 2 + (0 or 1), where the propositions
+# are the wheel's three non-"Later." slots in order. 0xD60..0xDD7; 0xDD8-0xDFF stay free.
+COMPANION_GENDERED_BASE = 0x01000D60
 COMPANION_SCRIPTS = ('Overture:Companions:Registry', 'Overture:Companions:EngineAdapter',
                      'Overture:Companions:VanillaAdapter', 'Overture:Companions:IvyAdapter',
                      'Overture:Companions:Feeders', 'Overture:Companions:Moments',
@@ -289,13 +298,14 @@ def build_staged():
     reply = {1: {}, 2: {}}
     recoil = {1: {}, 2: {}}
     propose = {}
+    # Whole lines, not just their text: a line's gender (O-40c) becomes a condition.
     for l in bank['lines']:
         if l['kind'] == 'response' and l['stage'] in (1, 2):
-            reply[l['stage']].setdefault((l['register'], l['persona']), []).append((l['text'], l['outcome']))
+            reply[l['stage']].setdefault((l['register'], l['persona']), []).append(l)
         elif l['kind'] == 'recoil' and l['stage'] in (1, 2):
-            recoil[l['stage']].setdefault(l['persona'], []).append(l['text'])
+            recoil[l['stage']].setdefault(l['persona'], []).append(l)
         elif l['kind'] == 'propose':
-            propose.setdefault((l['persona'], l['outcome']), []).append(l['text'])
+            propose.setdefault((l['persona'], l['outcome']), []).append(l)
 
     ids = [(m.QUEST_FORMID, 'quest'), (m.SCENE_FORMID, 'scene'),
            (m.PERSONA_GLOBAL, 'persona global'), (m.PUBLIC_GLOBAL, 'public global'),
@@ -339,32 +349,38 @@ def build_staged():
             block, n_infos = b'', 0
             if register == m.INTIMATE_REGISTER:
                 for k, persona in enumerate(m.PERSONAS):
-                    texts = recoil[stage].get(persona, [])
+                    lines = recoil[stage].get(persona, [])
+                    if lines:
+                        m.check_covers_everyone(lines, f's{stage} recoil {persona}')
                     liked = lands_on.get(persona) == register
                     code = m.OUTCOME_RECOIL_LIKED if liked else m.OUTCOME_RECOIL
-                    for v, text in enumerate(texts):
-                        rid = rbase + k * m.MAX_VARIANTS + v
-                        ids.append((rid, f's{stage} recoil {persona} {v}'))
-                        last = v == len(texts) - 1
+                    # A gendered line never carries the fence.
+                    ordered = m.fenced_order(m.variant_ids(lines, rbase + k * m.MAX_VARIANTS,
+                                                           f's{stage} recoil {persona}'),
+                                             f's{stage} recoil {persona}')
+                    for i, (rid, l) in enumerate(ordered):
+                        ids.append((rid, f's{stage} recoil {persona} {l["id"]}'))
+                        last = i == len(ordered) - 1
                         enam = m.ENAM_RANDOM | (m.ENAM_RANDOM_END if last else 0)
-                        block += m.line(rid, None, text, persona_index=k, public=1,
-                                        enam=enam, reply=(stage, code))
+                        block += m.line(rid, None, l['text'], persona_index=k, public=1,
+                                        enam=enam, reply=(stage, code), extra=m.sex_conditions(l))
                         n_infos += 1
             for k, persona in enumerate(m.PERSONAS):
-                texts = reply[stage].get((register, persona))
-                if not texts:
+                lines = reply[stage].get((register, persona))
+                if not lines:
                     raise SystemExit(f'no stage-{stage} response for {register}/{persona}')
-                for v, (text, outcome) in enumerate(texts):
-                    iid = base + (n * len(m.PERSONAS) + k) * m.MAX_VARIANTS + v
-                    ids.append((iid, f's{stage} {register}/{persona} {v}'))
-                    if outcome == 'land':
+                m.check_covers_everyone(lines, f's{stage} {register}/{persona}')
+                for iid, l in m.variant_ids(lines, base + (n * len(m.PERSONAS) + k) * m.MAX_VARIANTS,
+                                            f's{stage} {register}/{persona}'):
+                    ids.append((iid, f's{stage} {register}/{persona} {l["id"]}'))
+                    if l['outcome'] == 'land':
                         code = m.OUTCOME_LAND
                     elif register == m.INTIMATE_REGISTER:
                         code = m.OUTCOME_OFFEND
                     else:
                         code = m.OUTCOME_MISS
-                    block += m.line(iid, None, text, persona_index=k,
-                                    enam=m.ENAM_RANDOM, reply=(stage, code))
+                    block += m.line(iid, None, l['text'], persona_index=k,
+                                    enam=m.ENAM_RANDOM, reply=(stage, code), extra=m.sex_conditions(l))
                     n_infos += 1
             # No persona from Rapport: nothing above can match. A neutral beat
             # that ends like a miss -- NOT Random, and last, so it never joins a
@@ -414,13 +430,17 @@ def build_staged():
                 # refusal keeps set 0, so its ids -- which name voice files -- stay.
                 sets = (((None, OUTCOME_REFUSE, propose.get((persona, 'refuse'), []), not_a_lover()),)
                         + tuple((v, c, t, a_lover()) for v, c, t in verdicts))
-            for s_index, (verdict, code, texts, gate) in enumerate(sets):
-                if not texts:
+            for s_index, (verdict, code, lines, gate) in enumerate(sets):
+                if not lines:
                     raise SystemExit(f'no stage-3 lines for {persona} verdict {verdict}')
-                if len(texts) > 2:
-                    # The id layout gives each verdict set two slots; a third
-                    # variant would be dropped without a word.
-                    raise SystemExit(f'{persona} verdict {verdict} has {len(texts)} lines; stage 3 has room for 2')
+                plain = [l for l in lines if not m.gendered(l)]
+                sexed = [l for l in lines if m.gendered(l)]
+                if len(plain) > 2 or len(sexed) > 2:
+                    # The id layout gives each verdict set two slots, and O-40c's range
+                    # two more for gendered lines; a third would be dropped without a word.
+                    raise SystemExit(f'{persona} verdict {verdict}: {len(plain)} plain and {len(sexed)} '
+                                     f'gendered lines; stage 3 has room for 2 of each')
+                m.check_covers_everyone(lines, f's3 {persona} verdict {verdict}')
                 # No flag on ANY answer, the yes included. XDI works out an
                 # option's "endsScene" from its NPC reply's End Running Scene
                 # flag and hands it to the menu (xdi DialogueEx.cpp:301,
@@ -429,11 +449,17 @@ def build_staged():
                 # The yes ends the scene by HandBack's own start condition
                 # instead: it does not start after a yes.
                 enam = m.ENAM_RANDOM
-                for v, text in enumerate(texts):
-                    iid = INFO_BASE_S3 + (n * len(m.PERSONAS) + k) * S3_CELL + s_index * 2 + v
-                    ids.append((iid, f's3 {register}/{persona} set {s_index} {v}'))
-                    extra = (verdict_condition(verdict) if verdict is not None else b'') + gate
-                    block += m.line(iid, None, text, persona_index=k, enam=enam,
+                cell = n * len(m.PERSONAS) + k
+                entries = ([(INFO_BASE_S3 + cell * S3_CELL + s_index * 2 + v, l, str(v))
+                            for v, l in enumerate(plain)]
+                           + [(GENDERED_S3_BASE + cell * 16 + s_index * 2 + g, l, f'sexed {g}')
+                              for g, l in enumerate(sexed)])
+                # Stage 3 has no fence (Random End) to protect: exactly one set can pass.
+                for iid, l, label in entries:
+                    ids.append((iid, f's3 {register}/{persona} set {s_index} {label}'))
+                    extra = (m.sex_conditions(l)
+                             + (verdict_condition(verdict) if verdict is not None else b'') + gate)
+                    block += m.line(iid, None, l['text'], persona_index=k, enam=enam,
                                     reply=(3, code), extra=extra)
                     n_infos += 1
             if lands_on.get(persona) == register:
@@ -467,10 +493,10 @@ def build_staged():
     companion_infos, companion_count = companion_greetings(companion_bank['lines'], ids)
     m.check_unique(ids)
 
-    lover_lines = [l['text'] for l in bank['lines'] if l.get('kind') == 'lover_greeting']
+    lover_lines = [l for l in bank['lines'] if l.get('kind') == 'lover_greeting']
     if len(lover_lines) > 4:
         raise SystemExit('more lover greetings than 0x832..0x835 holds')
-    jealous_lines = [(m.PERSONAS.index(l['persona']), l['text'])
+    jealous_lines = [(m.PERSONAS.index(l['persona']), l)
                      for l in bank['lines'] if l.get('kind') == 'jealous_greeting']
     if len(jealous_lines) > 10:
         raise SystemExit('more jealous greetings than 0x836..0x83F holds')
@@ -601,10 +627,15 @@ def companion_wheel(bank, ids):
     answers = {}
     for l in bank['lines']:
         if l['kind'] == 'companion_answer':
-            answers.setdefault((l['persona'], l['outcome']), []).append(l['text'])
+            answers.setdefault((l['persona'], l['outcome']), []).append(l)
+        elif m.gendered(l):
+            # Only the answers have a gendered layout (COMPANION_GENDERED_BASE); a
+            # greeting or a "Later." line has no room for one and nothing needs it yet.
+            raise SystemExit(f'{l["id"]}: a {l["kind"]} line cannot be gendered (only companion answers can)')
     later = [l['text'] for l in bank['lines'] if l['kind'] == 'companion_later']
     if not later:
         raise SystemExit('no companion_later lines')
+    propositions = [key for _slot, key in COMPANION_WHEEL if key != 'later']
     sets = ((VERDICT_NOT_HERE, OUTCOME_NOT_HERE, 'nothere'), (VERDICT_REFUSE, OUTCOME_REFUSE, 'refuse'),
             (VERDICT_NOTYET, OUTCOME_NOTYET, 'notyet'), (VERDICT_ACCEPT, OUTCOME_ACCEPT, 'accept'),
             (VERDICT_NOT_NOW, OUTCOME_NOT_NOW, 'notnow'))
@@ -631,18 +662,26 @@ def companion_wheel(bank, ids):
                                 reply=(0, OUTCOME_LATER))
                 n_infos += 1
         else:
+            prop = propositions.index(key)
             for k, persona in enumerate(m.PERSONAS):
                 for s_index, (verdict, code, outcome) in enumerate(sets):
-                    texts = answers.get((persona, outcome), [])
-                    if not texts or len(texts) > 2:
-                        raise SystemExit(f'companion {persona} {outcome}: {len(texts)} lines, need 1 or 2')
-                    for v, text in enumerate(texts):
-                        iid = base + k * 10 + s_index * 2 + v
-                        ids.append((iid, f'companion {key}/{persona} {outcome} {v}'))
+                    lines = answers.get((persona, outcome), [])
+                    plain = [l for l in lines if not m.gendered(l)]
+                    sexed = [l for l in lines if m.gendered(l)]
+                    if not lines or len(plain) > 2 or len(sexed) > 2:
+                        raise SystemExit(f'companion {persona} {outcome}: {len(plain)} plain and '
+                                         f'{len(sexed)} gendered lines; need 1 to 2 of each kind')
+                    m.check_covers_everyone(lines, f'companion {persona} {outcome}')
+                    entries = ([(base + k * 10 + s_index * 2 + v, l, str(v)) for v, l in enumerate(plain)]
+                               + [(COMPANION_GENDERED_BASE + ((prop * len(m.PERSONAS) + k) * len(sets)
+                                                              + s_index) * 2 + g, l, f'sexed {g}')
+                                  for g, l in enumerate(sexed)])
+                    for iid, l, label in entries:
+                        ids.append((iid, f'companion {key}/{persona} {outcome} {label}'))
                         # No flag on any answer, the yes included: the stranger
                         # stage 3's reason (XDI would mark the yes on the wheel).
-                        block += m.line(iid, None, text, persona_index=k, enam=m.ENAM_RANDOM,
-                                        reply=(3, code), extra=verdict_condition(verdict))
+                        block += m.line(iid, None, l['text'], persona_index=k, enam=m.ENAM_RANDOM,
+                                        reply=(3, code), extra=m.sex_conditions(l) + verdict_condition(verdict))
                         n_infos += 1
             # No persona from Rapport, then no verdict decided: neutral beats that
             # end like a miss, not Random, last -- reached only when all above fail.

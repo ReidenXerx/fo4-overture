@@ -69,13 +69,19 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 #   0xE00-0xE0F  RETIRED: the MCM's numbers were globals here until they moved to
 #                MCM's settings.ini. Not reused -- a dev save may still name them.
 #   0x846        RETIRED likewise: OvertureScenesEnabled, now an MCM setting too.
-#   0xD60-0xDFF, 0xF00-0xFFF  free
+#   O-40c's male and female lines, where a layout had no spare slot:
+#   0xD60-0xDD7  gendered companion answers (overture_stages.COMPANION_GENDERED_BASE)
+#   0xDD8-0xDDF  gendered jealous greetings (JEALOUS_GENDERED_BASE)
+#   0xF00-0xFFF  gendered stage-3 answers (overture_stages.GENDERED_S3_BASE)
+#                Stages 1 and 2 keep theirs in each cell's last two slots (variant_ids).
+#   0xDE0-0xDFF  free: the LAST free range. A light plugin holds 0x800-0xFFF and no more.
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 LOVER_GREET_BASE = 0x01000832    # O-12's lover greetings, 0x832..0x835
 JEALOUS_GREET_BASE = 0x01000836  # O-33's jealous greetings, 0x836..0x83F
+JEALOUS_GENDERED_BASE = 0x01000DD8  # O-40c's gendered jealous greetings: + persona * 2 + (0 or 1)
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
@@ -476,6 +482,78 @@ def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alia
             + struct.pack('<i', alias))
 
 
+def sex_conditions(l):
+    """O-40c (owner poll, 2026-09-24): a bank line may come in a male and a female version.
+
+    `gender` is the SPEAKER's sex. It is the key fo4-rapport's render-barks.py already
+    reads, so the line is recorded only in its own three voices. `player_gender` is the
+    PLAYER's: vanilla's own test, run on PlayerRef, so the line is recorded in all six.
+    Callers put these FIRST among a line's extra conditions, straight after persona and
+    room. Neither of those carries the OR flag, so no OR group can swallow them.
+    A line with neither returns b''."""
+    f = b''
+    for key, runon, ref in (('gender', RUNON_SUBJECT, 0), ('player_gender', RUNON_REFERENCE, PLAYER_REF)):
+        sex = l.get(key)
+        if sex is None:
+            continue
+        if sex not in SEX_PARAM:
+            raise SystemExit(f'{l["id"]}: {key} must be "m" or "f", not {sex!r}')
+        f += field('CTDA', condition(FUNC_GET_IS_SEX, SEX_PARAM[sex], value=1.0,
+                                     runon=runon, reference=ref))
+    return f
+
+
+def gendered(l):
+    return l.get('gender') is not None or l.get('player_gender') is not None
+
+
+# A cell's last two variant slots hold its gendered lines, and its plain lines take the
+# rest from the top. Each side is counted only among its own kind, so adding a gendered
+# line never moves a plain one's id, and so never renames a voiced file. The first test
+# of this code counted across both kinds, and one inserted line shifted the reticent's
+# jealous greetings along by two.
+GENDERED_SLOTS = 2
+
+
+def variant_ids(lines, first_id, where):
+    """(form id, line) for a stage-1/2 cell spaced MAX_VARIANTS apart: plain lines from
+    the top of the cell, gendered lines in its last GENDERED_SLOTS."""
+    plain = [l for l in lines if not gendered(l)]
+    sexed = [l for l in lines if gendered(l)]
+    if len(plain) > MAX_VARIANTS - GENDERED_SLOTS or len(sexed) > GENDERED_SLOTS:
+        raise SystemExit(f'{where}: {len(plain)} plain and {len(sexed)} gendered lines; the id spacing '
+                         f'holds {MAX_VARIANTS - GENDERED_SLOTS} and {GENDERED_SLOTS}')
+    by_line = {id(l): first_id + v for v, l in enumerate(plain)}
+    by_line.update({id(l): first_id + MAX_VARIANTS - GENDERED_SLOTS + g for g, l in enumerate(sexed)})
+    return [(by_line[id(l)], l) for l in lines]
+
+
+def fenced_order(entries, where):
+    """Emission order for a Random run closed by Random End.
+
+    Gendered lines go first and the lines everyone can hear go last. `entries` are
+    (form id, line): ids stay in bank order, because a voice file is named by its INFO's
+    id. Only the order in the file changes.
+
+    Why: only an INFO whose conditions PASS is sure to close a run (microscope wave 3).
+    A male-only line carrying the fence would leave a woman's run open into the next
+    group, and a public room's recoils would pool with the plain replies (a coin flip)."""
+    out = [e for e in entries if gendered(e[1])] + [e for e in entries if not gendered(e[1])]
+    if out and gendered(out[-1][1]):
+        raise SystemExit(f'{where}: every line is gendered, so none can close the run for everyone')
+    return out
+
+
+def check_covers_everyone(lines, where):
+    """Nobody may be left out of a cell: for either sex of speaker, facing either sex of
+    player, some line must pass. A cell holding only female lines would give a man
+    nothing to say at all."""
+    for s in SEX_PARAM:
+        for p in SEX_PARAM:
+            if not any(l.get('gender', s) == s and l.get('player_gender', p) == p for l in lines):
+                raise SystemExit(f'{where}: no line for a {s} speaker talking to a {p} player')
+
+
 # GetIsAliasRef. MEASURED: of this function's 4,806 uses on dialogue INFOs in
 # Fallout4.esm, 4,782 have a param1 inside the owning quest's own alias range,
 # and the 24 that do not are all the sentinel 0xFFFFFFFE. See
@@ -505,6 +583,15 @@ FUNC_IS_IN_SCENE = 590
 FUNC_IS_SNEAKING = 286
 RUNON_REFERENCE = 2
 PLAYER_REF = 0x00000014
+# GetIsSex, for O-40c's male and female versions of a line. MEASURED 2026-09-24 with
+# tools/ctda_survey.py --func 70: 3,546 conditions on Fallout4.esm dialogue INFOs, param1
+# always 0 or 1, compared equal to 1.0. 3,084 run on a Reference: PlayerRef 00000014,
+# testing the PLAYER's sex, 1,627 of them with 0 and 1,442 with 1. 252 run on the Subject,
+# testing the speaker's. 0 is male and 1 female: the engine's Sex, the value
+# ActorBase.GetSex() returns. Not 130, the index first recalled from memory: 130 has 5 uses,
+# all run on the Target, none in this shape.
+FUNC_GET_IS_SEX = 70
+SEX_PARAM = {'m': 0, 'f': 1}
 # FollowersScript.SetCompanion adds it and DismissCompanion takes it away: the CURRENT
 # companion. The companion greeting's own test (the strangers' is its opposite).
 FACTION_CURRENT_COMPANION = 0x00023C01
@@ -573,19 +660,44 @@ def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_co
     # known -- so these lines can be the persona's own, where the lover greetings
     # below cannot. Their own Random run, fenced by Random End, so a jealous lover
     # never draws a plain lover's line.
-    for i, (persona_index, text) in enumerate(jealous_lines):
-        # Each persona's LAST line closes its run. One fence at the very end sat on
-        # the reticent's line alone, and only an INFO whose conditions pass is sure
-        # to end a run -- so another persona's pool could run on into the lover
-        # greetings below (microscope wave 3, records lens).
-        last = i == len(jealous_lines) - 1 or jealous_lines[i + 1][0] != persona_index
-        infos += greeting_info(JEALOUS_GREET_BASE + i, text,
-                               ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
-                               field('CTDA', condition(FUNC_GET_VALUE, JEALOUS_PENDING_AV,
-                                                       value=float(persona_index + 1), runon=RUNON_SUBJECT)))
-    for i, text in enumerate(lover_lines):
+    # Each persona's LAST line closes its run. One fence at the very end sat on
+    # the reticent's line alone, and only an INFO whose conditions pass is sure
+    # to end a run -- so another persona's pool could run on into the lover
+    # greetings below (microscope wave 3, records lens). The lines arrive as
+    # (persona index, bank line): ids follow the bank, because a voice file is named
+    # by its INFO's id; each persona's run is written together, in the order the
+    # bank first names the persona, with a line everyone hears as its fence (O-40c).
+    # Plain lines are numbered among plain lines only, and gendered ones get a range of
+    # their own, so adding one never renames another persona's voice files.
+    runs, plain_n, sexed_n = {}, 0, {}
+    for persona_index, l in jealous_lines:
+        if gendered(l):
+            g = sexed_n.get(persona_index, 0)
+            if g >= GENDERED_SLOTS:
+                raise SystemExit(f'jealous greetings, persona {persona_index}: more than '
+                                 f'{GENDERED_SLOTS} gendered lines')
+            sexed_n[persona_index] = g + 1
+            fid = JEALOUS_GENDERED_BASE + persona_index * GENDERED_SLOTS + g
+        else:
+            fid = JEALOUS_GREET_BASE + plain_n
+            plain_n += 1
+        runs.setdefault(persona_index, []).append((fid, l))
+    for persona_index, entries in runs.items():
+        check_covers_everyone([l for _, l in entries], f'jealous greetings, persona {persona_index}')
+        ordered = fenced_order(entries, f'jealous greetings, persona {persona_index}')
+        for j, (fid, l) in enumerate(ordered):
+            last = j == len(ordered) - 1
+            infos += greeting_info(fid, l['text'],
+                                   ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
+                                   sex_conditions(l)
+                                   + field('CTDA', condition(FUNC_GET_VALUE, JEALOUS_PENDING_AV,
+                                                             value=float(persona_index + 1), runon=RUNON_SUBJECT)))
+    for i, l in enumerate(lover_lines):
+        if gendered(l):
+            # 0x832..0x835 has no room for a gendered layout, and nothing needs one yet.
+            raise SystemExit(f'{l["id"]}: a lover greeting cannot be gendered')
         last = i == len(lover_lines) - 1
-        infos += greeting_info(LOVER_GREET_BASE + i, text,
+        infos += greeting_info(LOVER_GREET_BASE + i, l['text'],
                                ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
                                lover_when)
     infos += greeting_info(GREET_INFO, '...', ENAM_REQUIRES_PLAYER_ACTIVATION, b'')
@@ -784,11 +896,12 @@ def build():
     bank = json.loads((ROOT / 'voice' / 'lines.json').read_text(encoding='utf-8'))
     reply = {}
     recoil = {}
+    # Whole lines, not just their text: a line's gender (O-40c) becomes a condition.
     for l in bank['lines']:
         if l['kind'] == 'response' and l['stage'] == 1:
-            reply.setdefault((l['register'], l['persona']), []).append((l['text'], l['outcome']))
+            reply.setdefault((l['register'], l['persona']), []).append(l)
         elif l['kind'] == 'recoil' and l['stage'] == 1:
-            recoil.setdefault(l['persona'], []).append(l['text'])
+            recoil.setdefault(l['persona'], []).append(l)
 
     topic_ids, children, count = {}, b'', 0
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
@@ -840,31 +953,34 @@ def build():
         # like these. Each persona's LAST recoil carries it.
         if register == INTIMATE_REGISTER:
             for k, persona in enumerate(PERSONAS):
-                texts = recoil.get(persona, [])
-                for v, text in enumerate(texts):
-                    rid = RECOIL_BASE + k * MAX_VARIANTS + v
-                    all_ids.append((rid, f'recoil {persona} variant {v}'))
-                    last = v == len(texts) - 1
+                lines = recoil.get(persona, [])
+                if lines:
+                    check_covers_everyone(lines, f'stage-1 recoil {persona}')
+                # A gendered line never carries the fence.
+                ordered = fenced_order(variant_ids(lines, RECOIL_BASE + k * MAX_VARIANTS,
+                                                   f'stage-1 recoil {persona}'), f'stage-1 recoil {persona}')
+                for i, (rid, l) in enumerate(ordered):
+                    all_ids.append((rid, f'recoil {persona} {l["id"]}'))
+                    last = i == len(ordered) - 1
                     # The vulgar recoil is "yes -- not here": the register was
                     # right. Every other persona's is an embarrassment.
                     liked = bank['lands_on'].get(persona) == register
-                    block += line(rid, None, text,
+                    block += line(rid, None, l['text'],
                                   persona_index=k, public=1,
                                   enam=ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
-                                  reply=(1, OUTCOME_RECOIL_LIKED if liked else OUTCOME_RECOIL))
+                                  reply=(1, OUTCOME_RECOIL_LIKED if liked else OUTCOME_RECOIL),
+                                  extra=sex_conditions(l))
                     n_infos += 1
 
         for k, persona in enumerate(PERSONAS):
-            texts = reply.get((register, persona))
-            if not texts:
+            lines = reply.get((register, persona))
+            if not lines:
                 raise SystemExit(f'no stage-1 response for {register}/{persona}')
-            if len(texts) > MAX_VARIANTS:
-                raise SystemExit(f'{register}/{persona} has {len(texts)} variants, '
-                                 f'more than the {MAX_VARIANTS} the id spacing allows')
-            for v, (text, outcome) in enumerate(texts):
-                iid = INFO_BASE + (n * len(PERSONAS) + k) * MAX_VARIANTS + v
-                all_ids.append((iid, f'{register}/{persona} variant {v}'))
-                if outcome == 'land':
+            check_covers_everyone(lines, f'stage-1 {register}/{persona}')
+            for iid, l in variant_ids(lines, INFO_BASE + (n * len(PERSONAS) + k) * MAX_VARIANTS,
+                                      f'stage-1 {register}/{persona}'):
+                all_ids.append((iid, f'{register}/{persona} {l["id"]}'))
+                if l['outcome'] == 'land':
                     code = OUTCOME_LAND
                 elif register == INTIMATE_REGISTER:
                     # Crude at someone who did not want crude is an insult, not
@@ -872,7 +988,8 @@ def build():
                     code = OUTCOME_OFFEND
                 else:
                     code = OUTCOME_MISS
-                block += line(iid, None, text, persona_index=k, reply=(1, code))
+                block += line(iid, None, l['text'], persona_index=k, reply=(1, code),
+                              extra=sex_conditions(l))
                 n_infos += 1
 
         # The lines are built before the topic, so TIFC is the REAL count. An

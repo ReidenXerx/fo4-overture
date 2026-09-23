@@ -99,6 +99,13 @@ def read_infos(esp):
     return found
 
 
+def voice_gender(vt):
+    """fo4-rapport render-barks.py's rule, kept identical: "Female" contains "male", so
+    female is tested FIRST. A type naming neither is treated as neutral."""
+    low = vt.lower()
+    return "f" if "female" in low else ("m" if "male" in low else None)
+
+
 def wav_bytes(pcm):
     return (b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " +
             struct.pack("<IHHIIHH", 16, 1, 1, 44100, 88200, 2, 16) +
@@ -192,9 +199,16 @@ def main():
                  if d.is_dir() and not d.name.startswith(".")
                  and any((d / f"{lid}.fuz").is_file() for lid in lines_used))
 
-    refused, missing, ready = [], [], {}
+    # O-40c: a line in a male and a female version is spoken, and recorded, only by its
+    # own sex's voices; the plugin's GetIsSex condition keeps the other voices off it.
+    # That is by design, not a missing render.
+    gender_of = {ln["id"]: ln.get("gender") for ln in bank}
+    refused, missing, ready, other_sex = [], [], {}, 0
     for vt in vts:
         for lid in lines_used:
+            if gender_of[lid] is not None and gender_of[lid] != voice_gender(vt):
+                other_sex += 1
+                continue
             if not (rapport / "voice" / "pcm" / vt / f"{lid}.pcm").is_file():
                 missing.append((vt, lid))
                 continue
@@ -212,6 +226,8 @@ def main():
     print(f"voice types   : {len(vts)}  ({', '.join(vts)})")
     files = sum(1 for e in registry.values() for vt in vts if (vt, e["line"]) in ready)
     print(f"to stage      : {len(ready)} renders -> {files} files")
+    if other_sex:
+        print(f"other sex     : {other_sex} voice/line pairs belong to the other sex's voices (O-40c)")
     if companion:
         print(f"companions    : {len(companion)} INFOs, subtitles by design (their own voice types, V-9)")
     if unmatched:
