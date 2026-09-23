@@ -59,7 +59,8 @@ GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
-ARMED_GLOBAL = 0x01000842     # 1 while an approach waits to open; the greeting needs it
+ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
+NEXT_DAY_AV = 0x01000843      # AVIF: the game day an NPC may be approached again (O-8)
 
 # The register O-4 calls intimate. Only this one recoils in public: a gift or a
 # compliment in a crowded bar is merely a gift or a compliment.
@@ -222,18 +223,39 @@ def public_global():
     return record('GLOB', PUBLIC_GLOBAL, f)
 
 
-def armed_global():
-    """1 while an approach is waiting to open, 0 otherwise.
+def enabled_global():
+    """The master switch: 1 = the approach opens for eligible NPCs, 0 = never.
 
-    The greeting needs it as well as the alias. Overture:Approach arms it and
-    DISARMS it the moment the scene is seen playing, so the re-greet that follows
-    the NPC's reply goes to the NPC's own greeting: one exchange, then theirs.
-    Starts at 0 so a fresh game never opens an approach nobody asked for.
+    It used to be OvertureArmed, a dev gate armed by the approach verb and
+    disarmed as the scene started so the re-greet went to the NPC's own
+    greeting. The per-NPC day stamp (NEXT_DAY_AV) does that job now, for
+    everyone, so what is left is an on/off switch -- on by default -- that an
+    MCM page can drive later.
     """
-    f = field('EDID', zstring('OvertureArmed'))
+    f = field('EDID', zstring('OvertureEnabled'))
     f += field('FNAM', b'f')
-    f += field('FLTV', struct.pack('<f', 0.0))
-    return record('GLOB', ARMED_GLOBAL, f)
+    f += field('FLTV', struct.pack('<f', 1.0))
+    return record('GLOB', ENABLED_GLOBAL, f)
+
+
+def next_day_av():
+    """AVIF: the game day this NPC may be approached again (O-8: once a day).
+
+    Stamped by Overture:Approach as the scene begins -- floor(days passed) + 1 --
+    and compared by the greeting against the vanilla GameDaysPassed global, so an
+    NPC opens again at the start of the next calendar day with no timer and no
+    list to clean up. It also closes the re-greet that follows the reply, for
+    this NPC, because the stamp is already tomorrow by then.
+
+    Shape from xEdit's AVIF definition and vanilla's own plain values: DESC is
+    required, NAM0 is the default (0.0 = never approached), AVFL 0x400 "Default
+    to 0". Not 0x80000000 "Hardcoded" -- that is for values the engine owns.
+    """
+    f = field('EDID', zstring('OvertureNextApproachDay'))
+    f += field('DESC', zstring(''))
+    f += field('NAM0', struct.pack('<f', 0.0))
+    f += field('AVFL', struct.pack('<I', 0x00000400))
+    return record('AVIF', NEXT_DAY_AV, f)
 
 
 def topic(topic_id, edid, infos=1):
@@ -311,8 +333,14 @@ def line(info_id, player_prompt, spoken, persona_index=None, public=None,
     return record('INFO', info_id, f)
 
 
-def condition(func, param1, value=1.0, runon=0, op=0x00):
+def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None):
     """One CTDA, 32 bytes.
+
+    `value_global`: compare against a GLOBAL instead of a float -- the byte-0 flag
+    0x04 "Use Global", with the global's form id where the float would be
+    (xEdit wbDefinitionsCommon.pas, wbConditionTypeToStr). Byte 0's top three bits
+    are the operator: 0 equal, 32 not equal, 64 greater, 96 greater-or-equal,
+    128 less, 160 less-or-equal.
 
     Layout, derived from four real conditions on FFGoodneighbor02's greeting and
     checked against every CTDA on every dialogue INFO in Fallout4.esm:
@@ -332,8 +360,13 @@ def condition(func, param1, value=1.0, runon=0, op=0x00):
     and `d2 96` -- identical across unrelated conditions, which is what
     uninitialised memory written straight to disk looks like. Zeros here.
     """
+    if value_global is not None:
+        op |= CTDA_USE_GLOBAL
+        compared = struct.pack('<I', value_global)
+    else:
+        compared = struct.pack('<f', value)
     return (struct.pack('<B', op) + b'\0' * 3
-            + struct.pack('<f', value)
+            + compared
             + struct.pack('<H', func) + b'\0' * 2
             + struct.pack('<I', param1)
             + struct.pack('<I', 0)
@@ -354,6 +387,20 @@ RUNON_SUBJECT = 0
 # 0, and op 0x00 with a value means "equals". tools/ctda_param_types.py is the
 # check.
 FUNC_GET_GLOBAL_VALUE = 74
+
+# WHO the approach opens for (O-8, owner poll 2026-09-23), all run on the SPEAKER.
+# Function indices from xEdit's condition table; form ids read out of Fallout4.esm.
+FUNC_GET_VALUE = 14
+FUNC_IS_IN_COMBAT = 289
+FUNC_IS_CHILD = 365
+FUNC_GET_PLAYER_TEAMMATE = 453   # the player's current companion(s)
+FUNC_HAS_KEYWORD = 560
+FUNC_IS_IN_SCENE = 590
+KW_ACTOR_TYPE_NPC = 0x00013794    # HumanRace, GhoulRace, HumanChildRace, SynthGen2Race -- not robots, dogs, mutants
+KW_ACTOR_TYPE_SYNTH = 0x0010C3CE  # SynthGen2Race: "humans and ghouls" leaves them out
+GLOB_GAME_DAYS_PASSED = 0x00000039
+CTDA_OP_LE = 0xA0                 # "less than or equal to", byte 0's top three bits
+CTDA_USE_GLOBAL = 0x04            # byte 0 flag: the compared value is a GLOB form id
 
 
 def greeting():
@@ -397,16 +444,22 @@ def greeting():
     g += field('NAM2', b'\0')
     g += field('NAM3', b'\0')
     g += field('NAM4', b'\0')
-    # WHO it is for is no longer an alias condition. The greeting's conditions
-    # run on the SPEAKER, and ALFA below puts that speaker INTO the alias as the
-    # scene starts -- so a GetIsAliasRef test would be asking about an alias that
-    # is still empty. For now the only gate is the dev arming; O-7's eligibility
-    # conditions (on the speaker) go here.
-    #
-    # One exchange per approach: disarmed the moment the scene is seen playing,
-    # so the re-greet after the reply goes to the NPC's own greeting.
-    g += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, ARMED_GLOBAL,
-                                 value=1.0, runon=RUNON_SUBJECT))
+    # WHO it opens for (O-8), all on the SPEAKER -- the alias is still empty here;
+    # ALFA below fills it. Adults, humans and ghouls (ActorTypeNPC, not a Gen-2
+    # synth, not a child), not the player's current companion (teammate), not in
+    # combat, not already in a scene, and once a game day: the stamp the script
+    # writes as the scene begins must be <= GameDaysPassed. Plus the master switch.
+    for func, param, value in (
+            (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_NPC, 1.0),
+            (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0),
+            (FUNC_IS_CHILD, 0, 0.0),
+            (FUNC_GET_PLAYER_TEAMMATE, 0, 0.0),
+            (FUNC_IS_IN_COMBAT, 0, 0.0),
+            (FUNC_IS_IN_SCENE, 0, 0.0),
+            (FUNC_GET_GLOBAL_VALUE, ENABLED_GLOBAL, 1.0)):
+        g += field('CTDA', condition(func, param, value=value, runon=RUNON_SUBJECT))
+    g += field('CTDA', condition(FUNC_GET_VALUE, NEXT_DAY_AV, runon=RUNON_SUBJECT,
+                                 op=CTDA_OP_LE, value_global=GLOB_GAME_DAYS_PASSED))
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     # FORCED ALIAS: the engine puts whoever says this line into alias 0 as the
     # scene starts. xEdit calls it "Forced Alias" (s32), right after TSCE; it is
@@ -554,7 +607,7 @@ def build():
     topic_ids, children, count = {}, b'', 0
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
                (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
-               (ARMED_GLOBAL, 'armed global'),
+               (ENABLED_GLOBAL, 'enabled global'), (NEXT_DAY_AV, 'next-day actor value'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
         prompt = by_register[register]
@@ -641,9 +694,10 @@ def build():
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('GLOB', persona_global() + public_global() + armed_global()) + group('QUST', quest_blob)
+    blob = group('GLOB', persona_global() + public_global() + enabled_global()) + group('QUST', quest_blob)
+    blob += group('AVIF', next_day_av())
 
-    records = 3 + 1 + 1 + 2 + count  # globs, quest, scene, greeting pair, the rest
+    records = 3 + 1 + 1 + 1 + 2 + count  # globs, AVIF, quest, scene, greeting pair, the rest
     # From every id actually used. The hand-listed version predated the variant
     # and recoil ranges and named an id below half of them.
     next_object = max(i for i, _what in all_ids) + 1
@@ -672,7 +726,8 @@ def main():
     print(f'  persona global {PERSONA_GLOBAL:08X}: ' +
           ', '.join(f'{k}={n}' for k, n in enumerate(PERSONAS)))
     print(f'  public global  {PUBLIC_GLOBAL:08X}: 1 = others can see them')
-    print(f'  armed global   {ARMED_GLOBAL:08X}: 1 = the next talk opens the approach, once')
+    print(f'  enabled global {ENABLED_GLOBAL:08X}: 1 = approaches open (default)')
+    print(f'  next-day AV    {NEXT_DAY_AV:08X}: the day an NPC may be approached again')
     print('  master', MASTER)
     return 0
 

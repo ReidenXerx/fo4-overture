@@ -433,7 +433,9 @@ hello, which is what an approach must be too.
 Overture's greeting now has the same shape: `TSCE` → our scene, `ALFA 0`, ENAM `0x08`, and no alias
 condition (the alias is empty until the engine fills it). The persona and the room are prepared the
 moment the scene is seen playing, for whoever ALFA put there. `approach arm` arms with an EMPTY alias;
-then the player talks to anybody. **Verified on two NPCs, neither named:**
+then the player talks to anybody. (`approach arm` was the TEST form of this, and is gone: since O-8 the
+greeting is always on and its conditions decide who it is for -- next section.) **Verified on two NPCs,
+neither named:**
 
 ```
 Whitechapel Charlie  27000831 "..."  ->  player 27000901  ->  27001031  vulgar/offer: "Put your money away..."
@@ -448,7 +450,54 @@ exactly the NPC O-7 is for. The reply's INFO id names the persona cell, so the p
 off the alias is proven by which line he spoke. (The script's own "the scene started with" report does
 not arrive: F4MCP drops a reply sent after its verb has finished.) What is still
 to design, with the owner: WHO is eligible (conditions on the speaker), HOW OFTEN, and whether it runs
-before or after the NPC's own greeting.
+before or after the NPC's own greeting. (Answered the same night: O-8, below.)
+
+## O-8 at runtime: who, how often, in what order (2026-09-23, VERIFIED in game)
+
+Nothing in a script decides eligibility. The greeting's own conditions do, run on the speaker, and the
+engine checks them before any script hears a thing -- so an ineligible NPC gets their own dialogue with
+no Overture code on the path at all:
+
+| condition (all on the speaker) | why |
+| --- | --- |
+| `HasKeyword ActorTypeNPC` (Fallout4.esm `00013794`) == 1 | humans and ghouls; robots, animals and creatures do not carry it |
+| `HasKeyword ActorTypeSynth` (`0010C3CE`) == 0 | a gen-1/gen-2 synth is not a person here (a gen-3 is: to these conditions it is a human) |
+| `IsChild` == 0 | adults only |
+| `GetPlayerTeammate` == 0 | not the CURRENT companion (N-7: companions get their own module) |
+| `IsInCombat` == 0, `IsInScene` == 0 | not while fighting, not while a quest scene has them |
+| `GetGlobalValue OvertureEnabled` (`0842`) == 1 | the off switch |
+| `GetValue OvertureNextApproachDay` (`0843`) `<=` **global** `GameDaysPassed` | once a game day |
+
+The last one is the whole cooldown, and it needs no timer and no list. `OvertureNextApproachDay` is an
+actor value of ours, so it lives on the NPC and in the save; the scene's `OnBegin` writes
+`floor(today) + 1` into it; and the CTDA compares it against `GameDaysPassed` with the **Use Global**
+bit (byte 0 `0xA4` = `<=` (160) | Use Global (4)), so the right-hand side is the live day count and not a
+number frozen into the plugin. A new actor value defaults to 0, so everybody starts open. `approach
+reset <npc>` writes 0 back; `approach status <npc>` prints what the gate sees.
+
+**Measured, no verb anywhere on the path** (Third Rail, `f4mcp-before-actions`):
+
+| # | who | what opened | proves |
+| --- | --- | --- | --- |
+| T1 | Harold Roach, ghoul drifter (reticent) | ours: `27000831` → scene `27000801` → offer → `27001038` "I do not want anything. Thank you, though." → his own `00115E9A` | ghouls are in; approach first, then theirs |
+| T2 | Harold, again the same day | his own greeting `000345A6` "You step through the gate, you got balls." | once a day (status: stamp 33, day 32.72) |
+| T3 | Whitechapel Charlie (a Handy robot) | his own scene `00075E89` | robots are out |
+| T4 | Ivy, the current companion | her own scene `2502D797`, "By your command." | the companion is out |
+| T5 | Lindsey Hebert, human drifter (mercantile) | ours: `27000831` → scene `27000801`, four options | humans are in |
+| T6 | Lindsey after `approach reset` | ours again → charm → player `27000900` → `27001000` "Pretty words. What are they going to cost me?" → her own `000D8FFA` "Hey." | the stamp is the whole gate |
+
+**What "theirs" is for a generic NPC.** Charlie's and Harold's hand-backs opened dialogue of their own.
+Lindsey has none: her own greeting is a one-liner, so after our reply the menu closes and she says
+"Hey." That is exactly what vanilla gives the player for her -- but heard straight after "What are they
+going to cost me?" it reads as a non sequitur. It goes away once the exchange continues past one line
+(stages 1-3, `methodology.md`), because the hand-back then comes at the end of a conversation rather
+than in the middle of one. Not fixed here; nothing on the conditions side can tell an NPC with dialogue
+of their own from one without.
+
+**Harness trap, found on T5:** `dialogue state` reports `awaiting=YES` for a menu that has already
+CLOSED (`menuOpen=false shuttingDown=true`) -- the previous conversation's flag. A driver that waits only
+for `awaiting=YES` chooses into a menu that is not there yet, and XDI refuses. Wait for `menu=open` AND
+`awaiting=YES`.
 
 ## Status
 
@@ -458,6 +507,8 @@ before or after the NPC's own greeting.
 | The NPC's answer | **Verified in game** — from its own reply topic, persona-conditioned |
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
-| Hand-back to the NPC's own dialogue | **Verified in game** — armed greeting, disarmed at scene start, alias released at scene end |
+| Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start; alias released at scene end |
+| Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
+| Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |
 | Lip generation | **Tool proven, output unverified in game** |
 | The lines | 128 authored NPC lines + 4 player lines |

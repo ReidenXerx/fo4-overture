@@ -1,17 +1,29 @@
 Scriptname Overture:Approach extends Quest
-{The approach. For now it only proves the records work.
+{Overture's approach: an eligible NPC the player talks to gets the player's four
+registers first -- then their own dialogue takes over.
 
-Fallout 4's Papyrus has no RegisterForKey -- that is SKSE -- so there is no
-hotkey available to a vanilla-scripted mod. The dev trigger is F4MCP's addon
-protocol instead, which exists for exactly this and costs a player nothing: with
-no F4MCP.esp the bridge resolves to None and this script never registers.
+HOW IT OPENS (O-7, verified in game 2026-09-23). The greeting carries ALFA,
+"Forced Alias": the engine puts whoever says it into alias 0 and starts the
+scene. That is vanilla's own generic-greeting shape -- one quest serving every
+vendor and doctor in the game. WHO it opens for is the greeting's conditions, run
+on the speaker (O-8): adults, humans and ghouls, not the player's current
+companion, not in combat, not already in a scene, once per game day. Nothing in
+this script decides eligibility; the engine does, before this script hears a
+thing.
 
-O-7 is the SHIPPED trigger and it is not this: the registers are meant to appear
-when you talk to an eligible NPC, in normal dialogue. That needs an alias filled
-per conversation rather than by hand, and the mechanism for it is the next thing
-to work out. This verb answers a smaller question first -- do the four options
-appear on the wheel at all -- because building the real trigger on top of records
-nobody has ever seen load would be building it twice.
+WHAT THIS SCRIPT DOES, on the scene's own events:
+  OnBegin -- the persona and the room for whoever ALFA put in the alias, and the
+             day stamp that makes them wait until tomorrow. Both land seconds
+             before the NPC's reply is chosen, which is after the player picks;
+             and the stamp closes the re-greet that follows the reply, 140 ms
+             after it, so the conversation hands back to the NPC's own dialogue.
+  OnEnd   -- the alias is let go.
+
+THE DEV CHANNEL, through F4MCP's addon protocol (with no F4MCP.esp the bridge
+resolves to None and none of it registers):
+  approach <npc>         force the scene on this NPC now, eligible or not
+  approach reset <npc>   clear the day stamp, so the next talk opens it again
+  approach status <npc>  what the gate sees for this NPC
 
 NO GetDisplayName ANYWHERE. It is absent from the decompiled base sources, and
 the compiler reports an unknown method as
@@ -28,29 +40,10 @@ find which one it means.}
 Int Property SCENE_ID  = 0x00000801 AutoReadOnly
 Int Property PERSONA_GLOBAL_ID = 0x00000840 AutoReadOnly
 Int Property PUBLIC_GLOBAL_ID = 0x00000841 AutoReadOnly
+Int Property ENABLED_GLOBAL_ID = 0x00000842 AutoReadOnly
+Int Property NEXT_DAY_AV_ID = 0x00000843 AutoReadOnly
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
-Int Property ARMED_GLOBAL_ID = 0x00000842 AutoReadOnly
-
-; ONE EXCHANGE, then the NPC's own dialogue (owner poll 2026-09-23). The greeting
-; that opens Overture's scene needs OvertureArmed == 1 as well as the alias. The
-; scene is watched: the moment it is seen playing the approach is DISARMED, so
-; when the engine re-greets after the reply -- 140 ms after it, measured -- the
-; NPC's own greeting wins and their normal options come back. Once the scene has
-; stopped, the alias is let go. Without this the repeatable greeting fired again
-; after every reply and the player was held in Overture's four options for ever.
-; A poll rather than the scene's OnEnd event, because a queued event is not
-; guaranteed to land inside those 140 ms; disarming at the START is seconds early.
-Int Property WATCH_TIMER = 1 AutoReadOnly
-Float Property WATCH_EVERY = 0.5 AutoReadOnly
-Float Property ARMED_FOR = 120.0 AutoReadOnly
-
-Bool watchSawScene = false
-Float watchArmedAt = 0.0
-; The dev verb's reply tag, and whether the persona and the room still have to be
-; prepared when the scene starts (arm mode: nobody was named in advance).
-String watchTag = ""
-Bool watchPrepare = false
 
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
@@ -72,69 +65,12 @@ GlobalVariable Function PublicGlobal()
 	Return Game.GetFormFromFile(PUBLIC_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
 
-GlobalVariable Function ArmedGlobal()
-	Return Game.GetFormFromFile(ARMED_GLOBAL_ID, "Overture.esp") as GlobalVariable
+GlobalVariable Function EnabledGlobal()
+	Return Game.GetFormFromFile(ENABLED_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
 
-Function Watch()
-	Self.CancelTimer(WATCH_TIMER)
-	watchSawScene = false
-	watchArmedAt = Utility.GetCurrentRealTime()
-	Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
-EndFunction
-
-Event OnTimer(Int aiTimerID)
-	If aiTimerID != WATCH_TIMER
-		Return
-	EndIf
-	Scene sc = Self.ApproachScene()
-	If sc != None && sc.IsPlaying()
-		If !watchSawScene
-			watchSawScene = true
-			GlobalVariable armed = Self.ArmedGlobal()
-			If armed != None
-				armed.SetValue(0.0)
-			EndIf
-			If watchPrepare
-				watchPrepare = false
-				Actor who = Self.TargetAlias().GetActorReference()
-				String note = "approach: the scene started with "
-				If who == None
-					note = note + "NOBODY in the alias - ALFA did not fill it"
-				Else
-					note = note + who.GetFormID() + Self.Prepare(who)
-				EndIf
-				If watchTag != ""
-					MCP:Core.Reply(watchTag, note)
-				EndIf
-			EndIf
-		EndIf
-		Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
-		Return
-	EndIf
-	If watchSawScene
-		; the exchange happened and is over
-		Self.Release()
-		Return
-	EndIf
-	If Utility.GetCurrentRealTime() - watchArmedAt > ARMED_FOR
-		; armed but never used: nobody should walk up to this NPC a day later and
-		; still be ambushed by the approach
-		Self.Release()
-		Return
-	EndIf
-	Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
-EndEvent
-
-Function Release()
-	GlobalVariable armed = Self.ArmedGlobal()
-	If armed != None
-		armed.SetValue(0.0)
-	EndIf
-	ReferenceAlias target = Self.TargetAlias()
-	If target != None
-		target.Clear()
-	EndIf
+ActorValue Function NextDayAV()
+	Return Game.GetFormFromFile(NEXT_DAY_AV_ID, "Overture.esp") as ActorValue
 EndFunction
 
 ; Rapport owns the persona; Overture only reads it (O-1). The order here IS the
@@ -162,13 +98,22 @@ Event OnQuestInit()
 EndEvent
 
 Event Actor.OnPlayerLoadGame(Actor akSender)
-	; The plugin starts from nothing every launch and forgets every addon on a
-	; save change, so the registration has to happen again on every load.
+	; Registrations are re-made on every load: the F4MCP plugin forgets its addons
+	; on a save change, and doing the scene's here too costs nothing.
 	Self.Hook()
 EndEvent
 
 Function Hook()
 	Self.RegisterForRemoteEvent(Game.GetPlayer(), "OnPlayerLoadGame")
+
+	; THE ALWAYS-ON HALF. The scene's own events, for every approach the engine
+	; opens -- the dev verb is not involved.
+	Scene sc = Self.ApproachScene()
+	If sc != None
+		Self.RegisterForRemoteEvent(sc, "OnBegin")
+		Self.RegisterForRemoteEvent(sc, "OnEnd")
+	EndIf
+
 	MCP:Bridge bridge = Self.Bridge()
 	If bridge == None
 		; No F4MCP installed. Not an error - this is a dev channel, and a player
@@ -182,15 +127,33 @@ Function Hook()
 	Self.RegisterForCustomEvent(bridge, "mcp:bridge_OnVerb")
 EndFunction
 
-Event MCP:Bridge.OnHello(MCP:Bridge akSender, Var[] akArgs)
-	MCP:Core.RegisterAddon("overture", "approach")
+Event Scene.OnBegin(Scene akSender)
+	Actor who = Self.TargetAlias().GetActorReference()
+	If who == None
+		Debug.Trace("Overture: the approach scene began with NOBODY in the alias - ALFA did not fill it", 1)
+		Return
+	EndIf
+	String note = Self.Prepare(who)
+	Self.Stamp(who)
+	Debug.Trace("Overture: approach opened with " + who.GetFormID() + note, 0)
 EndEvent
 
+Event Scene.OnEnd(Scene akSender)
+	Self.TargetAlias().Clear()
+EndEvent
+
+; Once a game day (O-8). The greeting compares this against GameDaysPassed, so
+; the NPC opens again with tomorrow's first conversation. No timer, no list.
+Function Stamp(Actor who)
+	ActorValue av = Self.NextDayAV()
+	If av != None
+		who.SetValue(av, (Math.Floor(Utility.GetCurrentGameTime()) + 1) as Float)
+	EndIf
+EndFunction
+
 ; The persona and the room, for whoever the approach is with. Returns the note.
-;
-; Set BEFORE the NPC's reply is chosen -- which is after the player picks, seconds
-; into the scene -- so it can run before the scene (the dev verb, with an actor) or
-; the moment the scene is seen playing (ALFA filled the alias; see OnTimer).
+; Must land before the NPC's reply is chosen -- after the player picks, seconds
+; into the scene -- which OnBegin does.
 String Function Prepare(Actor who)
 	String note = ""
 	GlobalVariable pg = Self.PersonaGlobal()
@@ -228,6 +191,10 @@ String Function Prepare(Actor who)
 	Return note
 EndFunction
 
+Event MCP:Bridge.OnHello(MCP:Bridge akSender, Var[] akArgs)
+	MCP:Core.RegisterAddon("overture", "approach")
+EndEvent
+
 Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	; akArgs is FLAT: [0] verb, [1] rest, [2] tag, [3] token count, then
 	; (token as String, token as form id) pairs from [4]. Fallout 4's Papyrus
@@ -238,49 +205,20 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	EndIf
 	String tag = akArgs[2] as String
 	Int count = akArgs[3] as Int
-
-	; Second token "noscene" fills the alias and does NOT start the scene.
-	; The hypothesis it tests: in vanilla you ENTER a dialogue scene by talking to
-	; the actor, rather than starting it first. An actor already inside a scene is
-	; not activatable -- measured, the "Talk to" prompt disappears -- so starting
-	; it by hand may be exactly backwards.
-	Bool startScene = true
-	If count > 1 && (akArgs[6] as String) == "noscene"
-		startScene = false
+	String first = ""
+	If count > 0
+		first = akArgs[4] as String
 	EndIf
 
-	; "approach arm": arm with an EMPTY alias and talk to anybody. The greeting's
-	; ALFA puts whoever answers into the alias as the scene starts, and the watch
-	; prepares the persona and the room for them then. This is the O-7 mechanism
-	; with the dev verb doing only the arming.
-	If count > 0 && (akArgs[4] as String) == "arm"
-		GlobalVariable armedOnly = Self.ArmedGlobal()
-		If armedOnly == None || Self.TargetAlias() == None
-			MCP:Core.Reply(tag, "approach arm: OvertureArmed or the alias did not resolve")
-			Return
-		EndIf
-		If !(Self as Quest).IsRunning()
-			(Self as Quest).Start()
-		EndIf
-		Self.TargetAlias().Clear()
-		armedOnly.SetValue(1.0)
-		watchTag = tag
-		watchPrepare = true
-		Self.Watch()
-		MCP:Core.Reply(tag, "approach arm: ARMED with an EMPTY alias - talk to anyone; ALFA puts them in it")
-		Return
-	EndIf
-
+	; The actor is the LAST token (its form-id reading), or the nearest one.
 	Actor who = None
 	If count > 0
-		Int formID = akArgs[5] as Int
+		Int formID = akArgs[3 + 2 * count] as Int
 		If formID != 0
 			who = Game.GetForm(formID) as Actor
 		EndIf
 	EndIf
 	If who == None
-		; No id given, or it named nothing. Nearest actor is enough for "do the
-		; options appear"; the shipped trigger will not work this way.
 		who = Game.FindClosestActorFromRef(Game.GetPlayer(), 600.0)
 	EndIf
 	If who == None
@@ -288,59 +226,59 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		Return
 	EndIf
 
+	If first == "reset"
+		ActorValue av = Self.NextDayAV()
+		If av == None
+			MCP:Core.Reply(tag, "approach reset: the next-day actor value did not resolve")
+			Return
+		EndIf
+		who.SetValue(av, 0.0)
+		MCP:Core.Reply(tag, "approach reset: " + who.GetFormID() + " may be approached again today")
+		Return
+	EndIf
+
+	If first == "status"
+		ActorValue sav = Self.NextDayAV()
+		Float stamp = -1.0
+		If sav != None
+			stamp = who.GetValue(sav)
+		EndIf
+		Float today = Utility.GetCurrentGameTime()
+		String s = "approach status: " + who.GetFormID() + " | stamp=" + stamp + " days=" + today
+		If stamp <= today
+			s = s + " (open today)"
+		Else
+			s = s + " (closed until day " + stamp + ")"
+		EndIf
+		s = s + " | persona=" + Self.PersonaIndex(who) + " | teammate=" + who.IsPlayerTeammate()
+		s = s + " | combat=" + who.IsInCombat() + " | scene=" + who.IsInScene() + " | child=" + who.IsChild()
+		GlobalVariable en = Self.EnabledGlobal()
+		If en != None
+			s = s + " | enabled=" + en.GetValue()
+		EndIf
+		MCP:Core.Reply(tag, s)
+		Return
+	EndIf
+
+	; Force the scene on this NPC now, eligible or not. OnBegin prepares and stamps.
 	Scene sc = Self.ApproachScene()
 	ReferenceAlias target = Self.TargetAlias()
 	If sc == None || target == None
 		MCP:Core.Reply(tag, "approach: Overture.esp did not resolve - the scene or the alias came back None")
 		Return
 	EndIf
-
 	If !(Self as Quest).IsRunning()
 		(Self as Quest).Start()
 	EndIf
 	target.ForceRefTo(who)
-
-	; Report what the engine THINKS, not what we asked for. Scene.Start() is void,
-	; so "started" was never a fact - the first version said it anyway and the
-	; actor's state said scene=False.
-	String note = "approach: quest running=" + (Self as Quest).IsRunning()
-	Quest owner = sc.GetOwningQuest()
-	If owner == None
-		note = note + " | scene owner=None (the scene's PNAM did not resolve)"
-	ElseIf owner == (Self as Quest)
-		note = note + " | scene owner=this quest"
-	Else
-		note = note + " | scene owner=SOMEONE ELSE"
-	EndIf
-
-	note = note + Self.Prepare(who)
-
-	If !startScene
-		; Armed: the next time the player talks to them, the greeting opens the
-		; approach -- once (see Watch).
-		GlobalVariable armed = Self.ArmedGlobal()
-		If armed == None
-			MCP:Core.Reply(tag, note + " | OvertureArmed did not resolve - the greeting can never fire")
-			Return
-		EndIf
-		armed.SetValue(1.0)
-		watchPrepare = false   ; prepared above, for the named actor
-		Self.Watch()
-		MCP:Core.Reply(tag, note + " | ARMED (noscene) - alias filled, now talk to them; one exchange, then theirs")
-		Return
-	EndIf
-
+	; Report what the engine THINKS, not what we asked for: Scene.Start() is void.
 	sc.Start()
 	Utility.Wait(0.5)
-	note = note + " | playing after Start=" + sc.IsPlaying()
+	String note = "approach: forced on " + who.GetFormID() + " | playing after Start=" + sc.IsPlaying()
 	If !sc.IsPlaying()
 		sc.ForceStart()
 		Utility.Wait(0.5)
 		note = note + " | after ForceStart=" + sc.IsPlaying()
 	EndIf
-	; Started by hand, so nothing to arm -- but the alias still has to be let go
-	; once the exchange is over, or the next conversation is ours again.
-	watchPrepare = false
-	Self.Watch()
 	MCP:Core.Reply(tag, note)
 EndEvent

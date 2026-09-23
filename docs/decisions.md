@@ -86,3 +86,37 @@ the romantic persona in a bad mood is not a vulgar line.
 
 Refusals and farewells stay deliberately tamer — someone turning you down is not obliged to be
 filthy about it, and the contrast is characterisation.
+
+## O-7 — The trigger is talking to them, in normal dialogue (owner, 2026-09-22)
+
+The approach opens when the player talks to an eligible NPC (E), as part of normal dialogue. No hotkey,
+no menu, no verb: the `approach` addon verb is a DEV tool and never ships as the trigger.
+
+**Mechanism, verified 2026-09-23:** the greeting carries `ALFA` (Forced Alias), so the engine puts
+whoever speaks it into the scene's alias -- vanilla's own generic-greeting shape
+(`WorkshopVendorGreetingsGeneric`). Verified on Whitechapel Charlie and on Harold Roach, a generic ghoul
+drifter, with the alias empty and nobody named. See `dialogue-route.md`, "O-7's mechanism".
+
+## O-8 — Who, how often, and in what order (owner poll, 2026-09-23)
+
+- **Who:** adults Rapport has a persona for -- humans and ghouls -- minus the player's CURRENT
+  companion, anyone in combat, and anyone already in a quest scene.
+- **How often:** once per NPC per game day. The first conversation of the day opens the approach; after
+  that, their normal dialogue until tomorrow.
+- **Order:** the approach first, then their own dialogue takes over (the hand-back verified the same
+  night).
+
+Rejected: companions included; strangers excluded until met (GetTalkedToPC); every conversation;
+at random; their own dialogue first (impossible for any NPC with a dialogue scene of their own).
+
+**Built and verified 2026-09-23** as the greeting's own conditions on the speaker -- nothing in a script
+decides it. Once a day is an actor value of ours (`OvertureNextApproachDay`), stamped `floor(today)+1`
+when the scene begins and compared against the live `GameDaysPassed` global. Six trials, no verb: a ghoul
+and a human open it, a robot and the current companion get their own dialogue, a second talk the same
+day gets theirs, and `approach reset` reopens it. `dialogue-route.md`, "O-8 at runtime".
+
+Two readings of the owner's words, made without asking and recorded here so they can be overturned:
+"adults Rapport has a persona for" is `ActorTypeNPC` minus `ActorTypeSynth` (gen-1/gen-2 synths
+excluded; a gen-3 synth is in, because to these conditions it is a human), and "companion" means the CURRENT one
+(`GetPlayerTeammate`) -- a dismissed companion standing in a settlement is approachable by Overture
+until the companion module (N-7) claims them.
