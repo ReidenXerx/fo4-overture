@@ -521,8 +521,9 @@ Authored today: 128 NPC lines + 4 player lines (`voice/lines.json`, `voice/playe
 every persona × register cell for stages 1-2, stage-3 accept / not yet / refuse, greetings, returning,
 farewells, recoils.
 
-**Written tonight as DRAFTS**, built into the staged plugin, and unvoiced — the owner reviews every line
-before anything is built on it for good (O-6 was exactly that review):
+**Written as DRAFTS**, built into the staged plugin. The NPC ones are now voiced (below), but the
+owner still reviews every line before anything is built on it for good (O-6 was exactly that review).
+A line the owner rewrites is refused at staging until it is re-rendered:
 
 | lines | count | where |
 | --- | --- | --- |
@@ -533,18 +534,40 @@ before anything is built on it for good (O-6 was exactly that review):
 | a lover's greeting, persona-neutral (O-12; 2026-09-23) | 4 | `voice/lines.json` `lover_greeting` |
 | a jealous lover's greeting, per persona × 2 (O-33; 2026-09-23) | 8 | `voice/lines.json` `jealous_greeting` |
 
-**Voiced so far** (checked 2026-09-23 against fo4-rapport `voice/render-manifest.json`): the original 128
-NPC lines, in the six core voices (O-5), rendered 2026-09-21 04:30 by Rapport's pipeline (eleven_v3)
-from its `voice/overture-lines.json` as it stood at 04:19. **33 of those files are STALE**: they say
-words the bank no longer has -- 32 vulgar lines rewritten by O-6 on 09-22, and one mercantile line the
-04:33 lint changed. 26 of the 33 are lines the plugin uses (1,452 characters); the other 7 are the
-greeting, returning and farewell kinds, which no plugin record uses today. Re-rendering the 26 in six
-voices costs about 8,700 characters.
+**Voiced: every line in the bank, in the six core voices (O-5). Verified 2026-09-23 ~21:20.**
+All 156 NPC lines x 6 voices = 936 files, each transcribed back and matched to its bank text before it
+was written (fo4-rapport V-1/V-28):
+- 95 lines are the 2026-09-21 04:30 render, whose text is still the bank's.
+- 61 were rendered on the evening of 2026-09-23: the 33 that O-6 and the lint had made stale, and the
+  28 NPC drafts.
 
-**36 DRAFT lines in all**, none voiced. The 28 on the NPC side cost about 8,500 characters in six
-voices, once reviewed; the 8 player lines are text (O-2/O-3) and cost nothing. O-31 (any register answers a lover) reuses each persona's own
-stage-3 answers in every register, so it adds INFOs but no lines -- and since a voice file is named by
-its INFO id, the same line will need a file under each id when it is voiced (§12, the id registry).
+They live in fo4-rapport `voice/out/<VoiceType>/<line id>.fuz`, a private repo of its own
+(fo4-rapport-voice b5ad7d9). fo4-rapport `voice/render-manifest.json` records the model and the exact
+words of each file.
+
+**Staged: `scripts/stage-voice.py`.** It reads the BUILT plugin, not the builder's intent: each INFO's
+NAM1 is matched to the bank line with that exact text.
+- The staged plugin uses 132 lines as 276 NPC INFOs. O-31's lover sets reuse lines, and every INFO gets
+  its own copy of the file.
+- Each file is named `<INFO & 0xFFFFFF, 8 hex>_1.fuz`. That rule holds for ESL plugins too; nexus-modding
+  measured it on three shipped ESL mods (fo4-rapport V-6).
+- That is 1,656 files under `build/voice/Sound/Voice/Overture.esp/`, plus `build/voice-registry.json`.
+- **Lip sync is packed in.** Overture's lines are ordinary dialogue, outside Rapport's per-actor face
+  block, so fo4-rapport V-5's `lip: 0` does not apply here (V-5's scope note). The game's own
+  LipGenerator makes the lip data, one run at a time because it writes a temp wav into its own folder.
+  The lip header matches a shipped mod's. Whether a face moves is a game-test item (§12).
+- **It refuses stale audio:** a file whose recorded words are not the bank's now, or that has no
+  recorded words at all. Tested: two doctored manifest entries were both refused, and it exited 1.
+- A second run rewrites nothing, and a file no INFO names is removed.
+- The 29 "..." fallbacks are wordless by design. The 12 player lines are text (O-2/O-3), and 24 bank
+  lines (greeting, returning, farewell) are used by no record yet.
+
+`scripts/deploy-dev.ps1` rewrites a changed voice file IN PLACE, so the game's hardlinked copy sees
+it. It removes files the build no longer names, and says how many are new: those need the owner's
+Deploy.
+
+**36 DRAFT lines in all.** The 28 on the NPC side are voiced now, but their text still awaits the
+owner's review. The 8 player lines are text and cost nothing.
 
 **Still to write:**
 
@@ -738,10 +761,18 @@ teleports her mid-scene when the player is carried off by AAF.
 6. **Spoken for** (§7) and its eight lines.
 7. **The follow** (§6), a Rapport helper -- after stage 4 is proven (O-32).
 8. **Companions** (§11), B-lite first.
-9. **Before voicing: an INFO id registry.** A voice file is named by its INFO's id, and the ids are
-   computed from positions in `voice/lines.json`: an edit to the bank can move them, and O-31 put the
-   same line under several ids. An append-only registry keyed by line id, seeded from today's mapping.
-10. Voicing, when the lines are final.
+9. ~~Before voicing: an INFO id registry.~~ **RESOLVED another way (2026-09-23).** The ids still
+   move with the bank, but `scripts/stage-voice.py` names every file from the BUILT plugin on every
+   run. A moved id takes its audio with it, and the old name is removed. An append-only registry
+   would only matter to something that stores an INFO id, and nothing does today (checked
+   2026-09-23):
+   - no INFO carries Say Once (ENAM 0x04), so a save has no per-INFO memory to strand;
+   - no script names an INFO: `GetFormFromFile` fetches only the scene, the globals, the actor values
+     and the bridges;
+   - no INFO carries "No LIP File" (0x800), which would silence the lip data.
+   If a record ever pins an INFO id, revisit this.
+10. Voicing: DONE for every bank line in the six core voices (§10). Re-render whatever the owner
+    rewrites. Staging refuses the old audio until then.
 
 **Not yet verified in game** (each is a test in the next run, not a guess to design around):
 - Stage 4 itself: AAF with the player, faces and overlays on the player, the lane holding.
@@ -753,6 +784,10 @@ teleports her mid-scene when the player is carried off by AAF.
 - A leveled actor's base id across a reload (Rapport's names key by it).
 - The conversation's end by counted replies, the midnight stamp, O-30's hour, O-31's lover sets, O-33's
   greeting and marker, `OnPlayerSceneRecorded`.
+- **The voice** (`scripts/stage-voice.py`). The files are named for an ESL plugin by the rule measured
+  on disk, and nobody has yet heard one play from `Overture.esp`. Does the MOUTH move with
+  LipGenerator's lip data? And an NPC outside the six core voice types should show a subtitle and stay
+  silent (V-8).
 
 **Later** (wanted, not scheduled):
 - Per-persona lover greetings: the persona is unknown when a greeting is chosen, unless a marker

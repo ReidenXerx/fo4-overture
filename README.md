@@ -73,8 +73,8 @@ python tools/make_overture_esp.py build/Overture.esp              # the verified
 python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
 pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply, Overture:Dev
 python tools/make_mcm.py                                           # the MCM page and its settings.ini, from the settings table
+python scripts/stage-voice.py                                      # voice files named by INFO id, lip sync packed in
 pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
-python scripts/make-lip.py                                         # .lip for every rendered line
 pwsh companions/tools/check.ps1                                    # compile-check the companion scaffolds
 ```
 
