@@ -37,12 +37,12 @@ Early, and running. What the game has actually done (`docs/dialogue-route.md` ha
 - **Three stages in one conversation** (the `--stages 3` build): a land runs on into the next wheel, a
   miss ends it, a returning NPC starts at stage 2, and a proposition in the wrong register is refused.
 - **Every reply now writes to Rapport's relationship store** — built, and read by the game on all 40
-  reply lines. Its script file was deployed on 2026-09-23; the writes have not been watched in game yet.
+  reply lines, and watched in game on 2026-09-23: two lands, +0.05 and +0.07 of the distance left.
 - **The Narrator tells you how it went** (O-9): one line from Rapport's Narrator when a conversation
-  ends, saying what your words did and hinting at what to try next. It never says who they are. Built,
-  not yet run in game.
+  ends, saying what your words did and hinting at what to try next. It never says who they are.
+  Verified in game.
 - **The nameless get names** (O-10): a Settler or a Drifter you approach for the first time gets a
-  name, and keeps it. Built in Rapport 0.2.1, not yet run in game.
+  name, and keeps it through saves. People with real names keep theirs. Verified in game (Rapport 0.2.1).
 - The player's half is text through XDI, which keeps the camera off the player's still face; lip sync
   is a scripted step with the game's own `LipGenerator`.
 

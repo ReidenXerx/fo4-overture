@@ -651,6 +651,26 @@ two plugins, and its message box can't be pressed by injected input. `session.sh
 loads `last`. And `f4mcp-morphtest` has `OvertureEnabled = 0` stored. Some session switched the
 approach off; the console set it back to 1 for this run only, unsaved.
 
+## The Narrator and names, second run: all of it works (2026-09-23 12:55-13:11)
+
+Rapport 0.2.1 (0362123) + Approach.pex (48d530a), same room.
+
+| | what the logs said |
+| --- | --- |
+| a Unique "Drifter" is introduced | `names: 330036F8 introduced as Elmer Pike`; the engine's own events then say `Elmer Pike (330036F8) begins line 0007E631`, and the HUD reads ELMER PIKE |
+| the line lands at the END of the conversation | `12:56:48 narrator: ... didn't take to that. Another day, another way.`, at the moment the reply ended |
+| the name survives a save and reload | `names: 1 introduced in this save, 1 in memory: 1 kept their name, 0 named again`: the game saves the custom name itself |
+| the stage-2 land and its verdict | Wanda Conway (33008AF6, romantic): charm, charm. Bond `0 -> 0.05 -> 0.1165` (Rapport: `asked +0.050, reason 3`, `asked +0.070, reason 3`). `stage 3 verdict 1 (why 3)`: below half the bar, so no stage 3 |
+| the whole line, sentence-cased | `Her name is Wanda Conway. She enjoyed that. Only talk, for now - keep coming back. bond +0.00 -> +0.12` |
+| the tidy-up | `scene ended - alias let go, persona and room forgotten` |
+| a real name is kept | `00115E9F keeps their own name ("Lindsey Hebert" is a name, not a label)` |
+| the derived name is stable | Wanda was introduced in two separate loads and got "Wanda Conway" both times |
+
+Two fixes it took, both in Rapport. Papyrus string literals are case-insensitive across every script
+loaded, so "He" printed as "he" and the capitals are now applied in C++. And the label rule's first
+cut (three records) would have renamed Magnolia and Preston Garvey, so it's now five records, not all
+Unique, with a template test for Unique NPCs.
+
 ## Status
 
 | | |
@@ -659,11 +679,11 @@ approach off; the console set it back to 1 for this run only, unsaved.
 | The NPC's answer | **Verified in game** — from its own reply topic, persona-conditioned |
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
-| Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start. "Alias released at scene end" held for the one-exchange build; the staged build's `OnEnd` arrives with the scene still playing, so its tidy-up never ran (fix in 94e4cd2, not yet run) |
+| Hand-back to the NPC's own dialogue | **Verified in game** — the day stamp closes our greeting at scene start, and the alias is let go at scene end (guarded by the alias itself since 48d530a: `IsPlaying()` stays true for 5 s after the scene's own end) |
 | The staged conversation (`--stages 3`) | **Verified in game, every branch** (G1-G4) with the console standing in for `Reply.pex`; deployed |
-| Replies write the bond (`Overture:Reply`, INFO VMAD) | **Script verified** — deployed, and `Replied` runs with each INFO's Stage and Outcome; a bond-moving outcome is not yet watched |
-| The Narrator (O-9) | **Text verified** (a miss, a public recoil); spoken a conversation late until 94e4cd2, which is not yet run |
-| Names for the nameless (O-10) | **Uniques verified kept**; the label rule for Unique-flagged "Drifter"s (Rapport 66bba3e) not yet run |
+| Replies write the bond (`Overture:Reply`, INFO VMAD) | **Verified in game** — two lands wrote +0.050 and +0.070 of the distance left, reason 3, and the stage reached |
+| The Narrator (O-9) | **Verified in game** — one line at the end of each conversation, sentence-cased, with the bond it moved |
+| Names for the nameless (O-10) | **Verified in game** — TrainBar's Unique "Drifter"s named, Lindsey and Harold kept, the name survives save/load |
 | Always-on trigger (O-7) | **Verified in game** — ALFA puts the speaker in the alias; no verb, nobody named |
 | Who and how often (O-8) | **Verified in game** — ghoul and human in; robot and companion out; once a game day, `approach reset` reopens |
 | Lip generation | **Tool proven, output unverified in game** |
