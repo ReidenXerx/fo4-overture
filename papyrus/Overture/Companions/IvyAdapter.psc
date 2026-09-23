@@ -22,8 +22,7 @@ checked rather than trusted (C4).
   GLOB _ivy_Affinity_IsAngry              00F7C4
   GLOB _ivy_Affinity_IisIrritated         00EFF5
   SCEN _IvyCompQuest_Favor_Sex            0059BC  (fragments call StartSex / EndSex)
-
-SCAFFOLD (2026-09-23).}
+  SCEN _IvyCompQuest_Favor_Sex_Talk       00627B  (her voiced talk; IvyNative has both)}
 
 String Property PLUGIN = "CompanionIvy.esm" AutoReadOnly
 Int Property IVY_NPC_ID = 0x000803 AutoReadOnly
@@ -145,6 +144,11 @@ Float Function Affinity(Actor akWho)
 		Return -1.0
 	EndIf
 	Return a
+EndFunction
+
+; She has a romance of her own: LoveRelationShipEstablished (O-22 reads it first).
+Bool Function HasRomance(Actor akWho)
+	Return Self.Claims(akWho)
 EndFunction
 
 Bool Function IsRomanced(Actor akWho)

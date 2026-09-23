@@ -292,3 +292,68 @@ Readings made while building O-8, O-30 and O-33, each reversible:
   with someone else is recorded, and the lover says it at the next conversation. Still once per
   conversation. A lover the game had not loaded at that moment reacts when their next conversation
   opens, without the greeting.
+
+## O-19 to O-26, built — the companion module (2026-09-23, late evening)
+
+**Built, NOT YET RUN IN GAME** (the commit that adds this section). It follows O-19 (B-lite + C + D), O-20
+to O-25 as answered, and methodology 11:
+- `papyrus/Overture/Companions/`: Registry, the three adapters, Feeders (B-lite), Moments (C) and
+  IvyNative (D), on their own quest `0x855`.
+- A sixth phase in the approach scene, the companion's own, with a four-option wheel.
+- Two runs of companion greetings: the companion's moment, and the player's start.
+- Five actor values, Desire `0x851` among them. It is published, and fo4-anatomy reads it.
+- Ten MCM numbers and the O-20 switch.
+- 26 DRAFT lines, subtitles only (`voice/companion-lines.json`).
+
+O-26's persona pins still wait for the owner's review of the proposed table. Until then a companion
+answers in the persona Rapport gives them.
+
+**Measured while building it** (and why each reading below stands on something):
+- **A vanilla companion's talk menu is a GREETING.** Every `COM<Name>Talk` quest's talk scene is started by
+  a GREE INFO carrying `TSCE` (and `0x08`, requires player activation), in a dialogue quest of priority 30.
+  Overture's greeting, at 100, is chosen first while its conditions pass, and theirs takes over after the
+  hand-back. That is methodology 11's C, checked against Fallout4.esm, not assumed.
+- **Who has a romance is in the game's own data.** `CompanionActorScript.InfatuationRomanticMessage`
+  (optional) is filled on exactly the seven romanceable companions (Cait, Curie, Danse, Hancock,
+  MacCready, Piper, Preston). It is empty on X6-88, Deacon, Gage, Old Longfellow and the non-humans. O-22's
+  "romanced where they have romance" reads that property, so no hard-coded list is needed.
+- **Ivy's fade is phase 1, not 3.** Decompiled from her `CompanionIvy - Main.ba2`:
+  - `Favor_Sex` (0059BC): `StartSex()` at phase 1's begin (black a second later), `EndSex()` at phase 3's
+    begin, `GrantFavor()` as phase 3 ends.
+  - `Favor_Sex_Talk` (00627B) is a second, separate way in: seven INFOs start it, and neither scene starts
+    the other. It is her voiced talk through five stages, with no fade, and `GrantFavor()` at phase 12.
+  - The first draft's "phase 3" came from a string table and was wrong.
+- **`OnPhaseBegin` counts from 1**: Overture's own Papyrus log never shows a "phase 0".
+- **O-23's sneaking test is vanilla's own, but not proven as a way in.** The 11 base-game INFOs that ask
+  `IsSneaking` of `PlayerRef` are hellos, idles and persuasion lines, and none is a greeting on activation.
+  Whether talking to one's companion while sneaking opens a greeting at all is a game test (methodology 12).
+
+**Readings made while building it**, each reversible:
+- **One scene, not two.** A companion's conversation runs through the approach scene's own sixth phase,
+  which the stranger phases refuse to a current companion. The verdict, the hold on Rapport's slot, the
+  request and the Narrator are all the stranger's own, already built. A second scene would have been a
+  second copy of all of them.
+- **The companion wheel is "Later." plus three propositions.**
+  - "Later." takes the offer's neutral slot: "Name your price for the night" is not a thing to say to
+    someone who travels with you.
+  - Registers decide nothing for a companion. Every proposition reaches the same answer, decided by their
+    own state and their wanting (O-22, B-lite).
+- **"Later.", or the wheel left without an answer, spends nothing.** No bond moves, the moment closes, and
+  the day's stamp comes down to an hour ahead, the same as after "not now" (O-30). "Not here" and "not now"
+  keep the moment open for another place or another hour.
+- **O-22's gate for companions without a romance is their top affinity level** (`fAffinityGate`, 1 =
+  Infatuation). That is parity with romance, which vanilla ties to that level: the romance's own message is
+  CompanionActorScript's `InfatuationRomanticMessage`. MCM tunes it down to Friend.
+- **The feeders count only for a companion an adapter claims** (vanilla, Ivy). The engine fallback vouches
+  for nothing (C6), and a mod companion's days are not Overture's to count.
+- **A companion's jealousy needs a romance, or Rapport's lovers.** This is the companion side of O-29's
+  "counts only after they became lovers". The sting is `fJealousySting`, one number with the strangers'
+  jealousy. The vulgar's wanting rises, and the mercantile shrug.
+- **Ivy's two scenes both count** (D.1): `Favor_Sex` as its phase 3 ends, `Favor_Sex_Talk` as its phase 12
+  begins. Each gives the bond Rapport's own 15%. Rapport has no call for an outside scene yet (proposed:
+  `RecordExternalScene`), so her scene COUNT is lost. Until then O-27's "a scene together" cannot come from
+  her fades, only from ones Rapport played.
+- **D.3 acts on the measured phase.** It waits 2.5 s for her own fade to land, then lifts it with her
+  `EndSex()`, pauses her scene, and runs Rapport's. It does this only with "A yes starts a scene" on: that
+  switch stays off until a player scene is proven, which is how O-20's "still after a player scene is
+  proven end to end" holds.

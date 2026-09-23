@@ -589,8 +589,10 @@ subtitles. That is §11's problem.
 Owner (N-7): *"Sex with companions will be separate module in our next mod and companions will have
 standalone unique relationship system; it will also bound to relationship db but will have bunch
 unique modifiers."* And tonight: *"they should have unique module unlike other npcs … highly
-compatible with such companions as Ivy."* The scaffolds are in `companions/` (README there); every
-one compiles (`companions/tools/check.ps1`), none ships.
+compatible with such companions as Ivy."* **O-19 chose B-lite + C + D, and it is BUILT** (2026-09-23
+late evening, not yet run in game): `papyrus/Overture/Companions/`, section 11.6 below, and
+`docs/decisions.md` "O-19 to O-26, built" for what was measured and every reading made. The variants
+not chosen (A, B) and the scaffolds are in git history (`companions/` before the build commit).
 
 ### 11.1 What a companion has that a stranger does not (measured)
 
@@ -693,14 +695,15 @@ is untouched: **the module is invisible until it has something to say.**
    `Rapport:Core.RecordExternalScene(a, b)`**, which every fade-to-black companion mod would want
    (O-1). Until then `AddBondBetween(…, 0.15, 5)` stands in for the bond, and the scene count is lost.
 2. **Her state is read** for everything (IvyAdapter).
-3. **Her fade can be animated** — an MCM switch, OFF by default. On the phase her scene fades out,
-   call HER `EndSex()` to lift it, pause HER scene, run the scene through Rapport, unpause when Rapport
-   is free: her post-scene talk still plays, in order, nothing of hers skipped or doubled. **Which
-   phase** is not known — her fragment's string table names phases 1 and 3 and the calls GrantFavor,
-   StartSex, EndSex in that order, which suggests 3, and a string table is not code order. The
-   scaffold ships in PROBE mode: it logs every phase before anything acts on a number. It records the
-   scene only if the fade phase was reached and Rapport did not play it — an animated one is already
-   counted by Rapport's own `RecordScene`, and adding ours too was R-10's double count through a side door.
+3. **Her fade can be animated** — an MCM switch (O-20: ON by default, acting only with "A yes starts a
+   scene" on). On the phase her scene fades out, call HER `EndSex()` to lift it, pause HER scene, run the
+   scene through Rapport, unpause when Rapport is free: her post-scene talk still plays, in order,
+   nothing of hers skipped or doubled. **Which phase: 1, MEASURED** (2026-09-23, decompiled from her
+   archive): `StartSex()` is phase 1's begin, `EndSex()` phase 3's begin, `GrantFavor()` phase 3's end.
+   The first draft guessed 3 from a string table, and 3 is where the fade LIFTS. Her scene is recorded
+   only if it reached its favor and Rapport did not play it — an animated one is already counted by
+   Rapport's own `RecordScene`, and adding ours too was R-10's double count through a side door. She has
+   a second scene, `Favor_Sex_Talk` (her voiced talk, no fade), which counts the same way.
 
 ### 11.4 Recommended: B-lite + C + D
 
@@ -739,8 +742,41 @@ teleports her mid-scene when the player is carried off by AAF.
    edge case that resolves itself: vanilla only romances her after she moves into a synth body, which
    passes the rule. Also to place: the DLC's Gage and Old Longfellow (human; not romanceable in vanilla,
    nor is Deacon — whether that matters is §13's poll on their own gates).
-7. **Several followers at once** (multi-follower mods): the scaffolds watch ONE current companion, and a
+7. **Several followers at once** (multi-follower mods): the module watches ONE current companion, and a
    new companion mod needs an adapter and an Overture release. Fine for now; said so it is not a surprise.
+
+### 11.6 As built (2026-09-23, late evening; not yet run in game)
+
+**Scripts** — `papyrus/Overture/Companions/`, all on the quest `OvertureCompanionsQuest` (`0x855`, the shape
+of Rapport's own script-holder quest):
+
+| script | what |
+| --- | --- |
+| `Registry` | who is a companion; who the current one is (the follower system's `Companion` alias); O-25's test; which adapter speaks |
+| `Adapter`, `EngineAdapter`, `VanillaAdapter`, `IvyAdapter` | the questions, answered by what knows them best. `HasRomance` reads the game's own data (decisions, "built") |
+| `Feeders` (B-lite) | the store events (days together, their affinity's levels, fights survived, jealousy), wanting (Desire `0x851`, 0..1), and `Gate`, the companion's half of the verdict |
+| `Moments` (C) | the clock: a 20-second poll finds the current companion, ticks the feeders and writes `OvertureCompanionMoment` (`0x853`): 0 not ours, 1 vouched (the player may start), 2 a moment is open |
+| `IvyNative` (D) | her two scenes counted (D.1), her fade animated on the measured phase (D.3) |
+
+**Records** — two greeting runs at the head of the approach's greeting topic:
+- the moment's, when the Moment AV is 2;
+- the player's start, when it is at least 1 and the player is sneaking (O-23).
+
+Both require the CURRENT companion, and the strangers' own rule for the rest (O-25). The approach scene
+gains a sixth phase: phases 1-3 refuse a current companion, and phase 4 is theirs. Its wheel holds three
+propositions and "Later." (the offer's slot), with one answer set per persona and verdict behind every
+proposition (DRAFT, subtitles only, `voice/companion-lines.json`). HandBack moves to phase 5.
+
+**The verdict** is `Overture:Approach.Decide`, with a companion's front half, `CompanionVerdict`:
+1. their own state and gates (C2, O-22);
+2. their wanting against the persona's bar, lower if they are romanced;
+3. the faithfulness rule, as for everyone.
+
+Then the room, the setting and Rapport's slot, as for everyone. The bond still has its say through
+fallen-out.
+
+**MCM**: ten numbers under "Companions" and the switch "Ivy: her fade becomes a scene". make_mcm.py now
+checks every script's `Tuned` calls, not Approach's alone (three mutants caught).
 
 ---
 
@@ -760,7 +796,9 @@ teleports her mid-scene when the player is carried off by AAF.
    warm, close and fallen-out greetings wait for their lines.
 6. **Spoken for** (§7) and its eight lines.
 7. **The follow** (§6), a Rapport helper -- after stage 4 is proven (O-32).
-8. **Companions** (§11), B-lite first.
+8. **Companions** (§11): BUILT 2026-09-23 (B-lite + C + D, §11.6), not yet run. Next: the game test
+   below, then Rapport's `RecordExternalScene` so Ivy's own scenes count as scenes (D.1), and the owner's
+   O-26 pin table and review of the 26 companion DRAFT lines.
 9. ~~Before voicing: an INFO id registry.~~ **RESOLVED another way (2026-09-23).** The ids still
    move with the bank, but `scripts/stage-voice.py` names every file from the BUILT plugin on every
    run. A moved id takes its audio with it, and the old name is removed. An append-only registry
@@ -777,13 +815,23 @@ teleports her mid-scene when the player is carried off by AAF.
 **Not yet verified in game** (each is a test in the next run, not a guess to design around):
 - Stage 4 itself: AAF with the player, faces and overlays on the player, the lane holding.
 - MCM on a light plugin: the page, and `sourceForm "Overture.esp|842"` on an ESL-flagged file.
-- The `iDefaults:Meta` key: does MCM read a settings.ini key that is on no control? (If not, the numbers
-  stay at their defaults and scenes stay off -- the safe way to fail.)
+- ~~The `iDefaults:Meta` key: does MCM read a settings.ini key that is on no control?~~ MEASURED in MCM's
+  own source (2026-09-23, the anatomy session: reg2k/f4mcm `SettingStore.cpp`): it loads EVERY key of the
+  file, controls or not, and a key it never loaded reads -1, -1.0 or false. So the sentinel works; in game
+  it is still to be seen.
 - Whether Papyrus refuses to link a function whose local's type is missing (why `Overture:Dev` exists).
 - Whether `TopicInfo.OnEnd` fires for a line cut off, and whether a real-time timer survives a load.
 - A leveled actor's base id across a reload (Rapport's names key by it).
 - The conversation's end by counted replies, the midnight stamp, O-30's hour, O-31's lover sets, O-33's
   greeting and marker, `OnPlayerSceneRecorded`.
+- **The companion module** (§11.6):
+  - (a) with a moment open, talking to a base-game companion opens Overture's phase 4, and their own
+    talk menu follows the hand-back;
+  - (b) O-23, talking to them WHILE SNEAKING opens it with no moment. Vanilla's sneaking checks are
+    hellos and idles, never a greeting, so whether a sneaking player's E even reaches a greeting is
+    unproven;
+  - (c) Ivy's `Favor_Sex` logs phases 1-3 and its end records the bond;
+  - (d) with scenes on, her fade becomes a Rapport scene, and her own scene resumes after it.
 - **The voice** (`scripts/stage-voice.py`). The files are named for an ESL plugin by the rule measured
   on disk, and nobody has yet heard one play from `Overture.esp`. Does the MOUTH move with
   LipGenerator's lip data? And an NPC outside the six core voice types should show a subtitle and stay

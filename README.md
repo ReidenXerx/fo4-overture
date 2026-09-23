@@ -50,11 +50,19 @@ Built, not yet run in game: after a yes, or once you are close enough, a convers
 the proposition, and then any way you ask gets their real answer. A bond of 0.75 and a scene together make you lovers to everyone else too (Chemistry
 treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, takes it the way
 their persona would, and tells you so in their own words the next time you talk. "Not now" and "not here" mean you can ask again later that day.
-Every number is on the MCM page. 36 lines are DRAFTS, written without the owner, and wait for their
-review before anything is voiced (`docs/methodology.md` §10).
+Every number is on the MCM page. Every stranger's line is voiced in the six core voices, with lip sync.
+36 of them are DRAFTS, written without the owner, and wait for their review (`docs/methodology.md` §10).
 
-What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, the
-companion module (`companions/`, four variants, none shipped), and the owner's open questions.
+Built, not yet run in game: **the companion module** (O-19, `companions/README.md`). A base-game companion
+you travel with gets wanting of their own, which builds with days on the road together. When it
+turns, a *moment* opens and they ask you for a minute. You can also start it yourself, by talking to them
+while sneaking. Their answer is their own state and their own romance, never the words you picked.
+Their days, fights and affinity levels feed Rapport's bond. Ivy keeps her own scenes, which now count,
+and with scenes on her fade to black becomes a Rapport scene. Companion lines are subtitles, since every
+companion has a voice of their own. 26 more DRAFTS.
+
+What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, and the
+owner's open questions.
 
 ## Requirements
 
@@ -71,11 +79,10 @@ companion module (`companions/`, four variants, none shipped), and the owner's o
 ```bash
 python tools/make_overture_esp.py build/Overture.esp              # the verified one-exchange plugin
 python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
-pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply, Overture:Dev
+pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, :Reply, :Dev and Overture:Companions:*
 python tools/make_mcm.py                                           # the MCM page and its settings.ini, from the settings table
 python scripts/stage-voice.py                                      # voice files named by INFO id, lip sync packed in
 pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
-pwsh companions/tools/check.ps1                                    # compile-check the companion scaffolds
 ```
 
 Every byte shape in the plugin is transcribed from a vanilla record and says which one; where a

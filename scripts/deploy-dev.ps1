@@ -35,6 +35,12 @@ if (-not (Test-Path $pex)) { throw "No $pex. Run scripts/build-papyrus.ps1 first
 New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture') | Out-Null
 Copy-Item $esp (Join-Path $Staging 'Overture.esp') -Force
 Copy-Item (Join-Path $pex 'Overture\*.pex') (Join-Path $Staging 'Scripts\Overture') -Force
+# The companion module's scripts (Overture:Companions:*), in their own namespace folder.
+# Missing from Data, the companions quest runs with no script and nothing says so.
+$companions = Join-Path $pex 'Overture\Companions'
+if (-not (Test-Path (Join-Path $companions 'Moments.pex'))) { throw "No $companions\Moments.pex. Run scripts/build-papyrus.ps1 first." }
+New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture\Companions') | Out-Null
+Copy-Item (Join-Path $companions '*.pex') (Join-Path $Staging 'Scripts\Overture\Companions') -Force
 
 # The MCM page (tools/make_mcm.py). A new file the first time: Vortex's Deploy puts it in Data.
 $mcm = Join-Path $root 'data\MCM'

@@ -169,10 +169,17 @@ def main():
     # fallbacks), not a line somebody forgot to voice.
     npc = [i for i in infos if not i[2] and any(c.isalpha() for c in i[1])]
     silent = [i for i in infos if not i[2] and not any(c.isalpha() for c in i[1])]
-    registry, unmatched = {}, []
+    # The companion module's lines are SUBTITLES BY DESIGN: every companion speaks in a
+    # voice type of their own, which the six core renders do not cover, and the owner
+    # picks every voice by ear (V-9). Counted apart, so a real miss still shows.
+    companion_bank = json.loads((ROOT / "voice" / "companion-lines.json").read_text(encoding="utf-8"))
+    companion_texts = {ln["text"] for ln in companion_bank["lines"]}
+    registry, unmatched, companion = {}, [], []
     for fid, text, _ in npc:
         lid = line_of.get(text)
-        if lid is None:
+        if lid is None and text in companion_texts:
+            companion.append((fid, text))
+        elif lid is None:
             unmatched.append((fid, text))
         else:
             registry[f"{fid:08X}"] = {"line": lid, "file": f"{fid & 0x00FFFFFF:08X}_1.fuz"}
@@ -205,6 +212,8 @@ def main():
     print(f"voice types   : {len(vts)}  ({', '.join(vts)})")
     files = sum(1 for e in registry.values() for vt in vts if (vt, e["line"]) in ready)
     print(f"to stage      : {len(ready)} renders -> {files} files")
+    if companion:
+        print(f"companions    : {len(companion)} INFOs, subtitles by design (their own voice types, V-9)")
     if unmatched:
         print(f"UNVOICED NPC lines (no bank line has this exact text - subtitle only): {len(unmatched)}")
         for fid, text in unmatched[:12]:

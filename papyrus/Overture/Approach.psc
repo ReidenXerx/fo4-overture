@@ -75,6 +75,14 @@ Int Property JEALOUS_PENDING_AV_ID = 0x0000084C AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
 ; Rapport.esp's quest, which carries Rapport:Bridge and its OnPlayerSceneRecorded.
 Int Property RAPPORT_BRIDGE_ID = 0x00000800 AutoReadOnly
+; THE COMPANION MODULE (docs/methodology.md 11; O-19 B-lite + C + D): Registry, the
+; adapters, Feeders, Moments and IvyNative, on a quest of their own. A companion's
+; conversation runs through THIS scene -- its phase 4, which the stranger's phases
+; refuse -- and this script's verdict, request and Narrator line.
+Int Property COMPANIONS_QUEST_ID = 0x00000855 AutoReadOnly
+; The CURRENT companion (FollowersScript adds it on recruitment, takes it away on
+; dismissal). The scene's phase 4 reads exactly this.
+Int Property CURRENT_COMPANION_FACTION_ID = 0x00023C01 AutoReadOnly
 
 ; R-10: 3 is dialogue, the reason Rapport keeps for Overture.
 Int Property REASON_DIALOGUE = 3 AutoReadOnly
@@ -91,6 +99,9 @@ Int Property OUTCOME_NOTYET = 7 AutoReadOnly
 Int Property OUTCOME_REFUSE = 8 AutoReadOnly
 Int Property OUTCOME_NOT_HERE = 9 AutoReadOnly
 Int Property OUTCOME_NOT_NOW = 10 AutoReadOnly
+; The companion's answer to "Later.": nothing happened, nothing is paid, and the day
+; is not spent (CompanionEnded).
+Int Property OUTCOME_LATER = 11 AutoReadOnly
 
 ; THE STAGED BUILD (tools/overture_stages.py, --stages 3). The one-exchange
 ; plugin has none of these records: every lookup below comes back None there,
@@ -140,6 +151,11 @@ Int Property WHY_SETTING = 6 AutoReadOnly
 Int Property WHY_BUSY = 7 AutoReadOnly
 Int Property WHY_YES = 8 AutoReadOnly
 Int Property WHY_FALLEN_OUT = 9 AutoReadOnly
+; A companion's own (methodology 11): their state says no right now (C2); their own
+; romance, or their affinity, is not there yet (O-22); not wanting it enough yet (B-lite).
+Int Property WHY_THEIRS = 10 AutoReadOnly
+Int Property WHY_UNWON = 11 AutoReadOnly
+Int Property WHY_WANTING = 12 AutoReadOnly
 
 ; O-14's tiers (OvertureTier), from the bond as a conversation leaves it. The
 ; lines are Rapport's own -- its Narrator's "getting close", "close" and "have
@@ -213,6 +229,9 @@ Struct Conversation
 	Bool sceneEnded = False
 	; No Narrator line: a reply that arrived after its conversation had one.
 	Bool quiet = False
+	; The player's current companion: the scene's phase 4, the companion's verdict,
+	; and CompanionEnded (methodology 11).
+	Bool companion = False
 EndStruct
 
 Conversation _current = None
@@ -227,6 +246,8 @@ Actor _yesWith = None
 Int _yesTries = 0
 ; The room, pinned by the dev verb (approach room): 0 measured, 1 public, 2 private.
 Int _roomPinned = 0
+; Why the companion's gate said what it said, for the trace.
+String _companionNote = ""
 
 Scene Function ApproachScene()
 	Return Game.GetFormFromFile(SCENE_ID, "Overture.esp") as Scene
@@ -390,11 +411,18 @@ Event Rapport:Bridge.OnPlayerSceneRecorded(Rapport:Bridge akSender, Var[] akArgs
 		If lover != None && lover != who
 			Conversation heard = new Conversation
 			heard.who = lover
-			Bool react = Self.ValueOf(lover, JEALOUS_PENDING_AV_ID) <= 0.0
-			String what = Self.Jealousy(heard, react)
-			If heard.jealous != 0
-				Self.SetTo(lover, JEALOUS_PENDING_AV_ID, (Self.PersonaIndex(lover) + 1) as Float)
-				Debug.Trace("Overture: " + lover.GetFormID() + what + " - their next greeting says so", 0)
+			If Self.IsCompanionTalk(lover)
+				; The companion module answers for the current companion (Feeders,
+				; within its next tick): here the count only moves on, so a later
+				; conversation as a stranger-lover never hears it again.
+				Self.Jealousy(heard, False)
+			Else
+				Bool react = Self.ValueOf(lover, JEALOUS_PENDING_AV_ID) <= 0.0
+				String what = Self.Jealousy(heard, react)
+				If heard.jealous != 0
+					Self.SetTo(lover, JEALOUS_PENDING_AV_ID, (Self.PersonaIndex(lover) + 1) as Float)
+					Debug.Trace("Overture: " + lover.GetFormID() + what + " - their next greeting says so", 0)
+				EndIf
 			EndIf
 		EndIf
 		i += 1
@@ -415,6 +443,7 @@ Event Scene.OnBegin(Scene akSender)
 	_serial += 1
 	c.serial = _serial
 	_current = c
+	c.companion = Self.IsCompanionTalk(who)
 	; What the NPC's first reply reads -- chosen seconds from now.
 	String note = Self.Prepare(who)
 	; The last conversation, if its end is still owed (a reply still out, or an OnEnd
@@ -488,17 +517,24 @@ String Function Opening(Conversation c)
 	String note = ""
 	If _api >= NEEDS_API
 		note = note + Self.UpdateWorldLovers(c)
-		Int pending = Self.ValueOf(who, JEALOUS_PENDING_AV_ID) as Int
-		If pending > 0
-			; Heard at the scene (O-33): the bond moved then, and their greeting has
-			; just said it. What remains is the Narrator's line, and the count.
-			c.jealous = Self.ReactionOf(pending - 1)
-			note = note + Self.Jealousy(c, False) + " | said their piece in the greeting"
+		If c.companion
+			; A companion's jealousy is the companion module's (Feeders), on its own
+			; clock: here, only the count moves on, so nothing is heard twice.
+			Self.Jealousy(c, False)
 		Else
-			note = note + Self.Jealousy(c, True)
+			Int pending = Self.ValueOf(who, JEALOUS_PENDING_AV_ID) as Int
+			If pending > 0
+				; Heard at the scene (O-33): the bond moved then, and their greeting has
+				; just said it. What remains is the Narrator's line, and the count.
+				c.jealous = Self.ReactionOf(pending - 1)
+				note = note + Self.Jealousy(c, False) + " | said their piece in the greeting"
+			Else
+				note = note + Self.Jealousy(c, True)
+			EndIf
 		EndIf
 	EndIf
-	If !Self.OpensAtProposition(who)
+	; A companion's conversation is the proposition, always: phase 4 (methodology 11).
+	If !c.companion && !Self.OpensAtProposition(who)
 		Return note
 	EndIf
 	; The scene skips stages 1 and 2 on markers written before it began; what the
@@ -512,6 +548,9 @@ String Function Opening(Conversation c)
 	c.verdict = decided
 	c.why = _why
 	verdict.SetValue(decided as Float)
+	If c.companion
+		note = note + " | companion: " + _companionNote
+	EndIf
 	Return note + " | opens at the proposition, verdict " + decided + " (why " + c.why + ")"
 EndFunction
 
@@ -623,7 +662,70 @@ String Function BetweenConversations(Conversation c)
 		Self.SetTo(who, SAID_YES_AV_ID, 0.0)
 		note = note + " | a yes no longer opens at the proposition"
 	EndIf
+	If c.companion
+		note = note + Self.CompanionEnded(c)
+	EndIf
 	Return note
+EndFunction
+
+; ---- companions (methodology 11) ---------------------------------------------
+
+Overture:Companions:Feeders Function Companions()
+	Return Game.GetFormFromFile(COMPANIONS_QUEST_ID, "Overture.esp") as Overture:Companions:Feeders
+EndFunction
+
+; The player's CURRENT companion: the scene's phase 4 reads exactly this, so the
+; script and the scene agree on whose conversation it is.
+Bool Function IsCompanionTalk(Actor akWho)
+	Faction current = Game.GetFormFromFile(CURRENT_COMPANION_FACTION_ID, "Fallout4.esm") as Faction
+	Return akWho != None && current != None && akWho.IsInFaction(current)
+EndFunction
+
+; A companion's conversation has ended. The moment it spent (Moments: "not here"
+; and "not now" keep it), and the day: "Later.", or the wheel left without an
+; answer, spends nothing -- the stamp comes down to an hour ahead, as after "not
+; now" (O-30), which still hands the re-greet back to their own dialogue.
+String Function CompanionEnded(Conversation c)
+	Int o = c.outcome
+	Overture:Companions:Moments moments = Game.GetFormFromFile(COMPANIONS_QUEST_ID, "Overture.esp") as Overture:Companions:Moments
+	If moments != None
+		moments.Ended(c.who, o == OUTCOME_NOT_HERE || o == OUTCOME_NOT_NOW)
+	EndIf
+	If o == OUTCOME_LATER || o == 0
+		Self.SetTo(c.who, NEXT_DAY_AV_ID, Utility.GetCurrentGameTime() + REOPEN_AFTER)
+		Return " | companion: later - the day is not spent"
+	EndIf
+	Return ""
+EndFunction
+
+; The companion's half of a verdict: their own gates (C2, O-22) and their wanting
+; (B-lite) instead of the bond's bar, then the faithfulness rule as for everyone
+; (methodology 7). 0: their side says yes, and the room, the setting and Rapport
+; decide the rest as they do for everyone. Leaves the reason in _why.
+Int Function CompanionVerdict(Actor akWho)
+	Overture:Companions:Feeders companions = Self.Companions()
+	If companions == None
+		_companionNote = "the companion module did not resolve"
+		_why = WHY_THEIRS
+		Return VERDICT_REFUSE
+	EndIf
+	Int gate = companions.Gate(akWho)
+	_companionNote = companions.LastGateNote()
+	If gate == companions.GATE_STATE
+		_why = WHY_THEIRS
+		Return VERDICT_REFUSE
+	ElseIf gate == companions.GATE_UNWON
+		_why = WHY_UNWON
+		Return VERDICT_REFUSE
+	ElseIf gate == companions.GATE_WANTING
+		_why = WHY_WANTING
+		Return VERDICT_NOTYET
+	EndIf
+	If Self.SpokenFor(akWho) && Rapport:Core.FaithfulnessOf(akWho.GetFormID()) >= Self.Tuned("fFaithRefuses:SpokenFor", 0.80)
+		_why = WHY_TAKEN
+		Return VERDICT_REFUSE
+	EndIf
+	Return 0
 EndFunction
 
 ; True if it moved: the marker only ever goes up.
@@ -907,22 +1009,29 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
 		_why = WHY_FALLEN_OUT
 		Return VERDICT_REFUSE
 	EndIf
-	Float bar = Self.Threshold(persona)
-	If Self.SpokenFor(akWho)
-		Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
-		If faith >= Self.Tuned("fFaithRefuses:SpokenFor", 0.80)
-			_why = WHY_TAKEN
-			Return VERDICT_REFUSE
+	If Self.IsCompanionTalk(akWho)
+		Int theirs = Self.CompanionVerdict(akWho)
+		If theirs != 0
+			Return theirs
 		EndIf
-		bar += Self.Tuned("fFaithWeight:SpokenFor", 0.40) * faith
-	EndIf
-	If afBond < bar
-		If afBond < bar * 0.5
-			_why = WHY_EARLY
-			Return VERDICT_REFUSE
+	Else
+		Float bar = Self.Threshold(persona)
+		If Self.SpokenFor(akWho)
+			Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
+			If faith >= Self.Tuned("fFaithRefuses:SpokenFor", 0.80)
+				_why = WHY_TAKEN
+				Return VERDICT_REFUSE
+			EndIf
+			bar += Self.Tuned("fFaithWeight:SpokenFor", 0.40) * faith
 		EndIf
-		_why = WHY_BOND
-		Return VERDICT_NOTYET
+		If afBond < bar
+			If afBond < bar * 0.5
+				_why = WHY_EARLY
+				Return VERDICT_REFUSE
+			EndIf
+			_why = WHY_BOND
+			Return VERDICT_NOTYET
+		EndIf
 	EndIf
 	If abPublic
 		_why = WHY_PUBLIC
@@ -1316,6 +1425,10 @@ String Function TalkLine(Conversation c, Bool abNamed)
 		; Only with scenes switched off (Narrate): nothing else will say it.
 		Return s + " said yes."
 	ElseIf outcome == OUTCOME_NOTYET
+		If c.why == WHY_WANTING
+			; A companion's wanting builds with days on the road together (B-lite).
+			Return "Not yet. A few more days on the road together, and " + s + " might."
+		EndIf
 		Return "Close. A little more time with you, and " + s + " might."
 	ElseIf outcome == OUTCOME_NOT_HERE
 		; The place is what is wrong, so the hint is the place (microscope pass 2):
@@ -1345,6 +1458,10 @@ String Function WhyNot(Int aiWhy, String asWhenEarly)
 		Return " - but there's someone else."
 	ElseIf aiWhy == WHY_FALLEN_OUT
 		Return " - but there's bad blood between you."
+	ElseIf aiWhy == WHY_THEIRS
+		Return " - {they} had other things on {their} mind."
+	ElseIf aiWhy == WHY_UNWON
+		Return " - win {them} over first, {their} own way."
 	EndIf
 	Return "." + asWhenEarly
 EndFunction

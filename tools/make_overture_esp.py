@@ -58,15 +58,18 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # object ids 0x800-0xFFF, which is all an ESL-flagged plugin may hold. Renumbered
 # before any line is voiced, because a voice file is NAMED by its INFO's id.
 #   0x800-0x84F  quest, scene, topics, greetings, globals, actor values (to 0x84C)
-#   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A). 0x851, Desire,
+#   0x850-0x8FF  the companion module (tools/overture_stages.py has each id). 0x851, Desire,
 #                is PUBLISHED: fo4-anatomy reads it (companions/README.md). Never renumber.
+#                0x850, 0x852 and 0x854 stay reserved for the variants not built (B's Trust and
+#                Devotion, A's mirror); 0x857-0x85F are unused.
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD5F  fallbacks
+#   0xE10-0xEFF  the companion wheel's answers
 #   0xE00-0xE0F  RETIRED: the MCM's numbers were globals here until they moved to
 #                MCM's settings.ini. Not reused -- a dev save may still name them.
 #   0x846        RETIRED likewise: OvertureScenesEnabled, now an MCM setting too.
-#   0xD60-0xDFF, 0xE10-0xFFF  free
+#   0xD60-0xDFF, 0xF00-0xFFF  free
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
@@ -427,7 +430,7 @@ def line(info_id, player_prompt, spoken, persona_index=None, public=None,
     return record('INFO', info_id, f)
 
 
-def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alias=0):
+def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alias=0, reference=0):
     """One CTDA, 32 bytes.
 
     `value_global`: compare against a GLOBAL instead of a float -- the byte-0 flag
@@ -446,8 +449,11 @@ def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alia
         10-11   padding
         12-15   parameter 1
         16-19   parameter 2
-        20-23   run-on type (0 = Subject, the speaker; 5 = Quest Alias)
-        24-27   reference
+        20-23   run-on type (0 = Subject, the speaker; 2 = Reference; 5 = Quest Alias)
+        24-27   reference, when run-on is 2. MEASURED 2026-09-23: every IsSneaking
+                condition on a Fallout4.esm dialogue INFO that runs on a Reference
+                names PlayerRef 00000014 (11 of 11) -- vanilla's "the player is
+                sneaking" test, which the companion greeting uses (O-23)
         28-31   parameter 3: the ALIAS ID when run-on is 5 (vanilla SCEN 0010C957
                 carries its alias 0x42 here), else 0
 
@@ -466,7 +472,7 @@ def condition(func, param1, value=1.0, runon=0, op=0x00, value_global=None, alia
             + struct.pack('<I', param1)
             + struct.pack('<I', 0)
             + struct.pack('<I', runon)
-            + struct.pack('<I', 0)
+            + struct.pack('<I', reference)
             + struct.pack('<i', alias))
 
 
@@ -494,6 +500,12 @@ FUNC_IS_CHILD = 365
 FUNC_GET_PLAYER_TEAMMATE = 453   # the player's current companion(s)
 FUNC_HAS_KEYWORD = 560
 FUNC_IS_IN_SCENE = 590
+FUNC_IS_SNEAKING = 286
+RUNON_REFERENCE = 2
+PLAYER_REF = 0x00000014
+# FollowersScript.SetCompanion adds it and DismissCompanion takes it away: the CURRENT
+# companion. The companion greeting's own test (the strangers' is its opposite).
+FACTION_CURRENT_COMPANION = 0x00023C01
 KW_ACTOR_TYPE_NPC = 0x00013794    # HumanRace, GhoulRace, HumanChildRace, SynthGen2Race -- not robots, dogs, mutants
 KW_ACTOR_TYPE_SYNTH = 0x0010C3CE  # SynthGen2Race: "humans and ghouls" leaves them out
 GLOB_GAME_DAYS_PASSED = 0x00000039
@@ -508,7 +520,7 @@ CTDA_OR = 0x01                    # OR with the NEXT condition -- and OR binds t
 CTDA_USE_GLOBAL = 0x04            # the compared value is a GLOB form id
 
 
-def greeting(lover_lines=(), jealous_lines=()):
+def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_count=0):
     """The GREE topic, and the line that starts the scene.
 
     THIS IS THE PIECE THAT MAKES IT WORK. Measured on FFGoodneighbor02: its
@@ -532,7 +544,7 @@ def greeting(lover_lines=(), jealous_lines=()):
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
     f += field('DATA', bytes([0x00, 0x07, 0x73, 0x00]))
     f += field('SNAM', b'GREE')
-    f += field('TIFC', struct.pack('<I', 1 + len(lover_lines) + len(jealous_lines)))
+    f += field('TIFC', struct.pack('<I', 1 + len(lover_lines) + len(jealous_lines) + companion_count))
     topic = record('DIAL', GREET_TOPIC, f)
 
     # O-12's LOVERS first: a Random run of their own greetings, for someone who
@@ -548,7 +560,11 @@ def greeting(lover_lines=(), jealous_lines=()):
                                           op=CTDA_OP_EQ | CTDA_OR, runon=RUNON_SUBJECT))
                   + field('CTDA', condition(FUNC_GET_VALUE, TIER_AV, value=float(TIER_LOVER),
                                             op=CTDA_OP_EQ, runon=RUNON_SUBJECT)))
-    infos = b''
+    # The COMPANION's own greetings (the staged build's companion module), when
+    # given: first, in their own fenced Random runs. They cannot collide with
+    # anything below -- every line below requires someone who has NEVER been a
+    # companion, and these require the current one.
+    infos = companion_infos
     # O-33's JEALOUS first (owner, 2026-09-23: jealousy in their own voice): a lover
     # who heard about the player's scene with someone else says so before anything
     # else. The marker is the persona + 1, written at that scene, when the persona is
@@ -570,9 +586,13 @@ def greeting(lover_lines=(), jealous_lines=()):
     return topic + child_group(GREET_TOPIC, 7, infos)
 
 
-def greeting_info(form_id, text, enam, extra):
+def greeting_info(form_id, text, enam, extra, companion=False):
     """One greeting INFO: who it opens for, then TSCE + ALFA, which start the scene
-    with the speaker in the alias. `extra` is more conditions, on the speaker."""
+    with the speaker in the alias. `extra` is more conditions, on the speaker.
+
+    `companion`: the companion module's greeting (methodology 11). The same people
+    -- adults, humans and ghouls, O-25's "the strangers' rule" -- but the player's
+    CURRENT companion instead of anyone who has never been one."""
     trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
     # NOT the template's 4. That is ENAM_SAY_ONCE: right for FFGoodneighbor02,
     # whose greeting starts its quest's scene one time, and wrong for a greeting
@@ -592,16 +612,19 @@ def greeting_info(form_id, text, enam, extra):
     # synth, not a child), not the player's current companion (teammate), not in
     # combat, not already in a scene, and once a game day: the stamp the script
     # writes as the scene begins must be <= GameDaysPassed. Plus the master switch.
+    if companion:
+        who = ((FUNC_GET_IN_FACTION, FACTION_CURRENT_COMPANION, 1.0),)
+    else:
+        who = ((FUNC_GET_PLAYER_TEAMMATE, 0, 0.0),
+               # Anyone who has EVER been a companion -- a dismissed Ivy standing
+               # in a settlement included. Companions get their own module (N-7),
+               # and a stranger's approach at priority 100 would talk over a
+               # companion mod's own voiced dialogue in subtitles. (Review 2026-09-23.)
+               (FUNC_GET_IN_FACTION, FACTION_HAS_BEEN_COMPANION, 0.0))
     for func, param, value in (
             (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_NPC, 1.0),
             (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0),
-            (FUNC_IS_CHILD, 0, 0.0),
-            (FUNC_GET_PLAYER_TEAMMATE, 0, 0.0),
-            # Anyone who has EVER been a companion -- a dismissed Ivy standing
-            # in a settlement included. Companions get their own module (N-7),
-            # and a stranger's approach at priority 100 would talk over a
-            # companion mod's own voiced dialogue in subtitles. (Review 2026-09-23.)
-            (FUNC_GET_IN_FACTION, FACTION_HAS_BEEN_COMPANION, 0.0),
+            (FUNC_IS_CHILD, 0, 0.0)) + who + (
             (FUNC_IS_IN_COMBAT, 0, 0.0),
             (FUNC_IS_IN_SCENE, 0, 0.0),
             (FUNC_GET_GLOBAL_VALUE, ENABLED_GLOBAL, 1.0)):

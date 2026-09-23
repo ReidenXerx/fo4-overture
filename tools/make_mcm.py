@@ -13,11 +13,12 @@ pass 1, lens 6).
 settings.ini also carries [Meta] iDefaults=1, on no control: the script's proof
 that MCM read THIS file, which no player's slider can fake (microscope pass 2).
 
-The table is overture_stages.SETTINGS and SWITCHES, and the script is held to it:
-every Tuned call in Overture:Approach must name a row and fall back to that row's
-default, every row must be read, and the guard that turns the defaults on must be
-there. Comments are stripped first and names matched without case, as Papyrus
-reads them. Otherwise nothing is written.
+The table is overture_stages.SETTINGS and SWITCHES, and the scripts are held to it:
+every Tuned call in ANY Overture script (Approach's own, and the companion module's,
+which reads its numbers through Approach.Tuned) must name a row and fall back to
+that row's default, every row must be read, every switch must be read, and the guard
+that turns the defaults on must be in Approach. Comments are stripped first and
+names matched without case, as Papyrus reads them. Otherwise nothing is written.
 """
 import json
 import pathlib
@@ -30,6 +31,10 @@ import overture_stages as s  # noqa: E402
 
 OUT = m.ROOT / 'data' / 'MCM' / 'Config' / 'Overture'
 APPROACH = m.ROOT / 'papyrus' / 'Overture' / 'Approach.psc'
+SCRIPTS = sorted((m.ROOT / 'papyrus' / 'Overture').rglob('*.psc'))
+# A wrapper that hands its caller's key and default straight on (Feeders.Tuned):
+# the literals it forwards are checked at ITS callers.
+FORWARD = r'(?i)\bTuned\s*\(\s*asKey\s*,\s*afDefault\s*\)'
 PLUGIN = 'Overture.esp'
 
 
@@ -74,33 +79,36 @@ def body(code, name):
 
 
 def check_script(table, switches):
-    code = strip_comments(APPROACH.read_text(encoding='utf-8'))
+    approach = strip_comments(APPROACH.read_text(encoding='utf-8'))
+    code = '\n'.join(strip_comments(f.read_text(encoding='utf-8')) for f in SCRIPTS)
     calls = re.findall(r'(?i)\bTuned\s*\(\s*"([^"]+)"\s*,\s*(-?[0-9.]+)\s*\)', code)
-    every = len(re.findall(r'(?i)\bTuned\s*\(', code)) - len(re.findall(r'(?i)\bFunction\s+Tuned\s*\(', code))
+    every = (len(re.findall(r'(?i)\bTuned\s*\(', code))
+             - len(re.findall(r'(?i)\bFunction\s+Tuned\s*\(', code))
+             - len(re.findall(FORWARD, code)))
     if every != len(calls):
-        raise SystemExit(f'Approach.psc has {every} Tuned calls and only {len(calls)} of them read '
+        raise SystemExit(f'the scripts have {every} Tuned calls and only {len(calls)} of them read '
                          f'Tuned("key:Section", number) - a default that is not a literal cannot be checked')
     lowered = {k.lower(): k for k in table}
     read = set()
     for name, default in calls:
         key = lowered.get(name.lower())
         if key is None:
-            raise SystemExit(f'Approach.psc reads {name}, which overture_stages.SETTINGS does not have')
+            raise SystemExit(f'a script reads {name}, which overture_stages.SETTINGS does not have')
         if abs(float(default) - table[key]) > 1e-9:
-            raise SystemExit(f'Approach.psc falls back to {default} for {name}; SETTINGS says {table[key]}')
+            raise SystemExit(f'a script falls back to {default} for {name}; SETTINGS says {table[key]}')
         read.add(key)
     unread = sorted(set(table) - read)
     if unread:
-        raise SystemExit(f'SETTINGS has {unread}, which Approach.psc never reads')
+        raise SystemExit(f'SETTINGS has {unread}, which no script reads')
     # The guard. Without it MCM's 0 for a file it never read would be every number.
     guard = re.compile(rf'(?i)MCM\.GetModSettingInt\(\s*"Overture"\s*,\s*"{re.escape(s.META)}"\s*\)\s*==\s*1')
-    if not guard.search(body(code, 'HasSettings')):
+    if not guard.search(body(approach, 'HasSettings')):
         raise SystemExit(f'Approach.HasSettings does not test {s.META} == 1')
-    if not re.search(r'(?is)If\s+!\s*Self\.HasSettings\(\)\s*Return\s+afDefault', body(code, 'Tuned')):
+    if not re.search(r'(?is)If\s+!\s*Self\.HasSettings\(\)\s*Return\s+afDefault', body(approach, 'Tuned')):
         raise SystemExit('Approach.Tuned does not return its default when HasSettings() is False')
     for name in switches:
         if not re.search(rf'(?i)MCM\.GetModSettingBool\(\s*"Overture"\s*,\s*"{re.escape(name)}"\s*\)', code):
-            raise SystemExit(f'the switch {name} is on the page and Approach.psc never reads it')
+            raise SystemExit(f'the switch {name} is on the page and no script reads it')
     return len(calls)
 
 
@@ -149,4 +157,4 @@ for ini_section, keys in ini.items():
     lines.append('')
 (OUT / 'settings.ini').write_text('\n'.join(lines), encoding='utf-8')
 print(f'wrote {OUT / "config.json"} and settings.ini: 1 global switch, {len(switches)} setting switch(es), '
-      f'{len(s.SETTINGS)} numbers; {calls} Tuned calls in Approach.psc checked against the table')
+      f'{len(s.SETTINGS)} numbers; {calls} Tuned calls in {len(SCRIPTS)} scripts checked against the table')

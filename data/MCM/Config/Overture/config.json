@@ -36,6 +36,15 @@
           }
         },
         {
+          "type": "switcher",
+          "id": "bIvyFade:Ivy",
+          "text": "Ivy: her fade becomes a scene",
+          "help": "When Ivy's own Favor: Sex scene fades to black, Rapport plays the scene, then hers carries on. Needs 'A yes starts a scene'.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
           "type": "section",
           "text": "What words are worth"
         },
@@ -227,6 +236,130 @@
           "valueOptions": {
             "min": 0.0,
             "max": 0.2,
+            "step": 0.01,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "section",
+          "text": "Companions"
+        },
+        {
+          "type": "slider",
+          "id": "fDesireMercantile:Companions",
+          "text": "Wanting before a yes: mercantile",
+          "help": "How much a mercantile companion has to want it before they say yes (0 to 1). It builds with every day on the road together, and a scene together sates it.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fDesireRomantic:Companions",
+          "text": "Wanting before a yes: romantic",
+          "help": "The same, for a romantic companion.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fDesireVulgar:Companions",
+          "text": "Wanting before a yes: vulgar",
+          "help": "The same, for a vulgar companion.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fDesireReticent:Companions",
+          "text": "Wanting before a yes: reticent",
+          "help": "The same, for a reticent companion.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fRomancedEase:Companions",
+          "text": "Romanced: the bar is lower by",
+          "help": "A companion you have romanced, by their own romance, needs this much less.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.5,
+            "step": 0.05,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fAffinityGate:Companions",
+          "text": "No romance of their own: affinity needed",
+          "help": "Companions the game gives no romance (X6-88, Deacon, Gage, Old Longfellow) need their own affinity this high first: 1 is their top level, 0.75 the one below it.",
+          "valueOptions": {
+            "min": 0.25,
+            "max": 1.0,
+            "step": 0.25,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fDesirePerDay:Companions",
+          "text": "Wanting grows per day together",
+          "help": "How much a game day travelling together builds wanting.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.5,
+            "step": 0.01,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fTogetherPerDay:Companions",
+          "text": "A day together adds to the bond",
+          "help": "A share of the distance left, as every source moves Rapport's bond.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.1,
+            "step": 0.005,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fThresholdUp:Companions",
+          "text": "Their affinity rises a level",
+          "help": "What each level of their own affinity they reach adds to the bond.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.3,
+            "step": 0.01,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fThresholdDown:Companions",
+          "text": "Their affinity falls a level",
+          "help": "What each level they lose takes away.",
+          "valueOptions": {
+            "min": -0.3,
+            "max": 0.0,
             "step": 0.01,
             "sourceType": "ModSettingFloat"
           }

@@ -11,13 +11,11 @@ Read 2026-09-23 from Fallout4.esm with tools/dump_record.py:
   thresholds (GLOB): Infatuation 1000, Confidant 750, Admiration 500,
                      Friend 250, Neutral 0, Disdain -500, Hatred -1000
 CompanionActorScript.IsRomantic() is GetValue(CA_IsRomantic) == 1.0, and
-ModAffinity clamps to MinAffinity/MaxAffinity (default -1100/1100), so dividing
-by the Infatuation threshold and clamping gives -1..1 with Infatuation at 1.
+ModAffinity clamps to MinAffinity/MaxAffinity (default -1100/1100), so dividing by
+the Infatuation threshold and clamping gives -1..1 with Infatuation at 1.
 
-READ ONLY. Moving a companion's affinity from outside would fire their own
-threshold scenes, messages and perks -- their bookkeeping (C5).
-
-SCAFFOLD (2026-09-23).}
+READ ONLY (O-24): moving a companion's affinity from outside would fire their own
+threshold scenes, messages and perks -- their bookkeeping (C5).}
 
 Int Property CA_AFFINITY_ID = 0x000A1B80 AutoReadOnly
 Int Property CA_IS_ROMANTIC_ID = 0x00148DF6 AutoReadOnly
@@ -31,9 +29,9 @@ EndFunction
 ; THE BASE GAME'S companions only -- Fallout4.esm and the official DLC masters.
 ; Claiming every actor that carries CompanionActorScript swept in every mod
 ; companion built on the framework (Heather, the spouse companions, Ivy's actor
-; too), and sent them down the path meant for companions with no content of
-; their own (design review 2026-09-23). A mod companion gets its own adapter, or
-; the engine fallback, which opens nothing (C6).
+; too), and sent them down the path meant for companions with no content of their
+; own (design review 2026-09-23). A mod companion gets its own adapter, or the
+; engine fallback, which opens nothing (C6).
 Bool Function Claims(Actor akWho)
 	If akWho == None || (akWho as CompanionActorScript) == None
 		Return False
@@ -88,6 +86,17 @@ Float Function Affinity(Actor akWho)
 	Return a
 EndFunction
 
+; MEASURED 2026-09-23 across Fallout4.esm and the three story DLC masters:
+; CompanionActorScript's optional InfatuationRomanticMessage ("the message shown
+; when the companion is at Romantic Infatuation") is filled on exactly the seven
+; romanceable companions -- Cait, Curie, Danse, Hancock, MacCready, Piper, Preston
+; -- and on none of the others: X6-88, Deacon, Gage, Old Longfellow, Nick, Strong,
+; Codsworth, Ada. So the game's own data says who has a romance, and no list here does.
+Bool Function HasRomance(Actor akWho)
+	CompanionActorScript cas = akWho as CompanionActorScript
+	Return cas != None && cas.InfatuationRomanticMessage != None
+EndFunction
+
 Bool Function IsRomanced(Actor akWho)
 	ActorValue av = Self.VanillaAV(CA_IS_ROMANTIC_ID)
 	If akWho == None || av == None
@@ -100,9 +109,9 @@ Bool Function Refuses(Actor akWho)
 	If Parent.Refuses(akWho)
 		Return True
 	EndIf
-	; A companion who "wants to talk" has one of THEIR affinity scenes queued --
-	; a threshold, a romance retry, a murder they saw. That conversation is
-	; theirs and goes first.
+	; A companion who "wants to talk" has one of THEIR affinity scenes queued -- a
+	; threshold, a romance retry, a murder they saw. That conversation is theirs
+	; and goes first.
 	ActorValue av = Self.VanillaAV(CA_WANTS_TO_TALK_ID)
 	Return av != None && akWho.GetValue(av) != 0.0
 EndFunction

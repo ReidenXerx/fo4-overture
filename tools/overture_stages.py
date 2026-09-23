@@ -81,8 +81,40 @@ FALLBACK_NO_VERDICT = 0x01000D40   # + register slot
 FALLBACK_NO_VERDICT_LOVER = 0x01000D50   # + register slot * 4 + persona (O-31's lover sets)
 RUNON_QUEST_ALIAS = 5
 
+# THE COMPANION MODULE (methodology 11; O-19: B-lite + C + D). Its records, in the
+# 0x850-0x8FF range reserved for it, and 0xE10-0xEFF for the wheel's answers.
+COMPANIONS_QUEST = 0x01000855        # the companion scripts; a script holder like RapportBridgeQuest
+COMPANIONS_QUEST_EDID = 'OvertureCompanionsQuest'
+COMPANION_DESIRE_AV = 0x01000851     # PUBLISHED: fo4-anatomy reads it, 0..1. Never renumber.
+COMPANION_MOMENT_AV = 0x01000853     # MOMENT_* below; written by Overture:Companions:Moments
+COMPANION_LAST_TICK_AV = 0x01000856  # the game day the feeders last counted
+COMPANION_SEEN_SCENE_AV = 0x0100085A  # the player's last scene this companion has reacted to
+COMPANION_TIER_AV = 0x0100085B       # their own affinity's level, as last counted
+COMPANION_GREET_BASE = 0x01000860    # four: the moment's two, then the player's start's two
+COMPANION_PLAYER_TOPIC = 0x01000864  # four, one per wheel slot
+COMPANION_PLAYER_INFO = 0x01000868
+COMPANION_NPC_TOPIC = 0x0100086C
+COMPANION_ANSWER_BASE = 0x01000E10   # + slot * 0x40; persona * 10 + verdict set * 2 + variant
+COMPANION_SLOT_STRIDE = 0x40
+COMPANION_FALLBACK = 0x28            # within a slot: + 0 no persona, + 1 no verdict
+COMPANION_SCRIPTS = ('Overture:Companions:Registry', 'Overture:Companions:EngineAdapter',
+                     'Overture:Companions:VanillaAdapter', 'Overture:Companions:IvyAdapter',
+                     'Overture:Companions:Feeders', 'Overture:Companions:Moments',
+                     'Overture:Companions:IvyNative')
+# OvertureCompanionMoment. 0: not ours to open (C6 -- no adapter vouches, their own
+# scene, their state says no). 1: vouched, so the player may start (O-23). 2: a
+# moment is open (C), so the companion speaks first.
+MOMENT_VOUCHED, MOMENT_OPEN = 1, 2
+# The companion wheel. The offer's NEUTRAL slot holds the costless "Later."
+# (voice/companion-lines.json has why); the other three are stage 3's propositions.
+# Registers decide nothing here: a companion's answer is their state and their
+# wanting, never the player's choice of words (O-22, B-lite).
+COMPANION_WHEEL = (('PTOP', 'charm'), ('NETO', 'later'), ('NTOP', 'blunt'), ('QTOP', 'linger'))
+
 # Overture:Reply's Outcome, continued from make_overture_esp's 1..5.
 OUTCOME_ACCEPT, OUTCOME_NOTYET, OUTCOME_REFUSE, OUTCOME_NOT_HERE, OUTCOME_NOT_NOW = 6, 7, 8, 9, 10
+# The companion's answer to "Later.": nothing happened, and nothing is paid.
+OUTCOME_LATER = 11
 # OvertureVerdict. 0 = not decided. 5 "not now": the moment is wrong, not the
 # person (the romantic out of their setting, Rapport busy) -- once folded into
 # "not yet", which told the player to try harder at the one thing that was not
@@ -141,12 +173,42 @@ SETTINGS = [
      -0.3, 0.0, 0.01),
     ('fJealousyThrill', 'Jealousy', 0.03, 'Jealousy', 'When it thrills',
      "What a vulgar lover's bond gains on hearing it. The mercantile shrug.", 0.0, 0.2, 0.01),
+    # THE COMPANION MODULE (methodology 11). Wanting (Desire, 0..1) is the one state
+    # of its own: it builds with days on the road together and falls after a scene
+    # together. Every number ASSUMED, for the owner to tune.
+    ('fDesireMercantile', 'Companions', 0.50, 'Companions', 'Wanting before a yes: mercantile',
+     'How much a mercantile companion has to want it before they say yes (0 to 1). It builds with every '
+     'day on the road together, and a scene together sates it.', 0.0, 1.0, 0.05),
+    ('fDesireRomantic', 'Companions', 0.50, 'Companions', 'Wanting before a yes: romantic',
+     'The same, for a romantic companion.', 0.0, 1.0, 0.05),
+    ('fDesireVulgar', 'Companions', 0.30, 'Companions', 'Wanting before a yes: vulgar',
+     'The same, for a vulgar companion.', 0.0, 1.0, 0.05),
+    ('fDesireReticent', 'Companions', 0.70, 'Companions', 'Wanting before a yes: reticent',
+     'The same, for a reticent companion.', 0.0, 1.0, 0.05),
+    ('fRomancedEase', 'Companions', 0.20, 'Companions', 'Romanced: the bar is lower by',
+     'A companion you have romanced, by their own romance, needs this much less.', 0.0, 0.5, 0.05),
+    ('fAffinityGate', 'Companions', 1.00, 'Companions', 'No romance of their own: affinity needed',
+     'Companions the game gives no romance (X6-88, Deacon, Gage, Old Longfellow) need their own affinity '
+     'this high first: 1 is their top level, 0.75 the one below it.', 0.25, 1.0, 0.25),
+    ('fDesirePerDay', 'Companions', 0.10, 'Companions', 'Wanting grows per day together',
+     'How much a game day travelling together builds wanting.', 0.0, 0.5, 0.01),
+    ('fTogetherPerDay', 'Companions', 0.01, 'Companions', 'A day together adds to the bond',
+     "A share of the distance left, as every source moves Rapport's bond.", 0.0, 0.1, 0.005),
+    ('fThresholdUp', 'Companions', 0.05, 'Companions', 'Their affinity rises a level',
+     'What each level of their own affinity they reach adds to the bond.', 0.0, 0.3, 0.01),
+    ('fThresholdDown', 'Companions', -0.08, 'Companions', 'Their affinity falls a level',
+     'What each level they lose takes away.', -0.3, 0.0, 0.01),
 ]
 # The switches that are MCM settings (the other, OvertureEnabled, is a global: the
 # greeting's own conditions read it).  (key, ini section, default, label, help)
 SWITCHES = [
     ('bScenes', 'Switches', False, 'A yes starts a scene',
      'When someone says yes, Rapport starts the scene. Off: they say yes and nothing more happens.'),
+    # O-20 (owner, 2026-09-23): ON by default -- and it acts only with "A yes starts a
+    # scene" on, which is how "after a player scene is proven end to end" is kept.
+    ('bIvyFade', 'Ivy', True, "Ivy: her fade becomes a scene",
+     "When Ivy's own Favor: Sex scene fades to black, Rapport plays the scene, then hers carries on. "
+     "Needs 'A yes starts a scene'."),
 ]
 # In settings.ini and on no control: Approach.HasSettings's proof that MCM read THIS
 # file. A key that is a slider cannot prove it -- a player's one moved slider made
@@ -205,6 +267,7 @@ def build_staged():
     stage1_prompts = {p['register']: p for p in prompts['prompts']}
     bank = json.loads((m.ROOT / 'voice' / 'lines.json').read_text(encoding='utf-8'))
     lands_on = bank['lands_on']
+    companion_bank = json.loads((m.ROOT / 'voice' / 'companion-lines.json').read_text(encoding='utf-8'))
 
     reply = {1: {}, 2: {}}
     recoil = {1: {}, 2: {}}
@@ -225,7 +288,10 @@ def build_staged():
            (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
            (m.INVITED_UNTIL_AV, 'invited-until actor value'), (m.JEALOUSY_MARK_AV, 'jealousy-mark actor value'),
            (m.JEALOUS_PENDING_AV, 'jealous-pending actor value'),
-           (m.GREET_TOPIC, 'greeting topic'), (m.GREET_INFO, 'greeting line')]
+           (m.GREET_TOPIC, 'greeting topic'), (m.GREET_INFO, 'greeting line'),
+           (COMPANIONS_QUEST, 'companions quest'), (COMPANION_DESIRE_AV, 'companion desire'),
+           (COMPANION_MOMENT_AV, 'companion moment'), (COMPANION_LAST_TICK_AV, 'companion last tick'),
+           (COMPANION_SEEN_SCENE_AV, 'companion seen scene'), (COMPANION_TIER_AV, 'companion affinity tier')]
     children, count = b'', 0
     topics = {1: {}, 2: {}, 3: {}}
 
@@ -377,6 +443,9 @@ def build_staged():
         children += m.child_group(rtid, 7, block)
         count += 1 + n_infos
 
+    companion_topics, companion_children = companion_wheel(companion_bank, ids)
+    children += companion_children
+    companion_infos, companion_count = companion_greetings(companion_bank['lines'], ids)
     m.check_unique(ids)
 
     lover_lines = [l['text'] for l in bank['lines'] if l.get('kind') == 'lover_greeting']
@@ -386,19 +455,24 @@ def build_staged():
                      for l in bank['lines'] if l.get('kind') == 'jealous_greeting']
     if len(jealous_lines) > 10:
         raise SystemExit('more jealous greetings than 0x836..0x83F holds')
-    children += m.greeting(lover_lines, jealous_lines)
-    children += scene_staged(topics)
+    children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count)
+    children += scene_staged(topics, companion_topics)
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
-    blob = m.group('GLOB', globs) + m.group('QUST', quest_blob)
+    blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest())
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
                     + m.actor_value(m.INVITED_UNTIL_AV, 'OvertureInvitedUntil')
                     + m.actor_value(m.JEALOUSY_MARK_AV, 'OvertureJealousyMark')
-                    + m.actor_value(m.JEALOUS_PENDING_AV, 'OvertureJealousPending'))
+                    + m.actor_value(m.JEALOUS_PENDING_AV, 'OvertureJealousPending')
+                    + m.actor_value(COMPANION_DESIRE_AV, 'OvertureCompanionDesire')
+                    + m.actor_value(COMPANION_MOMENT_AV, 'OvertureCompanionMoment')
+                    + m.actor_value(COMPANION_LAST_TICK_AV, 'OvertureCompanionLastTick')
+                    + m.actor_value(COMPANION_SEEN_SCENE_AV, 'OvertureCompanionSeenScene')
+                    + m.actor_value(COMPANION_TIER_AV, 'OvertureCompanionAffinityTier'))
 
     # The header, and the uniqueness check, from the bytes actually written.
     return m.finish(blob), topics
@@ -450,6 +524,125 @@ def at_proposition():
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED))
 
 
+def companion_here(value=1.0):
+    """Whoever is in the alias IS the player's current companion (1.0), or is not
+    (0.0). Only the companion greeting can put a current companion there: every
+    stranger's line requires someone who has never been one."""
+    return m.field('CTDA', m.condition(m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, value=value,
+                                       runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
+
+
+def companion_greetings(lines, ids):
+    """The companion's way in (methodology 11, C; O-23). Two runs, fenced:
+
+      a MOMENT (OvertureCompanionMoment == 2): Overture:Companions:Moments opened
+      one -- their wanting crossed its bar, or their own system's arousal rose --
+      and the companion speaks first;
+      the PLAYER'S START (the moment AV >= 1, and the player SNEAKING -- vanilla's
+      own test, IsSneaking run on PlayerRef): O-23, the player can start too.
+
+    The AV's 1 is an adapter vouching for this companion (C6): 0 keeps a mod
+    companion with voiced content of their own -- Ivy included -- invisible."""
+    moment = [l['text'] for l in lines if l['kind'] == 'companion_moment']
+    start = [l['text'] for l in lines if l['kind'] == 'companion_start']
+    if not moment or not start or len(moment) + len(start) > 4:
+        raise SystemExit('companion greetings: one to four in all, and at least one of each kind')
+    open_now = m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV, value=float(MOMENT_OPEN),
+                                           runon=m.RUNON_SUBJECT))
+    player_starts = (m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
+                                                 value=float(MOMENT_VOUCHED), op=m.CTDA_OP_GE,
+                                                 runon=m.RUNON_SUBJECT))
+                     + m.field('CTDA', m.condition(m.FUNC_IS_SNEAKING, 0, value=1.0,
+                                                   runon=m.RUNON_REFERENCE, reference=m.PLAYER_REF)))
+    infos, fid = b'', COMPANION_GREET_BASE
+    for kind, group, gate in (('moment', moment, open_now), ('start', start, player_starts)):
+        for i, text in enumerate(group):
+            last = i == len(group) - 1
+            enam = m.ENAM_REQUIRES_PLAYER_ACTIVATION | m.ENAM_RANDOM | (m.ENAM_RANDOM_END if last else 0)
+            infos += m.greeting_info(fid, text, enam, gate, companion=True)
+            ids.append((fid, f'companion greeting {kind} {i}'))
+            fid += 1
+    return infos, len(moment) + len(start)
+
+
+def companion_wheel(bank, ids):
+    """The companion phase's four options and the companion's answers.
+
+    The answers are a set per persona and per verdict, one behind EVERY
+    proposition: which register the player picked decides nothing (O-22 and
+    B-lite: their own state and their wanting do). "Later." has its own answer,
+    persona-neutral, and costs nothing."""
+    wheel = bank['wheel']
+    answers = {}
+    for l in bank['lines']:
+        if l['kind'] == 'companion_answer':
+            answers.setdefault((l['persona'], l['outcome']), []).append(l['text'])
+    later = [l['text'] for l in bank['lines'] if l['kind'] == 'companion_later']
+    if not later:
+        raise SystemExit('no companion_later lines')
+    sets = ((VERDICT_NOT_HERE, OUTCOME_NOT_HERE, 'nothere'), (VERDICT_REFUSE, OUTCOME_REFUSE, 'refuse'),
+            (VERDICT_NOTYET, OUTCOME_NOTYET, 'notyet'), (VERDICT_ACCEPT, OUTCOME_ACCEPT, 'accept'),
+            (VERDICT_NOT_NOW, OUTCOME_NOT_NOW, 'notnow'))
+    topics, children = {}, b''
+    for n, (slot, key) in enumerate(COMPANION_WHEEL):
+        opt = wheel[key]
+        tid, pid = COMPANION_PLAYER_TOPIC + n, COMPANION_PLAYER_INFO + n
+        topics[slot] = tid
+        ids += [(tid, f'companion player topic {key}'), (pid, f'companion player line {key}')]
+        children += m.topic(tid, f'OvertureCompanion{key.capitalize()}', infos=1)
+        children += m.child_group(tid, 7, m.line(pid, opt['prompt'], opt['spoken'], enam=0))
+
+        rtid = COMPANION_NPC_TOPIC + n
+        topics[m.NPC_SLOT[slot]] = rtid
+        ids.append((rtid, f'companion reply topic {key}'))
+        base = COMPANION_ANSWER_BASE + n * COMPANION_SLOT_STRIDE
+        block, n_infos = b'', 0
+        if key == 'later':
+            for v, text in enumerate(later):
+                iid = base + v
+                ids.append((iid, f'companion later {v}'))
+                last = v == len(later) - 1
+                block += m.line(iid, None, text, enam=m.ENAM_RANDOM | (m.ENAM_RANDOM_END if last else 0),
+                                reply=(0, OUTCOME_LATER))
+                n_infos += 1
+        else:
+            for k, persona in enumerate(m.PERSONAS):
+                for s_index, (verdict, code, outcome) in enumerate(sets):
+                    texts = answers.get((persona, outcome), [])
+                    if not texts or len(texts) > 2:
+                        raise SystemExit(f'companion {persona} {outcome}: {len(texts)} lines, need 1 or 2')
+                    for v, text in enumerate(texts):
+                        iid = base + k * 10 + s_index * 2 + v
+                        ids.append((iid, f'companion {key}/{persona} {outcome} {v}'))
+                        # No flag on any answer, the yes included: the stranger
+                        # stage 3's reason (XDI would mark the yes on the wheel).
+                        block += m.line(iid, None, text, persona_index=k, enam=m.ENAM_RANDOM,
+                                        reply=(3, code), extra=verdict_condition(verdict))
+                        n_infos += 1
+            # No persona from Rapport, then no verdict decided: neutral beats that
+            # end like a miss, not Random, last -- reached only when all above fail.
+            fid = base + COMPANION_FALLBACK
+            ids += [(fid, f'companion {key} no-persona fallback'), (fid + 1, f'companion {key} no-verdict fallback')]
+            block += m.line(fid, None, '...', enam=0, reply=(3, m.OUTCOME_MISS), extra=no_persona_condition())
+            block += m.line(fid + 1, None, '...', enam=0, reply=(3, m.OUTCOME_MISS), extra=verdict_condition(0))
+            n_infos += 2
+        children += m.topic(rtid, f'OvertureCompanionReply{key.capitalize()}', infos=n_infos)
+        children += m.child_group(rtid, 7, block)
+    return topics, children
+
+
+def companions_quest():
+    """The companion module's scripts, on a quest of their own: EDID, VMAD, DNAM,
+    NEXT and nothing else -- RapportBridgeQuest's exact shape (Rapport.esp 01000800,
+    which runs in game), start-game-enabled, no aliases, no dialogue. The dialogue
+    is the approach quest's: one scene, a phase of its own."""
+    f = m.field('EDID', m.zstring(COMPANIONS_QUEST_EDID))
+    f += m.field('VMAD', m.vmad_scripts([(name, ()) for name in COMPANION_SCRIPTS]))
+    f += m.field('DNAM', bytes.fromhex('110064670000000000000000'))
+    f += m.field('NEXT', b'')
+    return m.record('QUST', COMPANIONS_QUEST, f)
+
+
 def not_at_proposition():
     """Its negation, three conditions ANDed (De Morgan): no yes before, not the
     lover tier, and no invitation still running."""
@@ -458,13 +651,18 @@ def not_at_proposition():
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_LE, value_global=m.GLOB_GAME_DAYS_PASSED))
 
 
-def scene_staged(topics):
-    """Five phases: 0 empty (the alias settles), 1 stage 1 (first meetings only),
+def scene_staged(topics, companion_topics):
+    """Six phases: 0 empty (the alias settles), 1 stage 1 (first meetings only),
     2 stage 2 (after a land, or for a returning NPC), 3 stage 3 (for a verdict of
-    "not yet" or better, or a conversation that opens at the proposition), 4
-    HandBack -- the type-4 End Scene Say Greeting action the one-exchange scene
-    ends with, reached by falling through after any line but a yes (nothing jumps
-    to it)."""
+    "not yet" or better, or a conversation that opens at the proposition), 4 the
+    COMPANION's wheel (methodology 11: the player's current companion, and only
+    them -- phases 1 to 3 refuse a companion), 5 HandBack -- the type-4 End Scene
+    Say Greeting action the one-exchange scene ends with, reached by falling
+    through after any line but a yes (nothing jumps to it).
+
+    OnPhaseBegin numbers them from 1 (MEASURED in the 2026-09-23 Papyrus log: an
+    approach logs "phase 1" and "phase 2" as it opens -- the empty phase and stage
+    1 -- and never a "phase 0")."""
     f = m.field('EDID', m.zstring(m.SCENE_EDID))
     f += m.field('FNAM', struct.pack('<I', 0x00000024))
     # Stage 1: nothing reached yet, AND not a conversation that opens at the
@@ -490,7 +688,11 @@ def scene_staged(topics):
     # dialogue closes so Rapport's scene can start, with no re-greet on top.
     not_after_yes = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
                                                 value=float(OUTCOME_ACCEPT), op=m.CTDA_OP_NE))
-    f += (phase() + phase(first_meeting) + phase(stage_two) + phase(stage_three)
+    # A companion never takes phases 1-3 -- a companion's conversation is not a
+    # stranger's -- and phase 4 is theirs alone.
+    not_companion = companion_here(0.0)
+    f += (phase() + phase(first_meeting + not_companion) + phase(stage_two + not_companion)
+          + phase(stage_three + not_companion) + phase(companion_here(), name='Companion')
           + phase(not_after_yes, name=HAND_BACK))
     # The actor list: alias 0, as the one-exchange scene has it.
     f += m.field('ALID', struct.pack('<I', m.ALIAS_INDEX))
@@ -499,19 +701,20 @@ def scene_staged(topics):
     f += dialogue_action(1, 1, topics[1])
     f += dialogue_action(2, 2, topics[2])
     f += dialogue_action(3, 3, topics[3])
+    f += dialogue_action(4, 4, companion_topics)
     # HandBack: type 4 with HTID, "End Scene Say Greeting" -- the NPC re-greets and
     # their own dialogue takes over (O-8). The one-exchange scene's last action.
     f += m.field('ANAM', struct.pack('<H', 4))
     f += m.field('NAM0', b'\0')
     f += m.field('ALID', struct.pack('<I', m.ALIAS_INDEX))
-    f += m.field('INAM', struct.pack('<I', 4))
-    f += m.field('SNAM', struct.pack('<I', 4))
-    f += m.field('ENAM', struct.pack('<I', 4))
+    f += m.field('INAM', struct.pack('<I', 5))
+    f += m.field('SNAM', struct.pack('<I', 5))
+    f += m.field('ENAM', struct.pack('<I', 5))
     f += m.field('STSC', struct.pack('<I', 0))
     f += m.field('HTID', b'')
     f += m.field('ANAM', b'')
     f += m.field('PNAM', struct.pack('<I', m.QUEST_FORMID))
-    f += m.field('INAM', struct.pack('<I', 4))            # the highest action index, as vanilla's tails read
+    f += m.field('INAM', struct.pack('<I', 5))            # the highest action index, as vanilla's tails read
     f += m.field('VNAM', m.VNAM_DONT_SET_ALL)
     f += m.field('NNAM', m.zstring('Overture: an approach in three stages.'))
     f += m.field('XNAM', struct.pack('<I', 0))
