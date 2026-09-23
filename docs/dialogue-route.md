@@ -384,13 +384,27 @@ repeatable. Ours is now repeatable — which exposed the next problem below.
   log), about a second after `stopquest OvertureDialogueQuest` with our scene's dialogue open. Prime
   suspect, not proven. End the dialogue first.
 
-### What is broken now
+### Fixed the same night: one exchange, then theirs (owner poll: hand back to their own dialogue)
 
-**The approach never lets go.** After the reply our scene ends, the conversation re-greets, our
-repeatable greeting wins again because the alias still holds the NPC, and the player is back at
-Overture's four options — for ever. The approach has to be ONE exchange: clear the alias (or mark the
-NPC as approached) when the reply finishes, so the next greeting is the NPC's own. That is the first
-job of the next build.
+**The approach never let go.** After the reply our scene ended, the conversation re-greeted 140 ms
+later, our repeatable greeting won again because the alias still held the NPC, and the player was back
+at Overture's four options for ever.
+
+Now the greeting also needs `OvertureArmed == 1` (GLOB `0842`). `approach ... noscene` arms it, and
+`Overture:Approach` polls the scene every 0.5 s: the moment it is seen PLAYING it disarms, seconds
+before the reply ends, so the re-greet goes to the NPC's own greeting; once it has stopped, the alias
+is let go. A poll, not the scene's `OnEnd`, because a queued event is not guaranteed to land inside
+those 140 ms. Unused, it disarms itself after 120 s. Verified on Charlie:
+
+```
+Charlie   27000831  "..."                               our greeting, armed
+Richard   27000901  "I brought you something."
+Charlie   27001031  "Put your money away and tell me what you want to do to me."
+[dialogue] closed -> re-greet:
+Charlie   0010D5D7  "Anyway, seeing as my primary function is the sale and distribution of
+                     intoxicating substances, I gotta ask: you buyin' or what?"
+                    -> his own scene 00075E89, his own options (singer, barter, not today)
+```
 
 ## Status
 
@@ -400,6 +414,6 @@ job of the next build.
 | The NPC's answer | **Verified in game** — from its own reply topic, persona-conditioned |
 | Variant rotation | **Verified in game** — 6 picks, both variants |
 | Place override | **Verified in game** — 5/5 recoils in public, fenced by Random End |
-| Hand-back to the NPC's own dialogue | **BROKEN** — the repeatable greeting loops; clear the alias after the exchange |
+| Hand-back to the NPC's own dialogue | **Verified in game** — armed greeting, disarmed at scene start, alias released at scene end |
 | Lip generation | **Tool proven, output unverified in game** |
 | The lines | 128 authored NPC lines + 4 player lines |

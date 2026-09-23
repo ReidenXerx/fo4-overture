@@ -30,6 +30,23 @@ Int Property PERSONA_GLOBAL_ID = 0x00000840 AutoReadOnly
 Int Property PUBLIC_GLOBAL_ID = 0x00000841 AutoReadOnly
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
+Int Property ARMED_GLOBAL_ID = 0x00000842 AutoReadOnly
+
+; ONE EXCHANGE, then the NPC's own dialogue (owner poll 2026-09-23). The greeting
+; that opens Overture's scene needs OvertureArmed == 1 as well as the alias. The
+; scene is watched: the moment it is seen playing the approach is DISARMED, so
+; when the engine re-greets after the reply -- 140 ms after it, measured -- the
+; NPC's own greeting wins and their normal options come back. Once the scene has
+; stopped, the alias is let go. Without this the repeatable greeting fired again
+; after every reply and the player was held in Overture's four options for ever.
+; A poll rather than the scene's OnEnd event, because a queued event is not
+; guaranteed to land inside those 140 ms; disarming at the START is seconds early.
+Int Property WATCH_TIMER = 1 AutoReadOnly
+Float Property WATCH_EVERY = 0.5 AutoReadOnly
+Float Property ARMED_FOR = 120.0 AutoReadOnly
+
+Bool watchSawScene = false
+Float watchArmedAt = 0.0
 
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
@@ -49,6 +66,58 @@ EndFunction
 
 GlobalVariable Function PublicGlobal()
 	Return Game.GetFormFromFile(PUBLIC_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+GlobalVariable Function ArmedGlobal()
+	Return Game.GetFormFromFile(ARMED_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+Function Watch()
+	Self.CancelTimer(WATCH_TIMER)
+	watchSawScene = false
+	watchArmedAt = Utility.GetCurrentRealTime()
+	Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
+EndFunction
+
+Event OnTimer(Int aiTimerID)
+	If aiTimerID != WATCH_TIMER
+		Return
+	EndIf
+	Scene sc = Self.ApproachScene()
+	If sc != None && sc.IsPlaying()
+		If !watchSawScene
+			watchSawScene = true
+			GlobalVariable armed = Self.ArmedGlobal()
+			If armed != None
+				armed.SetValue(0.0)
+			EndIf
+		EndIf
+		Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
+		Return
+	EndIf
+	If watchSawScene
+		; the exchange happened and is over
+		Self.Release()
+		Return
+	EndIf
+	If Utility.GetCurrentRealTime() - watchArmedAt > ARMED_FOR
+		; armed but never used: nobody should walk up to this NPC a day later and
+		; still be ambushed by the approach
+		Self.Release()
+		Return
+	EndIf
+	Self.StartTimer(WATCH_EVERY, WATCH_TIMER)
+EndEvent
+
+Function Release()
+	GlobalVariable armed = Self.ArmedGlobal()
+	If armed != None
+		armed.SetValue(0.0)
+	EndIf
+	ReferenceAlias target = Self.TargetAlias()
+	If target != None
+		target.Clear()
+	EndIf
 EndFunction
 
 ; Rapport owns the persona; Overture only reads it (O-1). The order here IS the
@@ -200,7 +269,16 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	EndIf
 
 	If !startScene
-		MCP:Core.Reply(tag, note + " | scene NOT started (noscene) - alias filled only, now talk to them")
+		; Armed: the next time the player talks to them, the greeting opens the
+		; approach -- once (see Watch).
+		GlobalVariable armed = Self.ArmedGlobal()
+		If armed == None
+			MCP:Core.Reply(tag, note + " | OvertureArmed did not resolve - the greeting can never fire")
+			Return
+		EndIf
+		armed.SetValue(1.0)
+		Self.Watch()
+		MCP:Core.Reply(tag, note + " | ARMED (noscene) - alias filled, now talk to them; one exchange, then theirs")
 		Return
 	EndIf
 
@@ -212,5 +290,8 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		Utility.Wait(0.5)
 		note = note + " | after ForceStart=" + sc.IsPlaying()
 	EndIf
+	; Started by hand, so nothing to arm -- but the alias still has to be let go
+	; once the exchange is over, or the next conversation is ours again.
+	Self.Watch()
 	MCP:Core.Reply(tag, note)
 EndEvent

@@ -59,6 +59,7 @@ GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
+ARMED_GLOBAL = 0x01000842     # 1 while an approach waits to open; the greeting needs it
 
 # The register O-4 calls intimate. Only this one recoils in public: a gift or a
 # compliment in a crowded bar is merely a gift or a compliment.
@@ -218,6 +219,20 @@ def public_global():
     f += field('FNAM', b'f')
     f += field('FLTV', struct.pack('<f', 0.0))
     return record('GLOB', PUBLIC_GLOBAL, f)
+
+
+def armed_global():
+    """1 while an approach is waiting to open, 0 otherwise.
+
+    The greeting needs it as well as the alias. Overture:Approach arms it and
+    DISARMS it the moment the scene is seen playing, so the re-greet that follows
+    the NPC's reply goes to the NPC's own greeting: one exchange, then theirs.
+    Starts at 0 so a fresh game never opens an approach nobody asked for.
+    """
+    f = field('EDID', zstring('OvertureArmed'))
+    f += field('FNAM', b'f')
+    f += field('FLTV', struct.pack('<f', 0.0))
+    return record('GLOB', ARMED_GLOBAL, f)
 
 
 def topic(topic_id, edid, infos=1):
@@ -380,6 +395,10 @@ def greeting():
     # build did and what O-7 cannot be built on top of.
     g += field('CTDA', condition(FUNC_GET_IS_ALIAS_REF, ALIAS_INDEX,
                                  value=1.0, runon=RUNON_SUBJECT))
+    # AND armed: one exchange per approach. Without it the repeatable greeting
+    # re-fired on the re-greet after every reply and never let the NPC go.
+    g += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, ARMED_GLOBAL,
+                                 value=1.0, runon=RUNON_SUBJECT))
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     g += field('NAM0', b'\0')
     g += field('INAM', struct.pack('<I', 1))
@@ -520,6 +539,7 @@ def build():
     topic_ids, children, count = {}, b'', 0
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
                (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
+               (ARMED_GLOBAL, 'armed global'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
         prompt = by_register[register]
@@ -606,9 +626,9 @@ def build():
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('GLOB', persona_global() + public_global()) + group('QUST', quest_blob)
+    blob = group('GLOB', persona_global() + public_global() + armed_global()) + group('QUST', quest_blob)
 
-    records = 2 + 1 + 1 + 2 + count  # globs, quest, scene, greeting pair, the rest
+    records = 3 + 1 + 1 + 2 + count  # globs, quest, scene, greeting pair, the rest
     # From every id actually used. The hand-listed version predated the variant
     # and recoil ranges and named an id below half of them.
     next_object = max(i for i, _what in all_ids) + 1
@@ -637,6 +657,7 @@ def main():
     print(f'  persona global {PERSONA_GLOBAL:08X}: ' +
           ', '.join(f'{k}={n}' for k, n in enumerate(PERSONAS)))
     print(f'  public global  {PUBLIC_GLOBAL:08X}: 1 = others can see them')
+    print(f'  armed global   {ARMED_GLOBAL:08X}: 1 = the next talk opens the approach, once')
     print('  master', MASTER)
     return 0
 
