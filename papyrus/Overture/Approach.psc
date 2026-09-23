@@ -337,6 +337,15 @@ EndEvent
 
 Function Hook()
 	Self.RegisterForRemoteEvent(Game.GetPlayer(), "OnPlayerLoadGame")
+	; Overture:Dev (the F4MCP verbs) hooks itself only from its own OnQuestInit,
+	; which never runs in a save where this quest was already running before
+	; Dev.pex existed -- the owner's save: F4MCP listed no "approach" verb at all
+	; (fo4-mcp, 09-24). Nudged on every load, BY NAME, so no F4MCP type enters
+	; this script (microscope pass 2); without F4MCP, Dev's Hook returns early.
+	ScriptObject dev = (Self as Quest).CastAs("Overture:Dev")
+	If dev != None
+		dev.CallFunctionNoWait("Hook", new Var[0])
+	EndIf
 	; The companion module's quest: start-game-enabled, but if a save somehow has it
 	; stopped, nothing would hook and the module would be invisible without a word
 	; (microscope wave 3). Its own OnQuestInit hooks the rest.
