@@ -530,14 +530,20 @@ before anything is built on it for good (O-6 was exactly that review):
 | the player's proposition, one per register | 4 | `stage3` |
 | "not here" per persona × 2 | 8 | `voice/lines.json`, `draft: true` |
 | "not now" per persona × 2 | 8 | the same |
+| a lover's greeting, persona-neutral (O-12; 2026-09-23) | 4 | `voice/lines.json` `lover_greeting` |
+| a jealous lover's greeting, per persona × 2 (O-33; 2026-09-23) | 8 | `voice/lines.json` `jealous_greeting` |
 
-**Still to write** (none tonight):
+**36 DRAFT lines in all**, none voiced. O-31 (any register answers a lover) reuses each persona's own
+stage-3 answers in every register, so it adds INFOs but no lines -- and since a voice file is named by
+its INFO id, the same line will need a file under each id when it is voiced (§12, the id registry).
+
+**Still to write:**
 
 | lines | count | where |
 | --- | --- | --- |
 | spoken for, per persona × 2 | 8 | stage 3 |
-| lover's greetings and the tiers of §5a | ~24 | poll-dependent |
-| guilty greeting after an affair against the player (coupling 1) | 8 | poll-dependent |
+| the warm, close and fallen-out greetings of §5a, and per-persona lover greetings | ~24 | once wanted; the fallen-out one needs a script on its line (§5a) |
+| guilty greeting after an affair against the player (coupling 1) | 8 | poll-dependent: today nothing is written about the player when their lover strays |
 
 Voices: six core voice types first (O-5), the owner picks every voice by ear (V-9), partial coverage
 is safe (a missing file shows the subtitle). A modded companion's own voice type — Ivy's `_NPC_IVY` —
@@ -713,14 +719,39 @@ teleports her mid-scene when the player is carried off by AAF.
 2. **The owner's Deploy**, then one conversation to prove `Reply.pex`: the bond write
    (`Rapport.log`: `relationship: 00000014 + <npc> bond ... (reason 3)`), the stage reached, the verdict.
 3. **Stage 4**: one scene with the player through `RequestScene`, watched end to end (faces, overlays,
-   the watchers, the watchdog, the co-save) — after Rapport skips barks for the player.
-4. ~~**The MCM page**~~ — built: two switches as globals, the numbers in §3 as MCM settings.
-5. **The bond tiers and the lover state** (§5a) — the lover state, lovers, jealousy and invitations
-   built; the warm, close and fallen-out greetings wait for their lines.
+   the watchers, the watchdog, the co-save). Rapport skips barks for the player now (R-18). **This is the
+   next thing to prove, before anything else is built on it**: everything about lovers sits on it.
+4. ~~**The MCM page**~~ — built: one switch as a global (the greeting reads it), the other switch and
+   the numbers in §3 as MCM settings.
+5. **The bond tiers and the lover state** (§5a) — the lover state, lovers to the world, jealousy with
+   its own greetings, invitations and any-register-for-lovers built (O-27 to O-33), not yet run; the
+   warm, close and fallen-out greetings wait for their lines.
 6. **Spoken for** (§7) and its eight lines.
-7. **The follow** (§6), as a Rapport helper, if the poll says yes.
+7. **The follow** (§6), a Rapport helper -- after stage 4 is proven (O-32).
 8. **Companions** (§11), B-lite first.
-9. Voicing, when the lines are final.
+9. **Before voicing: an INFO id registry.** A voice file is named by its INFO's id, and the ids are
+   computed from positions in `voice/lines.json`: an edit to the bank can move them, and O-31 put the
+   same line under several ids. An append-only registry keyed by line id, seeded from today's mapping.
+10. Voicing, when the lines are final.
+
+**Not yet verified in game** (each is a test in the next run, not a guess to design around):
+- Stage 4 itself: AAF with the player, faces and overlays on the player, the lane holding.
+- MCM on a light plugin: the page, and `sourceForm "Overture.esp|842"` on an ESL-flagged file.
+- The `iDefaults:Meta` key: does MCM read a settings.ini key that is on no control? (If not, the numbers
+  stay at their defaults and scenes stay off -- the safe way to fail.)
+- Whether Papyrus refuses to link a function whose local's type is missing (why `Overture:Dev` exists).
+- Whether `TopicInfo.OnEnd` fires for a line cut off, and whether a real-time timer survives a load.
+- A leveled actor's base id across a reload (Rapport's names key by it).
+- The conversation's end by counted replies, the midnight stamp, O-30's hour, O-31's lover sets, O-33's
+  greeting and marker, `OnPlayerSceneRecorded`.
+
+**Later** (wanted, not scheduled):
+- Per-persona lover greetings: the persona is unknown when a greeting is chosen, unless a marker
+  written earlier carries it, as O-33's does.
+- Lines in the middle of a conversation that turn it (the NPC's side, not the Narrator's).
+- The yes's retry moved into Rapport, as a queued player request (Rapport roadmap 16).
+- The player's bond as an actor value Rapport keeps, which would retire `OvertureTier` (Rapport
+  roadmap 15).
 
 ---
 
@@ -735,7 +766,8 @@ no recommendation). The persona pins wait on a table the owner reviews (O-26). T
 
 - ~~**Press Deploy in Vortex, with the game closed.**~~ **DONE** (the owner, 2026-09-23 ~11:00):
   `Reply.pex` is in Data, hardlinked from the staging folder (checked with `fsutil hardlink list`).
-- **Review the 24 DRAFT lines** (§10): 8 player lines, 16 NPC lines, written tonight without you.
+- **Review the 36 DRAFT lines** (§10): 8 player lines, 16 stage-3 NPC lines, 4 lover greetings and 8
+  jealous greetings, all written without you. And the persona pin table (O-26).
 
 Each poll: the question, the options, the recommendation, and what the build does without an answer.
 

@@ -50,7 +50,8 @@ Built, not yet run in game: after a yes, or once you are close enough, a convers
 the proposition, and then any way you ask gets their real answer. A bond of 0.75 and a scene together make you lovers to everyone else too (Chemistry
 treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, takes it the way
 their persona would, and tells you so in their own words the next time you talk. "Not now" and "not here" mean you can ask again later that day.
-Every number is on the MCM page.
+Every number is on the MCM page. 36 lines are DRAFTS, written without the owner, and wait for their
+review before anything is voiced (`docs/methodology.md` §10).
 
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, the
 companion module (`companions/`, four variants, none shipped), and the owner's open questions.

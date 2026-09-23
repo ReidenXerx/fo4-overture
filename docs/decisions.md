@@ -277,3 +277,18 @@ Microscope pass 2 (the same evening) settled four more, also reversible:
   voicing. The Narrator's line stays, after the greeting.
 - O-34 (Rapport aeacc91): "You and Dottie are inseparable now", "A first time for you and Dottie".
 - O-32 needs nothing now: the follow waits for stage 4.
+
+Readings made while building O-8, O-30 and O-33, each reversible:
+- **The day stamp never closes before 2.4 game hours after a conversation begins** (O-8). The stamp
+  also closes the hand-back's re-greet, and "tomorrow" at midnight left a conversation that crossed it
+  open to re-opening itself. So after a talk at 23:50, the NPC opens again at 02:14, not 00:00.
+- **"Not now" and "not here" reopen an hour of game time later** (O-30: the rest of the day). "Ask again
+  later" means later, and the instant the dialogue closed looked broken. The invitation lasts the rest of
+  the reply's day, and never less than two game hours after it reopens: a "not now" at 23:50 still has a
+  later.
+- **"Not here" hints at the place**: "Catch them alone." (O-32: until the follow, the place is what the
+  player can change.)
+- **Jealousy happens at the scene** (O-33): the bond moves when the lover hears, which is when a scene
+  with someone else is recorded, and the lover says it at the next conversation. Still once per
+  conversation. A lover the game had not loaded at that moment reacts when their next conversation
+  opens, without the greeting.
