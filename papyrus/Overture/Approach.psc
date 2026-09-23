@@ -132,6 +132,14 @@ Int _why = 0
 ; goes in. Refreshed at the yes to cover the minute of retries; let go when the
 ; conversation ends without one, or when the retries give up.
 Float Property HOLD_AT_VERDICT = 90.0 AutoReadOnly
+; OvertureStageReached: 0 never landed, 1-2 the stage that landed, 3 proposed,
+; and 4 the LOVER state (O-12): they said yes once -- or, for the NEXT
+; conversation, the bond or the engine made them that close (O-14's lover tier).
+; A lover's conversation opens at the proposition. The scene's own conditions
+; read this value as it starts, so it is written between conversations, never
+; during one. tools/overture_stages.py STAGE_LOVER must match.
+Int Property STAGE_LOVER = 4 AutoReadOnly
+Float Property LOVER_BOND = 0.75 AutoReadOnly
 Float Property HOLD_AT_YES = 70.0 AutoReadOnly
 Actor _held = None
 
@@ -250,6 +258,7 @@ Event Scene.OnBegin(Scene akSender)
 	String note = Self.Prepare(who)
 	Self.Stamp(who)
 	Self.BeginTalk(who)
+	Self.LoverOpening(who)
 	If _talkIntro != ""
 		note = note + " | introduced as " + _talkIntro
 	EndIf
@@ -271,6 +280,9 @@ Event Scene.OnEnd(Scene akSender)
 	; No yes in this conversation: nothing will ask for the slot it may be holding.
 	If _talkOutcome != OUTCOME_ACCEPT
 		Self.LetGo()
+	EndIf
+	If who != None
+		Self.BetweenConversations(who, _talkOutcome)
 	EndIf
 	Self.Narrate()
 	; The tidy-up is different. One scene serves every conversation, and clearing
@@ -402,28 +414,32 @@ EndFunction
 ; if it is at least "not yet" -- so a proposition that could only be refused is
 ; never offered -- and the persona's own register answers with it.
 ; Leaves the reason in _why, for the caller that wants it.
-Int Function Decide(Actor akWho, Float afBond, Bool abPublic)
+Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Bool abLover)
 	Int persona = Self.PersonaIndex(akWho)
 	If persona < 0
 		_why = WHY_NO_PERSONA
 		Return VERDICT_REFUSE
 	EndIf
-	Float bar = Self.Threshold(persona)
-	If Self.SpokenFor(akWho)
-		Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
-		If faith >= SPOKEN_FOR_FAITH
-			_why = WHY_TAKEN
-			Return VERDICT_REFUSE
+	; A LOVER (O-12) has cleared the bar already and is not "spoken for" against
+	; the player; only the place and the moment still decide.
+	If !abLover
+		Float bar = Self.Threshold(persona)
+		If Self.SpokenFor(akWho)
+			Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
+			If faith >= SPOKEN_FOR_FAITH
+				_why = WHY_TAKEN
+				Return VERDICT_REFUSE
+			EndIf
+			bar += FAITH_WEIGHT * faith
 		EndIf
-		bar += FAITH_WEIGHT * faith
-	EndIf
-	If afBond < bar
-		If afBond < bar * 0.5
-			_why = WHY_EARLY
-			Return VERDICT_REFUSE
+		If afBond < bar
+			If afBond < bar * 0.5
+				_why = WHY_EARLY
+				Return VERDICT_REFUSE
+			EndIf
+			_why = WHY_BOND
+			Return VERDICT_NOTYET
 		EndIf
-		_why = WHY_BOND
-		Return VERDICT_NOTYET
 	EndIf
 	If abPublic
 		_why = WHY_PUBLIC
@@ -470,7 +486,7 @@ Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 	GlobalVariable inPublic = Self.PublicGlobal()
 	Bool room = inPublic == None || inPublic.GetValue() != 0.0
 	Float bond = Self.AfterLand(Rapport:Relations.BondBetween(Game.GetPlayer(), akWho), LAND_STAGE_2)
-	Int decided = Self.Decide(akWho, bond, room)
+	Int decided = Self.Decide(akWho, bond, room, False)
 	verdict.SetValue(decided as Float)
 	If akWho == _talkWith
 		_talkVerdict = decided
@@ -594,9 +610,81 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 		EndIf
 	EndIf
 	If aiOutcome == OUTCOME_ACCEPT
+		Self.BecomeLovers(akWho)
+		note = note + " | lovers"
 		Self.Proposition(akWho)
 	EndIf
 	Debug.Trace(note, 0)
+EndFunction
+
+; ---- O-12: the lover state ---------------------------------------------------
+Bool Function IsLover(Actor akWho)
+	ActorValue reached = Self.StageReachedAV()
+	Return reached != None && akWho.GetValue(reached) >= STAGE_LOVER as Float
+EndFunction
+
+; After the first yes they are lovers: Overture's stage marker, which tomorrow's
+; greeting and entry stage read, and Rapport's store (O-15), which Chemistry
+; reads behind its own switch. Written at the yes itself, so a yes whose scene
+; never starts still counts: the NPC said it.
+Function BecomeLovers(Actor akWho)
+	ActorValue reached = Self.StageReachedAV()
+	If reached != None && akWho.GetValue(reached) < STAGE_LOVER as Float
+		akWho.SetValue(reached, STAGE_LOVER as Float)
+	EndIf
+	If _api >= NEEDS_API
+		Rapport:Core.SetLovers(Game.GetPlayer().GetFormID(), akWho.GetFormID(), True)
+	EndIf
+EndFunction
+
+; A lover's conversation opens at the proposition (the scene skips stages 1 and
+; 2 on the stage marker alone), so the verdict is decided HERE, as it begins --
+; seconds before the player can pick, the same timing the persona relies on.
+Function LoverOpening(Actor who)
+	If !Self.IsLover(who)
+		Return
+	EndIf
+	GlobalVariable verdict = Self.VerdictGlobal()
+	If verdict == None
+		Return
+	EndIf
+	GlobalVariable inPublic = Self.PublicGlobal()
+	Bool room = inPublic == None || inPublic.GetValue() != 0.0
+	Int decided = Self.Decide(who, Rapport:Relations.BondBetween(Game.GetPlayer(), who), room, True)
+	verdict.SetValue(decided as Float)
+	_talkVerdict = decided
+	_talkWhy = _why
+	Debug.Trace("Overture: " + who.GetFormID() + " is a lover - straight to the proposition, verdict " + decided + " (why " + _why + ")", 0)
+	If decided == VERDICT_ACCEPT && _api >= NEEDS_API
+		Rapport:Core.ReservePlayerScene(who, HOLD_AT_VERDICT)
+		_held = who
+	EndIf
+EndFunction
+
+; Between one conversation and the next: what tomorrow's scene will read as it
+; starts, so it is written now, never during a conversation.
+Function BetweenConversations(Actor who, Int aiLastOutcome)
+	; O-13: a "not now" gives the day back. The moment was wrong, not the person,
+	; so the right hour or the right room may still be found today.
+	If aiLastOutcome == OUTCOME_NOT_NOW
+		ActorValue day = Self.NextDayAV()
+		If day != None
+			who.SetValue(day, 0.0)
+		EndIf
+	EndIf
+	; O-14's lover tier: close enough by the bond, or partners by the engine, opens
+	; the next conversation at the proposition too. Overture's marker only: Rapport's
+	; lovers flag is the yes's alone.
+	If !Self.IsLover(who)
+		Actor player = Game.GetPlayer()
+		If Rapport:Relations.BondBetween(player, who) >= LOVER_BOND || Rapport:Relations.ArePartners(player, who)
+			ActorValue reached = Self.StageReachedAV()
+			If reached != None
+				who.SetValue(reached, STAGE_LOVER as Float)
+				Debug.Trace("Overture: " + who.GetFormID() + " is close enough to open at the proposition next time", 0)
+			EndIf
+		EndIf
+	EndIf
 EndFunction
 
 ; ---- O-9: the Narrator ------------------------------------------------------
@@ -950,7 +1038,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	If first == "verdict"
 		Float bond = Rapport:Relations.BondBetween(Game.GetPlayer(), who)
 		Bool room = Self.InPublic(who)
-		MCP:Core.Reply(tag, "approach verdict: " + who.GetFormID() + " | verdict=" + Self.Decide(who, bond, room) + " (1 refuse 2 notyet 3 accept 4 not here 5 not now) | bond=" + bond + " | bar=" + Self.Threshold(Self.PersonaIndex(who)) + " | public=" + room + " | spokenFor=" + Self.SpokenFor(who))
+		MCP:Core.Reply(tag, "approach verdict: " + who.GetFormID() + " | verdict=" + Self.Decide(who, bond, room, Self.IsLover(who)) + " (1 refuse 2 notyet 3 accept 4 not here 5 not now) | bond=" + bond + " | bar=" + Self.Threshold(Self.PersonaIndex(who)) + " | public=" + room + " | spokenFor=" + Self.SpokenFor(who))
 		Return
 	EndIf
 

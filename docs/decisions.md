@@ -203,3 +203,10 @@ section named is where it gets built.
 | O-24 | may intimacy move a companion's own affinity | **no, for now**: only Rapport's store moves |
 | O-25 | which companions | **the strangers' rule**: adult humans and ghouls. Cait, Danse, Deacon, Hancock, MacCready, Piper, Preston, X6-88, Ivy, Curie once a synth, and the DLC's Gage and Old Longfellow; not Codsworth, Strong, Nick Valentine, robot Curie or Dogmeat |
 | O-26 | companion persona pins | **the owner reviews a proposed table**: "U will give me proposition table and I will review" |
+
+**Built the same afternoon, NOT YET RUN IN GAME:**
+- Overture 85aabab: O-18's light plugin.
+- Rapport 02bfdd6 and Overture 1cb437b: O-16's priority lane.
+- Rapport e248fe0 and Chemistry 8d30da6: O-15's lovers.
+- The lover state and the "not now" day (O-12, O-13's second half, O-14's lover tier), in the commit
+  that adds this line.

@@ -248,7 +248,22 @@ bark in a persona hashed from form id `0x14` — against R-11 ("the player has n
 player's side is text). Rapport must skip barks for the player before stage 4 is switched on; it is on
 Rapport's roadmap with the other asks.
 
-## 5a. The bond shapes the conversation (proposed — the review's biggest point)
+## 5a. The bond shapes the conversation (O-12 and O-14; partly BUILT 2026-09-23)
+
+**Built, not yet run in game:**
+- **The lover state.** `OvertureStageReached` = 4 means "lovers". It's set at the first yes, and
+  Rapport's store records them as lovers too (`SetLovers`, which Chemistry reads behind its switch).
+  It's also set, for the NEXT conversation, when a conversation ends with the bond at 0.75 or more,
+  or the two engine partners.
+- **What a lover's conversation looks like.** The greeting is one of four persona-neutral lover
+  lines (DRAFT). Stages 1 and 2 are skipped by the scene's own conditions, and the proposition
+  opens straight away. The verdict is decided as the scene begins: no bar, not spoken for, only the
+  place and the moment. The slot is held on a yes verdict.
+- **O-13's "not now" gives the day back**, so the right hour or room can still be found today.
+
+**Not built yet:** the warm and close tiers' greetings, and the fallen-out tier (a cold line, then
+their own dialogue). They need lines, and lines need the owner. Also not built: O-13's "not here"
+follow, a Rapport helper.
 
 Today the store is a GATE: the player↔NPC bond has one reader (stage 3's threshold) and one writer
 (Overture's replies, and Rapport's scenes). A lover of twenty scenes, an engine friend, the player's own

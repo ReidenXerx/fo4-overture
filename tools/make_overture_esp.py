@@ -67,6 +67,8 @@ INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
+LOVER_GREET_BASE = 0x01000832  # O-12's lover greetings, 0x832..0x83F
+CTDA_OP_GE = 0x60              # "greater than or equal to"
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
@@ -473,7 +475,7 @@ CTDA_OP_LE = 0xA0                 # "less than or equal to", byte 0's top three 
 CTDA_USE_GLOBAL = 0x04            # byte 0 flag: the compared value is a GLOB form id
 
 
-def greeting():
+def greeting(lover_lines=()):
     """The GREE topic, and the line that starts the scene.
 
     THIS IS THE PIECE THAT MAKES IT WORK. Measured on FFGoodneighbor02: its
@@ -497,9 +499,28 @@ def greeting():
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
     f += field('DATA', bytes([0x00, 0x07, 0x73, 0x00]))
     f += field('SNAM', b'GREE')
-    f += field('TIFC', struct.pack('<I', 1))
+    f += field('TIFC', struct.pack('<I', 1 + len(lover_lines)))
     topic = record('DIAL', GREET_TOPIC, f)
 
+    # O-12's LOVERS first: a Random run of their own greetings, only for someone
+    # whose stage marker says they said yes before (4). First match wins, so a
+    # lover never reaches the stranger's line below; a stranger matches none of
+    # these and falls through to it. Persona-neutral lines: a greeting is chosen
+    # before any script has run, so nothing knows the persona yet.
+    infos = b''
+    for i, text in enumerate(lover_lines):
+        last = i == len(lover_lines) - 1
+        infos += greeting_info(LOVER_GREET_BASE + i, text,
+                               ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
+                               field('CTDA', condition(FUNC_GET_VALUE, STAGE_REACHED_AV, value=4.0,
+                                                       op=CTDA_OP_GE, runon=RUNON_SUBJECT)))
+    infos += greeting_info(GREET_INFO, '...', ENAM_REQUIRES_PLAYER_ACTIVATION, b'')
+    return topic + child_group(GREET_TOPIC, 7, infos)
+
+
+def greeting_info(form_id, text, enam, extra):
+    """One greeting INFO: who it opens for, then TSCE + ALFA, which start the scene
+    with the speaker in the alias. `extra` is more conditions, on the speaker."""
     trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
     # NOT the template's 4. That is ENAM_SAY_ONCE: right for FFGoodneighbor02,
     # whose greeting starts its quest's scene one time, and wrong for a greeting
@@ -508,9 +529,9 @@ def greeting():
     # Requires Player Activation (0x08), as vanilla's generic vendor greeting
     # 00076AAD carries: the approach opens when the player presses E on someone,
     # never as a hello while they walk past.
-    g = field('ENAM', struct.pack('<HH', ENAM_REQUIRES_PLAYER_ACTIVATION, 0))
+    g = field('ENAM', struct.pack('<HH', enam, 0))
     g += field('TRDA', trda)
-    g += field('NAM1', zstring('...'))           # the NPC's greeting line
+    g += field('NAM1', zstring(text))            # the NPC's greeting line
     g += field('NAM2', b'\0')
     g += field('NAM3', b'\0')
     g += field('NAM4', b'\0')
@@ -535,6 +556,7 @@ def greeting():
         g += field('CTDA', condition(func, param, value=value, runon=RUNON_SUBJECT))
     g += field('CTDA', condition(FUNC_GET_VALUE, NEXT_DAY_AV, runon=RUNON_SUBJECT,
                                  op=CTDA_OP_LE, value_global=GLOB_GAME_DAYS_PASSED))
+    g += extra
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     # FORCED ALIAS: the engine puts whoever says this line into alias 0 as the
     # scene starts. xEdit calls it "Forced Alias" (s32), right after TSCE; it is
@@ -545,8 +567,7 @@ def greeting():
     g += field('ALFA', struct.pack('<i', ALIAS_INDEX))
     g += field('NAM0', b'\0')
     g += field('INAM', struct.pack('<I', 1))
-    line_rec = record('INFO', GREET_INFO, g)
-    return topic + child_group(GREET_TOPIC, 7, line_rec)
+    return record('INFO', form_id, g)
 
 
 # SCEN VNAM is "Actor Behavior Settings" (xEdit wbDefinitionsFO4.pas): Death,

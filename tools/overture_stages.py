@@ -88,6 +88,10 @@ VERDICT_REFUSE, VERDICT_NOTYET, VERDICT_ACCEPT, VERDICT_NOT_HERE, VERDICT_NOT_NO
 # only path on the wheel (design review 2026-09-23). The verdict is decided as
 # the stage-2 land BEGINS and the gate is read when it ENDS -- no race.
 FUNC_OP_GE = 0x60
+CTDA_OP_LT = 0x80
+# OvertureStageReached's lover value (O-12): they said yes once, or the bond or the
+# engine made them that close (O-14). Approach.STAGE_LOVER must match.
+STAGE_LOVER = 4
 # Five verdict sets of two lines per (register, persona) cell.
 S3_CELL = 16
 
@@ -280,7 +284,10 @@ def build_staged():
 
     m.check_unique(ids)
 
-    children += m.greeting()
+    lover_lines = [l['text'] for l in bank['lines'] if l.get('kind') == 'lover_greeting']
+    if len(lover_lines) > 14:
+        raise SystemExit('more lover greetings than 0x832..0x83F holds')
+    children += m.greeting(lover_lines)
     children += scene_staged(topics)
     quest_blob = m.quest() + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global()
@@ -338,8 +345,21 @@ def scene_staged(topics):
     stage_two += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
                                              value=1.0, op=FUNC_OP_GE,
                                              runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
+    # ...AND not a lover (O-12): a lover's conversation opens at the proposition.
+    # OR binds tighter than AND in a condition list, so this reads
+    # (land OR reached >= 1) AND reached < 4.
+    stage_two += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
+                                             value=float(STAGE_LOVER), op=CTDA_OP_LT,
+                                             runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
+    # Stage 3: a verdict with a chance, OR a lover. The lover's verdict is decided as
+    # the scene begins (Approach.LoverOpening), seconds before the player can pick;
+    # the gate itself reads only the stage marker, which was written before this
+    # conversation began, so it cannot race.
     has_a_chance = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, VERDICT_GLOBAL,
-                                               value=float(VERDICT_NOTYET), op=FUNC_OP_GE))
+                                               value=float(VERDICT_NOTYET), op=FUNC_OP_GE | CTDA_OR))
+    has_a_chance += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
+                                                value=float(STAGE_LOVER), op=FUNC_OP_GE,
+                                                runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
     # HandBack: after anything but a yes. After a yes the scene simply ends -- the
     # dialogue closes so Rapport's scene can start, with no re-greet on top.
     not_after_yes = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
