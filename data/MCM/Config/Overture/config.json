@@ -41,74 +41,74 @@
         },
         {
           "type": "slider",
+          "id": "fLandFirst:Words",
           "text": "The first thing that lands",
           "help": "How much the bond grows when the first approach lands (a share of the distance left, as every source moves it).",
           "valueOptions": {
             "min": 0.0,
             "max": 0.3,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E00"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fLandSecond:Words",
           "text": "The second thing that lands",
           "help": "The same, for the second exchange.",
           "valueOptions": {
             "min": 0.0,
             "max": 0.3,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E01"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fOffend:Words",
           "text": "Blunt at the wrong person",
           "help": "What crude words cost with someone who did not want them.",
           "valueOptions": {
             "min": -0.3,
             "max": 0.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E02"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fRecoil:Words",
           "text": "Crude in public",
           "help": "What an intimate line costs in front of people, with someone who would not have liked it anyway.",
           "valueOptions": {
             "min": -0.3,
             "max": 0.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E03"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fNotYet:Words",
           "text": "Asked too soon",
           "help": "A proposition answered \"not yet\" still means something.",
           "valueOptions": {
             "min": 0.0,
             "max": 0.2,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E04"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fRefuse:Words",
           "text": "Asked the wrong way",
           "help": "A proposition refused.",
           "valueOptions": {
             "min": -0.3,
             "max": 0.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E05"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
@@ -117,62 +117,62 @@
         },
         {
           "type": "slider",
+          "id": "fBarMercantile:Bars",
           "text": "Mercantile",
           "help": "The bond a mercantile person needs before they say yes.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E06"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fBarRomantic:Bars",
           "text": "Romantic",
           "help": "The same for a romantic, who also wants the right moment.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E07"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fBarVulgar:Bars",
           "text": "Vulgar",
           "help": "The fast lane.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E08"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fBarReticent:Bars",
           "text": "Reticent",
           "help": "They take days to open up.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.01,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E09"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fLoverBond:Bars",
           "text": "Lovers from a bond of",
-          "help": "At this bond, the next conversation opens at the proposition, as it does after a yes.",
+          "help": "At this bond, conversations open at the proposition. With a scene together as well, you are lovers to everyone else too.",
           "valueOptions": {
             "min": 0.3,
             "max": 1.0,
             "step": 0.05,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E0A"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
@@ -181,26 +181,54 @@
         },
         {
           "type": "slider",
+          "id": "fFaithRefuses:SpokenFor",
           "text": "Faithful enough to always refuse",
           "help": "Someone married or courting refuses outright at this faithfulness or above.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.05,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E0B"
+            "sourceType": "ModSettingFloat"
           }
         },
         {
           "type": "slider",
+          "id": "fFaithWeight:SpokenFor",
           "text": "How much being spoken for raises the bar",
           "help": "Below that, the bar rises by this much of their faithfulness.",
           "valueOptions": {
             "min": 0.0,
             "max": 1.0,
             "step": 0.05,
-            "sourceType": "GlobalValue",
-            "sourceForm": "Overture.esp|E0C"
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "section",
+          "text": "Jealousy"
+        },
+        {
+          "type": "slider",
+          "id": "fJealousySting:Jealousy",
+          "text": "When it hurts",
+          "help": "What a romantic or reticent lover's bond loses on hearing you have been with someone else.",
+          "valueOptions": {
+            "min": -0.3,
+            "max": 0.0,
+            "step": 0.01,
+            "sourceType": "ModSettingFloat"
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fJealousyThrill:Jealousy",
+          "text": "When it thrills",
+          "help": "What a vulgar lover's bond gains on hearing it. The mercantile shrug.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.2,
+            "step": 0.01,
+            "sourceType": "ModSettingFloat"
           }
         }
       ]

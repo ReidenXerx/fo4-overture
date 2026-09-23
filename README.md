@@ -46,6 +46,12 @@ Early, and running. What the game has actually done (`docs/dialogue-route.md` ha
 - The player's half is text through XDI, which keeps the camera off the player's still face; lip sync
   is a scripted step with the game's own `LipGenerator`.
 
+Built, not yet run in game: after a yes, or once you are close enough, a conversation opens straight at
+the proposition. A bond of 0.75 and a scene together make you lovers to everyone else too (Chemistry
+treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, and
+takes it the way their persona would. "Not now" and "not here" mean you can ask again later that day.
+Every number is on the MCM page.
+
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, the
 companion module (`companions/`, four variants, none shipped), and the owner's open questions.
 
@@ -62,7 +68,7 @@ companion module (`companions/`, four variants, none shipped), and the owner's o
 python tools/make_overture_esp.py build/Overture.esp              # the verified one-exchange plugin
 python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
 pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply
-python tools/make_mcm.py                                           # the MCM page, from the plugin's own settings table
+python tools/make_mcm.py                                           # the MCM page and its settings.ini, from the settings table
 pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
 python scripts/make-lip.py                                         # .lip for every rendered line
 pwsh companions/tools/check.ps1                                    # compile-check the companion scaffolds

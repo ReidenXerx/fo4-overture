@@ -229,3 +229,17 @@ What the microscope pass changes without a poll, because the recorded rules alre
   conversation opens at the proposition, only skips the flirt. The verdict's rules are the same for everyone.
 - **"Stage reached" stays 0-3.** The proposition opening gets its own markers: said yes before (O-12),
   the lover tier (O-14), and invited back today (O-30).
+
+**Built the same evening, NOT YET RUN IN GAME** (the commit that adds this line; methodology 5a, 5b, 8).
+Four readings made while building it, each reversible, recorded so they can be overturned:
+- **A falling-out ends the yes's opening too.** O-28 was asked about Rapport's lovers flag. Overture's own
+  "said yes, opens at the proposition" is the same lover state seen from the conversation, so the fallen-out
+  tier clears it at the next conversation's end.
+- **The fallen-out still get the stranger's approach.** O-14's table had Overture stay out for them. The
+  tier is only refreshed when a conversation ends, so a greeting that shut them out could never see the bond
+  recover any other way, and they would be locked out for good. It waits for the fallen-out lines and a
+  refresh path.
+- **Jealousy counts only what happened after they became lovers**, once per conversation, however many
+  scenes there were. Scenes with the player's engine spouse count like any other.
+- **Lovers to the world are checked when a conversation opens and when it ends**, the two moments Overture
+  hears of. Overture has no event for a scene's end, so the flag can lag a scene until the next talk.

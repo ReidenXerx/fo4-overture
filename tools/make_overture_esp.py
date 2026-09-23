@@ -57,24 +57,31 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # A LIGHT plugin (O-18, owner 2026-09-23): every record this plugin owns sits in
 # object ids 0x800-0xFFF, which is all an ESL-flagged plugin may hold. Renumbered
 # before any line is voiced, because a voice file is NAMED by its INFO's id.
-#   0x800-0x84F  quest, scene, topics, greeting, globals, actor values
+#   0x800-0x84F  quest, scene, topics, greeting, globals, actor values (to 0x84B)
 #   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A)
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD43  fallbacks
-#   0xE00-0xE0F  the MCM's numbers (overture_stages.SETTINGS)
+#   0xE00-0xE0F  RETIRED: the MCM's numbers were globals here until they moved to
+#                MCM's settings.ini. Not reused -- a dev save may still name them.
 #   0xD44-0xDFF, 0xE10-0xFFF  free
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 LOVER_GREET_BASE = 0x01000832  # O-12's lover greetings, 0x832..0x83F
-CTDA_OP_GE = 0x60              # "greater than or equal to"
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
 NEXT_DAY_AV = 0x01000843      # AVIF: the game day an NPC may be approached again (O-8)
-STAGE_REACHED_AV = 0x01000844  # AVIF: the furthest stage that LANDED with the player (methodology 8)
+STAGE_REACHED_AV = 0x01000844  # AVIF: how far the player has got: 1-2 landed, 3 proposed (methodology 8)
+# The staged build's markers (O-12, O-14, O-27..O-30). Conditions read the first
+# three, so Overture:Approach writes them as a conversation ENDS, never during one.
+TIER_AV = 0x01000848           # O-14's tier: -1 fallen out, 0 stranger, 1 warm, 2 close, 3 lover
+SAID_YES_AV = 0x01000849       # 1 once they have said yes to the player (O-12)
+INVITED_UNTIL_AV = 0x0100084A  # the game day a "not now" / "not here" invitation lasts until (O-30)
+JEALOUSY_MARK_AV = 0x0100084B  # O-29's count; the script alone reads it
+TIER_LOVER = 3                 # Approach.TIER_LOVER must match
 
 # The register O-4 calls intimate. Only this one recoils in public: a gift or a
 # compliment in a crowded bar is merely a gift or a compliment.
@@ -278,38 +285,40 @@ def enabled_global():
     return record('GLOB', ENABLED_GLOBAL, f)
 
 
+def actor_value(form_id, edid):
+    """AVIF: a number the engine keeps on every actor, in the save.
+
+    Shape from xEdit's AVIF definition and vanilla's own plain values: DESC is
+    required, NAM0 is the default (0.0), AVFL 0x400 "Default to 0". Not
+    0x80000000 "Hardcoded" -- that is for values the engine owns.
+    """
+    f = field('EDID', zstring(edid))
+    f += field('DESC', zstring(''))
+    f += field('NAM0', struct.pack('<f', 0.0))
+    f += field('AVFL', struct.pack('<I', 0x00000400))
+    return record('AVIF', form_id, f)
+
+
 def next_day_av():
-    """AVIF: the game day this NPC may be approached again (O-8: once a day).
+    """The game day this NPC may be approached again (O-8: once a day).
 
     Stamped by Overture:Approach as the scene begins -- floor(days passed) + 1 --
     and compared by the greeting against the vanilla GameDaysPassed global, so an
     NPC opens again at the start of the next calendar day with no timer and no
     list to clean up. It also closes the re-greet that follows the reply, for
-    this NPC, because the stamp is already tomorrow by then.
-
-    Shape from xEdit's AVIF definition and vanilla's own plain values: DESC is
-    required, NAM0 is the default (0.0 = never approached), AVFL 0x400 "Default
-    to 0". Not 0x80000000 "Hardcoded" -- that is for values the engine owns.
+    this NPC, because the stamp is already tomorrow by then. 0 = never approached.
     """
-    f = field('EDID', zstring('OvertureNextApproachDay'))
-    f += field('DESC', zstring(''))
-    f += field('NAM0', struct.pack('<f', 0.0))
-    f += field('AVFL', struct.pack('<I', 0x00000400))
-    return record('AVIF', NEXT_DAY_AV, f)
+    return actor_value(NEXT_DAY_AV, 'OvertureNextApproachDay')
 
 
 def stage_reached_av():
-    """AVIF: the furthest stage that LANDED with the player, 0 = never.
-
-    Written by Overture:Approach.Replied on a land; read to start a returning
-    conversation at stage 2 rather than replaying first-meeting lines
-    (docs/methodology.md 1 and 8). Same shape as the next-day value.
+    """How far the player has got with this NPC: 0 never landed, 1-2 the stage
+    that landed, 3 proposed (docs/methodology.md 1 and 8). Read to start a
+    returning conversation at stage 2 rather than replaying first-meeting lines;
+    written as a conversation ENDS, because phase 2 reads it the moment stage 1
+    does.
     """
-    f = field('EDID', zstring('OvertureStageReached'))
-    f += field('DESC', zstring(''))
-    f += field('NAM0', struct.pack('<f', 0.0))
-    f += field('AVFL', struct.pack('<I', 0x00000400))
-    return record('AVIF', STAGE_REACHED_AV, f)
+    return actor_value(STAGE_REACHED_AV, 'OvertureStageReached')
 
 
 def topic(topic_id, edid, infos=1):
@@ -472,8 +481,15 @@ FUNC_IS_IN_SCENE = 590
 KW_ACTOR_TYPE_NPC = 0x00013794    # HumanRace, GhoulRace, HumanChildRace, SynthGen2Race -- not robots, dogs, mutants
 KW_ACTOR_TYPE_SYNTH = 0x0010C3CE  # SynthGen2Race: "humans and ghouls" leaves them out
 GLOB_GAME_DAYS_PASSED = 0x00000039
-CTDA_OP_LE = 0xA0                 # "less than or equal to", byte 0's top three bits
-CTDA_USE_GLOBAL = 0x04            # byte 0 flag: the compared value is a GLOB form id
+# CTDA byte 0: the operator in its top three bits, flags in the low ones.
+CTDA_OP_EQ = 0x00
+CTDA_OP_NE = 0x20
+CTDA_OP_GT = 0x40
+CTDA_OP_GE = 0x60
+CTDA_OP_LT = 0x80
+CTDA_OP_LE = 0xA0
+CTDA_OR = 0x01                    # OR with the NEXT condition -- and OR binds tighter than AND
+CTDA_USE_GLOBAL = 0x04            # the compared value is a GLOB form id
 
 
 def greeting(lover_lines=()):
@@ -503,18 +519,25 @@ def greeting(lover_lines=()):
     f += field('TIFC', struct.pack('<I', 1 + len(lover_lines)))
     topic = record('DIAL', GREET_TOPIC, f)
 
-    # O-12's LOVERS first: a Random run of their own greetings, only for someone
-    # whose stage marker says they said yes before (4). First match wins, so a
-    # lover never reaches the stranger's line below; a stranger matches none of
-    # these and falls through to it. Persona-neutral lines: a greeting is chosen
-    # before any script has run, so nothing knows the persona yet.
+    # O-12's LOVERS first: a Random run of their own greetings, for someone who
+    # said yes before or whose bond made them the lover tier (O-14) -- two of the
+    # three markers that open the conversation at the proposition. (The third, a
+    # same-day invitation, keeps the stranger's line: "not now" is not a lover.)
+    # First match wins, so a lover never reaches the stranger's line below; a
+    # stranger matches none of these and falls through to it. Persona-neutral
+    # lines: a greeting is chosen before any script has run, so nothing knows the
+    # persona yet. OR binds tighter than AND, so after the eligibility conditions
+    # this reads ... AND (said yes OR lover tier).
+    lover_when = (field('CTDA', condition(FUNC_GET_VALUE, SAID_YES_AV, value=1.0,
+                                          op=CTDA_OP_EQ | CTDA_OR, runon=RUNON_SUBJECT))
+                  + field('CTDA', condition(FUNC_GET_VALUE, TIER_AV, value=float(TIER_LOVER),
+                                            op=CTDA_OP_EQ, runon=RUNON_SUBJECT)))
     infos = b''
     for i, text in enumerate(lover_lines):
         last = i == len(lover_lines) - 1
         infos += greeting_info(LOVER_GREET_BASE + i, text,
                                ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
-                               field('CTDA', condition(FUNC_GET_VALUE, STAGE_REACHED_AV, value=4.0,
-                                                       op=CTDA_OP_GE, runon=RUNON_SUBJECT)))
+                               lover_when)
     infos += greeting_info(GREET_INFO, '...', ENAM_REQUIRES_PLAYER_ACTIVATION, b'')
     return topic + child_group(GREET_TOPIC, 7, infos)
 
@@ -854,12 +877,21 @@ def finish(blob):
     """
     recs, groups, ids = walk_written(blob)
     check_unique(ids)
-    # A light plugin can hold object ids 0x800-0xFFF and nothing else; one outside
-    # that range is a record the engine cannot address. Refuse to write it.
+    # Two files are addressable from here and no others: 00 is Fallout4.esm (an
+    # override), 01 is this plugin. And a light plugin holds object ids
+    # 0x800-0xFFF and nothing else; one outside that range is a record the engine
+    # cannot address. Refuse to write either.
     for formid, what in ids:
-        if formid >> 24 == 0x01 and not 0x800 <= (formid & 0x00FFFFFF) <= 0xFFF:
+        top = formid >> 24
+        if top not in (0x00, 0x01):
+            raise SystemExit(f'{formid:08X} ("{what}"): file index {top:02X} is neither Fallout4.esm (00) '
+                             f'nor this plugin (01).')
+        if top == 0x01 and not 0x800 <= (formid & 0x00FFFFFF) <= 0xFFF:
             raise SystemExit(f'{formid:08X} ("{what}") is outside 0x800-0xFFF, the only ids a light plugin holds.')
-    next_object = (max(i for i, _what in ids) + 1) & 0x00FFFFFF
+    # The next object id is this plugin's own: an override of a Fallout4.esm record
+    # carries Fallout4.esm's object id, which says nothing about ours.
+    own = [i for i, _what in ids if i >> 24 == 0x01]
+    next_object = ((max(own) + 1) & 0x00FFFFFF) if own else 0x800
     head = field('HEDR', struct.pack('<fiI', 1.0, recs + groups, next_object))
     head += field('CNAM', zstring(AUTHOR))
     head += field('MAST', zstring(MASTER))

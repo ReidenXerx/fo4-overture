@@ -49,8 +49,8 @@ Favor: Sex scene is the moment and what plays (variant D binds it to the store).
 | `0x857` `0x858` | the companion greeting topic + INFO (conditions in `Moments.psc`) | C |
 | `0x859` | the companion scene | C |
 
-The stranger approach's own ids run to `0x847` (and `0x900+`, `0x1000+`, `0x2000+`, `0x3000+`,
-`0x4000+` for lines). `tools/make_overture_esp.py`'s `finish()` checks every id actually written for
+The stranger approach's own ids run to `0x84B` (and `0x900`-`0xDFF` for lines; `0xE00`-`0xE0F` are
+retired). `tools/make_overture_esp.py` has the whole map. `tools/make_overture_esp.py`'s `finish()` checks every id actually written for
 duplicates, so a collision in this range is a build error, not an InitGameDataThread crash.
 
 ## What is assumed, and what must be measured first

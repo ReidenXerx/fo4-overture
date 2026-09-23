@@ -19,6 +19,12 @@ writes, and the SCENE'S PHASES read:
     through to phase 4, HandBack: the type-4 "Start Scene" action with HTID, End
     Scene Say Greeting, which is how the one-exchange scene has always handed
     back to the NPC's own dialogue (O-8's order).
+  - a conversation that OPENS AT THE PROPOSITION skips phases 1 and 2: they
+    said yes before (O-12), the lover tier (O-14), or "not now" / "not here"
+    earlier today (O-30). Three actor values, all written as a conversation
+    ENDS, so a phase condition never reads one mid-conversation. Its verdict is
+    decided as the scene begins (Approach.Opening), seconds before the player
+    can pick; the gate itself reads only the markers.
   - the reticent's first-meeting land records no land for this purpose (R-8:
     no stage 2 on the first day), so it hands back too.
   - WITHOUT the script, LastOutcome stays 0: phase 2 never starts on a first
@@ -68,8 +74,6 @@ SCENES_GLOBAL = 0x01000846      # 1 = an accept really asks Rapport for a scene;
 ENAM_END_RUNNING_SCENE = 0x40   # only the YES carries it now (see the docstring)
 HAND_BACK = 'HandBack'          # the last phase's name (for the log and the CK; nothing jumps to it)
 LAST_OUTCOME_GLOBAL = 0x01000847  # Overture:Reply's OnBegin writes it; phases 2 and 3 read it
-CTDA_OR = 0x01                    # byte-0 flag: OR with the next condition
-CTDA_OP_NE = 0x20                 # "not equal to", byte 0's top three bits
 # Fallbacks for the two states no authored line covers (records review): no
 # persona from Rapport, and a stage-3 verdict never decided.
 FALLBACK_NO_PERSONA = 0x01000D00   # + stage * 0x10 + register slot
@@ -87,49 +91,57 @@ VERDICT_REFUSE, VERDICT_NOTYET, VERDICT_ACCEPT, VERDICT_NOT_HERE, VERDICT_NOT_NO
 # only be refused is never offered, so the player is not punished for taking the
 # only path on the wheel (design review 2026-09-23). The verdict is decided as
 # the stage-2 land BEGINS and the gate is read when it ENDS -- no race.
-FUNC_OP_GE = 0x60
-CTDA_OP_LT = 0x80
-# OvertureStageReached's lover value (O-12): they said yes once, or the bond or the
-# engine made them that close (O-14). Approach.STAGE_LOVER must match.
-STAGE_LOVER = 4
 # Five verdict sets of two lines per (register, persona) cell.
 S3_CELL = 16
 
 NPC_SLOT_ORDER = ('NPOT', 'NNGT', 'NNUT', 'NQUT')
 
 # THE TUNABLE NUMBERS (methodology 3; every one ASSUMED, for the owner to tune).
-# One GLOB each, so MCM binds a control straight to it -- tools/make_mcm.py reads
-# this same table, and Overture:Approach reads each global by id, falling back to
-# the same default when the global is missing. One table, three readers, no drift.
-#   (object id, edid, default, section, label, help, min, max, step)
+# MCM ModSettings, NOT globals: a GLOB's value is written into every save, so a
+# default changed in a later Overture would never reach a game that already had
+# the plugin (microscope pass 1, lens 6). MCM keeps them in its own ini, and a new
+# default ships in MCM/Config/Overture/settings.ini. tools/make_mcm.py writes the
+# page and the ini from this table, and refuses to unless every Tuned call in
+# Overture:Approach names a row here and falls back to that row's default.
+#   (key, ini section, default, page section, label, help, min, max, step)
 SETTINGS = [
-    (0xE00, 'OvertureLandFirst', 0.05, 'What words are worth', 'The first thing that lands',
+    ('fLandFirst', 'Words', 0.05, 'What words are worth', 'The first thing that lands',
      'How much the bond grows when the first approach lands (a share of the distance left, as every source moves it).',
      0.0, 0.3, 0.01),
-    (0xE01, 'OvertureLandSecond', 0.07, 'What words are worth', 'The second thing that lands',
+    ('fLandSecond', 'Words', 0.07, 'What words are worth', 'The second thing that lands',
      'The same, for the second exchange.', 0.0, 0.3, 0.01),
-    (0xE02, 'OvertureOffend', -0.04, 'What words are worth', 'Blunt at the wrong person',
+    ('fOffend', 'Words', -0.04, 'What words are worth', 'Blunt at the wrong person',
      'What crude words cost with someone who did not want them.', -0.3, 0.0, 0.01),
-    (0xE03, 'OvertureRecoil', -0.06, 'What words are worth', 'Crude in public',
+    ('fRecoil', 'Words', -0.06, 'What words are worth', 'Crude in public',
      'What an intimate line costs in front of people, with someone who would not have liked it anyway.', -0.3, 0.0, 0.01),
-    (0xE04, 'OvertureNotYet', 0.02, 'What words are worth', 'Asked too soon',
+    ('fNotYet', 'Words', 0.02, 'What words are worth', 'Asked too soon',
      'A proposition answered "not yet" still means something.', 0.0, 0.2, 0.01),
-    (0xE05, 'OvertureRefuse', -0.03, 'What words are worth', 'Asked the wrong way',
+    ('fRefuse', 'Words', -0.03, 'What words are worth', 'Asked the wrong way',
      'A proposition refused.', -0.3, 0.0, 0.01),
-    (0xE06, 'OvertureBarMercantile', 0.15, 'How close before a yes', 'Mercantile',
+    ('fBarMercantile', 'Bars', 0.15, 'How close before a yes', 'Mercantile',
      'The bond a mercantile person needs before they say yes.', 0.0, 1.0, 0.01),
-    (0xE07, 'OvertureBarRomantic', 0.25, 'How close before a yes', 'Romantic',
+    ('fBarRomantic', 'Bars', 0.25, 'How close before a yes', 'Romantic',
      'The same for a romantic, who also wants the right moment.', 0.0, 1.0, 0.01),
-    (0xE08, 'OvertureBarVulgar', 0.08, 'How close before a yes', 'Vulgar', 'The fast lane.', 0.0, 1.0, 0.01),
-    (0xE09, 'OvertureBarReticent', 0.30, 'How close before a yes', 'Reticent',
+    ('fBarVulgar', 'Bars', 0.08, 'How close before a yes', 'Vulgar', 'The fast lane.', 0.0, 1.0, 0.01),
+    ('fBarReticent', 'Bars', 0.30, 'How close before a yes', 'Reticent',
      'They take days to open up.', 0.0, 1.0, 0.01),
-    (0xE0A, 'OvertureLoverBond', 0.75, 'How close before a yes', 'Lovers from a bond of',
-     'At this bond, the next conversation opens at the proposition, as it does after a yes.', 0.3, 1.0, 0.05),
-    (0xE0B, 'OvertureFaithRefuses', 0.80, 'Spoken for', 'Faithful enough to always refuse',
+    ('fLoverBond', 'Bars', 0.75, 'How close before a yes', 'Lovers from a bond of',
+     'At this bond, conversations open at the proposition. With a scene together as well, you are lovers '
+     'to everyone else too.', 0.3, 1.0, 0.05),
+    ('fFaithRefuses', 'SpokenFor', 0.80, 'Spoken for', 'Faithful enough to always refuse',
      'Someone married or courting refuses outright at this faithfulness or above.', 0.0, 1.0, 0.05),
-    (0xE0C, 'OvertureFaithWeight', 0.40, 'Spoken for', 'How much being spoken for raises the bar',
+    ('fFaithWeight', 'SpokenFor', 0.40, 'Spoken for', 'How much being spoken for raises the bar',
      'Below that, the bar rises by this much of their faithfulness.', 0.0, 1.0, 0.05),
+    ('fJealousySting', 'Jealousy', -0.06, 'Jealousy', 'When it hurts',
+     "What a romantic or reticent lover's bond loses on hearing you have been with someone else.",
+     -0.3, 0.0, 0.01),
+    ('fJealousyThrill', 'Jealousy', 0.03, 'Jealousy', 'When it thrills',
+     "What a vulgar lover's bond gains on hearing it. The mercantile shrug.", 0.0, 0.2, 0.01),
 ]
+# The one key MCM can never legitimately answer 0 for -- its slider starts at 0.3.
+# A 0 there means MCM has no Overture settings, and Approach.Tuned falls back to
+# the defaults it carries.
+SENTINEL = 'fLoverBond:Bars'
 
 
 def glob(form_id, edid, value):
@@ -183,6 +195,8 @@ def build_staged():
            (m.ENABLED_GLOBAL, 'enabled global'), (VERDICT_GLOBAL, 'verdict global'),
            (SCENES_GLOBAL, 'scenes global'), (LAST_OUTCOME_GLOBAL, 'last-outcome global'),
            (m.NEXT_DAY_AV, 'next-day actor value'), (m.STAGE_REACHED_AV, 'stage-reached actor value'),
+           (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
+           (m.INVITED_UNTIL_AV, 'invited-until actor value'), (m.JEALOUSY_MARK_AV, 'jealousy-mark actor value'),
            (m.GREET_TOPIC, 'greeting topic'), (m.GREET_INFO, 'greeting line')]
     children, count = b'', 0
     topics = {1: {}, 2: {}, 3: {}}
@@ -328,10 +342,12 @@ def build_staged():
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(SCENES_GLOBAL, 'OvertureScenesEnabled', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
-    for object_id, edid, default, *_ in SETTINGS:
-        globs += glob(0x01000000 | object_id, edid, default)
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob)
-    blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av())
+    blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
+                    + m.actor_value(m.TIER_AV, 'OvertureTier')
+                    + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
+                    + m.actor_value(m.INVITED_UNTIL_AV, 'OvertureInvitedUntil')
+                    + m.actor_value(m.JEALOUSY_MARK_AV, 'OvertureJealousyMark'))
 
     # The header, and the uniqueness check, from the bytes actually written.
     return m.finish(blob), topics
@@ -364,6 +380,33 @@ def phase(conditions=b'', name=''):
     return f
 
 
+def alias_value(av, value, op, value_global=None):
+    """One of our actor values on whoever is in the alias (run on Quest Alias 0),
+    against a number -- or against a GLOB, with value_global."""
+    return m.field('CTDA', m.condition(m.FUNC_GET_VALUE, av, value=value, op=op,
+                                       runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX,
+                                       value_global=value_global))
+
+
+def at_proposition():
+    """They said yes before (O-12), OR the lover tier (O-14), OR an invitation
+    that lasts until tonight (O-30): the conversation opens at the proposition.
+    ONE OR group -- the flag on each but the last -- so a condition carrying the
+    OR flag just before it joins the group. Approach.OpensAtProposition is the
+    same test in Papyrus and must stay so."""
+    return (alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_EQ | m.CTDA_OR)
+            + alias_value(m.TIER_AV, float(m.TIER_LOVER), m.CTDA_OP_EQ | m.CTDA_OR)
+            + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED))
+
+
+def not_at_proposition():
+    """Its negation, three conditions ANDed (De Morgan): no yes before, not the
+    lover tier, and no invitation still running."""
+    return (alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_NE)
+            + alias_value(m.TIER_AV, float(m.TIER_LOVER), m.CTDA_OP_NE)
+            + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_LE, value_global=m.GLOB_GAME_DAYS_PASSED))
+
+
 def scene_staged(topics):
     """Five phases: 0 empty (the alias settles), 1 stage 1 (first meetings only),
     2 stage 2 (after a land, or for a returning NPC), 3 stage 3 (only for a verdict
@@ -371,35 +414,29 @@ def scene_staged(topics):
     the one-exchange scene ends with, which every ending reply jumps to."""
     f = m.field('EDID', m.zstring(m.SCENE_EDID))
     f += m.field('FNAM', struct.pack('<I', 0x00000024))
-    first_meeting = m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
-                                                value=0.0, runon=RUNON_QUEST_ALIAS,
-                                                alias=m.ALIAS_INDEX))
+    # Stage 1: nothing reached yet, AND not a conversation that opens at the
+    # proposition.
+    first_meeting = alias_value(m.STAGE_REACHED_AV, 0.0, m.CTDA_OP_EQ) + not_at_proposition()
     # Stage 2: today's stage 1 landed, OR stage 1 was skipped because they reached
-    # it on an earlier day. The OR flag on the first joins it to the second.
+    # it on an earlier day -- AND not at the proposition. OR binds tighter than AND
+    # in a condition list, so this reads (land OR reached >= 1) AND no yes AND not
+    # the lover tier AND no invitation.
     stage_two = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
-                                            value=float(m.OUTCOME_LAND), op=CTDA_OR))
-    stage_two += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
-                                             value=1.0, op=FUNC_OP_GE,
-                                             runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
-    # ...AND not a lover (O-12): a lover's conversation opens at the proposition.
-    # OR binds tighter than AND in a condition list, so this reads
-    # (land OR reached >= 1) AND reached < 4.
-    stage_two += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
-                                             value=float(STAGE_LOVER), op=CTDA_OP_LT,
-                                             runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
-    # Stage 3: a verdict with a chance, OR a lover. The lover's verdict is decided as
-    # the scene begins (Approach.LoverOpening), seconds before the player can pick;
-    # the gate itself reads only the stage marker, which was written before this
-    # conversation began, so it cannot race.
+                                            value=float(m.OUTCOME_LAND), op=m.CTDA_OR))
+    stage_two += alias_value(m.STAGE_REACHED_AV, 1.0, m.CTDA_OP_GE)
+    stage_two += not_at_proposition()
+    # Stage 3: a verdict with a chance, OR a conversation that opens here. That one's
+    # verdict is decided as the scene begins (Approach.Opening), seconds before the
+    # player can pick; the gate reads only markers written before the conversation
+    # began, so it cannot race -- and it opens even for a verdict that can only be
+    # refused, which the Narrator then says is not the player's words.
     has_a_chance = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, VERDICT_GLOBAL,
-                                               value=float(VERDICT_NOTYET), op=FUNC_OP_GE | CTDA_OR))
-    has_a_chance += m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV,
-                                                value=float(STAGE_LOVER), op=FUNC_OP_GE,
-                                                runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
+                                               value=float(VERDICT_NOTYET), op=m.CTDA_OP_GE | m.CTDA_OR))
+    has_a_chance += at_proposition()
     # HandBack: after anything but a yes. After a yes the scene simply ends -- the
     # dialogue closes so Rapport's scene can start, with no re-greet on top.
     not_after_yes = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
-                                                value=float(OUTCOME_ACCEPT), op=CTDA_OP_NE))
+                                                value=float(OUTCOME_ACCEPT), op=m.CTDA_OP_NE))
     f += (phase() + phase(first_meeting) + phase(stage_two) + phase(has_a_chance)
           + phase(not_after_yes, name=HAND_BACK))
     # The actor list: alias 0, as the one-exchange scene has it.

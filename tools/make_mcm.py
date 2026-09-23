@@ -1,16 +1,23 @@
-"""Generate Overture's MCM page from the builder's own table.
+"""Generate Overture's MCM page and its settings file from the builder's own table.
 
     python tools/make_mcm.py
 
-Writes data/MCM/Config/Overture/config.json. Every control is bound straight to
-one of the plugin's globals ("sourceType": "GlobalValue"), so there is no
-settings.ini and nothing for a script to poll: MCM writes the global, and
-Overture:Approach reads it the next time it needs the number. The numbers and
-their defaults come from overture_stages.SETTINGS, the same table the plugin's
-GLOB records are written from, so the page cannot drift from the plugin.
+Writes data/MCM/Config/Overture/config.json (the page) and settings.ini (the
+defaults MCM starts from). The two SWITCHES are bound to the plugin's globals
+("GlobalValue"): the greeting's own conditions read OvertureEnabled, so it has to
+be a global, and a switch the player sets belongs in their save anyway. Every
+NUMBER is an MCM ModSetting instead: a global's value is written into every save,
+so a better default in a later Overture would never reach a game that already had
+the plugin (microscope pass 1, lens 6).
+
+The numbers, their defaults and ranges are overture_stages.SETTINGS, and the
+script's own fallbacks are held to the same table: every Tuned call in
+Overture:Approach must name a row and fall back to that row's default, and every
+row must be read somewhere. Otherwise nothing is written.
 """
 import json
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -18,6 +25,7 @@ import make_overture_esp as m  # noqa: E402
 import overture_stages as s  # noqa: E402
 
 OUT = m.ROOT / 'data' / 'MCM' / 'Config' / 'Overture'
+APPROACH = m.ROOT / 'papyrus' / 'Overture' / 'Approach.psc'
 PLUGIN = 'Overture.esp'
 
 
@@ -25,6 +33,29 @@ def source(object_id):
     # MCM's form reference: the plugin, then the object id without a load-order
     # byte -- it resolves the plugin wherever the player's load order put it.
     return f'{PLUGIN}|{object_id & 0xFFF:X}'
+
+
+def check_script(table):
+    """Every Tuned("key:Section", default) in Approach.psc against the table."""
+    psc = APPROACH.read_text(encoding='utf-8')
+    calls = re.findall(r'Tuned\("([^"]+)",\s*(-?[0-9.]+)\)', psc)
+    every = len(re.findall(r'\bTuned\(', psc)) - len(re.findall(r'Function Tuned\(', psc))
+    if every != len(calls):
+        raise SystemExit(f'Approach.psc has {every} Tuned calls and only {len(calls)} of them read '
+                         f'Tuned("key:Section", number) - a default that is not a literal cannot be checked')
+    read = set()
+    for name, default in calls:
+        if name not in table:
+            raise SystemExit(f'Approach.psc reads {name}, which overture_stages.SETTINGS does not have')
+        if abs(float(default) - table[name]) > 1e-9:
+            raise SystemExit(f'Approach.psc falls back to {default} for {name}; SETTINGS says {table[name]}')
+        read.add(name)
+    unread = sorted(set(table) - read)
+    if unread:
+        raise SystemExit(f'SETTINGS has {unread}, which Approach.psc never reads')
+    if f'"{s.SENTINEL}"' not in psc:
+        raise SystemExit(f'Approach.psc never checks the sentinel {s.SENTINEL}')
+    return len(calls)
 
 
 content = [
@@ -38,19 +69,36 @@ content = [
      'the scene. Off: they say yes and nothing more happens.',
      'valueOptions': {'sourceType': 'GlobalValue', 'sourceForm': source(s.SCENES_GLOBAL)}},
 ]
+table, ini = {}, {}
 section = None
-for object_id, _edid, default, sec, label, help_, lo, hi, step in s.SETTINGS:
+for key, ini_section, default, sec, label, help_, lo, hi, step in s.SETTINGS:
     if not lo <= default <= hi:
         raise SystemExit(f'{label}: the default {default} is outside its own slider ({lo}..{hi})')
+    name = f'{key}:{ini_section}'
+    if name in table:
+        raise SystemExit(f'{name} is in SETTINGS twice')
+    table[name] = default
+    ini.setdefault(ini_section, {})[key] = f'{float(default):.6f}'
     if sec != section:
         content.append({'type': 'section', 'text': sec})
         section = sec
-    content.append({'type': 'slider', 'text': label, 'help': help_,
-                    'valueOptions': {'min': lo, 'max': hi, 'step': step,
-                                     'sourceType': 'GlobalValue', 'sourceForm': source(object_id)}})
+    content.append({'type': 'slider', 'id': name, 'text': label, 'help': help_,
+                    'valueOptions': {'min': lo, 'max': hi, 'step': step, 'sourceType': 'ModSettingFloat'}})
+
+sentinel = next(row for row in s.SETTINGS if f'{row[0]}:{row[1]}' == s.SENTINEL)
+if not sentinel[6] > 0.0:
+    raise SystemExit(f'the sentinel {s.SENTINEL} must have a slider that cannot reach 0 (min {sentinel[6]})')
+calls = check_script(table)
 
 config = {'modName': 'Overture', 'displayName': 'Overture', 'minMcmVersion': 1,
           'pluginRequirements': [PLUGIN], 'pages': [{'pageDisplayName': 'Overture', 'content': content}]}
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / 'config.json').write_text(json.dumps(config, indent=2) + '\n', encoding='utf-8')
-print(f'wrote {OUT / "config.json"}: 2 switches and {len(s.SETTINGS)} sliders')
+lines = ['; GENERATED by tools/make_mcm.py from tools/overture_stages.py SETTINGS - edit that, not this.']
+for ini_section, keys in ini.items():
+    lines.append(f'[{ini_section}]')
+    lines += [f'{k}={v}' for k, v in keys.items()]
+    lines.append('')
+(OUT / 'settings.ini').write_text('\n'.join(lines), encoding='utf-8')
+print(f'wrote {OUT / "config.json"} and settings.ini: 2 switches, {len(s.SETTINGS)} numbers; '
+      f'{calls} Tuned calls in Approach.psc checked against the table')
