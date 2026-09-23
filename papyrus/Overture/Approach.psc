@@ -126,6 +126,15 @@ Int Property WHY_YES = 8 AutoReadOnly
 Int _api = 0
 Int _why = 0
 
+; O-16, the player's priority lane (owner, 2026-09-23): Rapport's one scene slot is
+; HELD for the player and this NPC from the moment the proposition would be a yes,
+; so Chemistry cannot take it while the player picks, the yes plays and the request
+; goes in. Refreshed at the yes to cover the minute of retries; let go when the
+; conversation ends without one, or when the retries give up.
+Float Property HOLD_AT_VERDICT = 90.0 AutoReadOnly
+Float Property HOLD_AT_YES = 70.0 AutoReadOnly
+Actor _held = None
+
 ; ONE conversation's facts, for its one Narrator line (O-9). Set at OnBegin,
 ; filled by each reply as it ends, spoken and cleared at the real OnEnd.
 Actor _talkWith = None
@@ -259,6 +268,10 @@ Event Scene.OnEnd(Scene akSender)
 	; facts in _talk* are this conversation's either way: events arrive in order,
 	; so the next conversation's OnBegin cannot have run before this one.
 	Actor who = _talkWith
+	; No yes in this conversation: nothing will ask for the slot it may be holding.
+	If _talkOutcome != OUTCOME_ACCEPT
+		Self.LetGo()
+	EndIf
 	Self.Narrate()
 	; The tidy-up is different. One scene serves every conversation, and clearing
 	; the alias under one that has already begun would break it. NOT IsPlaying():
@@ -464,6 +477,21 @@ Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 		_talkWhy = _why
 	EndIf
 	Debug.Trace("Overture: " + akWho.GetFormID() + " stage 3 verdict " + decided + " (why " + _why + ") on bond " + bond, 0)
+	If decided == VERDICT_ACCEPT && _api >= NEEDS_API
+		Rapport:Core.ReservePlayerScene(akWho, HOLD_AT_VERDICT)
+		_held = akWho
+	EndIf
+EndFunction
+
+; Let Rapport's slot go, if this script is holding it.
+Function LetGo()
+	If _held == None
+		Return
+	EndIf
+	If _api >= NEEDS_API
+		Rapport:Core.ReservePlayerScene(_held, 0.0)
+	EndIf
+	_held = None
 EndFunction
 
 ; Stage 4, behind OvertureScenesEnabled until a Rapport scene with the player in
@@ -472,7 +500,12 @@ Function Proposition(Actor akWho)
 	GlobalVariable scenes = Self.ScenesGlobal()
 	If scenes == None || scenes.GetValue() == 0.0
 		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; scenes are off (OvertureScenesEnabled 0)", 0)
+		Self.LetGo()
 		Return
+	EndIf
+	If _api >= NEEDS_API
+		Rapport:Core.ReservePlayerScene(akWho, HOLD_AT_YES)
+		_held = akWho
 	EndIf
 	; Seconds have passed since the verdict checked Rapport was free, and Chemistry
 	; can take the only scene slot in between -- so ask now, and keep asking for a
@@ -503,6 +536,8 @@ Function AskForTheScene()
 			Rapport:Core.NoteAffair(player.GetFormID(), akWho.GetFormID())
 		EndIf
 		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes; Rapport took the scene", 0)
+		; Rapport let the hold go itself when it accepted the request.
+		_held = None
 		_yesWith = None
 		Return
 	EndIf
@@ -512,6 +547,7 @@ Function AskForTheScene()
 		If _api >= NEEDS_API
 			Rapport:Core.NarrateLine(player.GetFormID(), akWho.GetFormID(), "{second} said yes, but the moment passed.", "")
 		EndIf
+		Self.LetGo()
 		_yesWith = None
 		Return
 	EndIf
