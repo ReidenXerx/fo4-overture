@@ -1,5 +1,5 @@
 {
-  "_": "The companion conversation's lines (methodology 11, O-19 B-lite + C + D). ALL DRAFT: written 2026-09-23 for the owner's review, like the stranger drafts. SUBTITLES ONLY: every companion speaks in a voice type of their own (Piper, Preston, Cait ...), none of which the six core renders cover, and the owner picks every voice by ear (V-9) - so none of these is rendered, and scripts/stage-voice.py counts them as subtitle-only by design. Greetings are persona-neutral because a greeting is chosen before any script has run. The answers are per persona and per verdict: a companion's answer is decided by their own state and their desire (O-22, B-lite), never by which register the player picked - so each answer set stands behind every proposition on the wheel. ASCII only (the plugin's zstring refuses anything else). Rewritten after microscope wave 3 (2026-09-23): a refusal is said for four different reasons and a 'not now' for two, so each line has to be true for all of them; and a yes promises no walk anywhere, since the follow (methodology 6) is not built.",
+  "_": "The companion conversation's lines (methodology 11, O-19 B-lite + C + D). Written 2026-09-23 and APPROVED by the owner 2026-09-24 (docs/decisions.md O-39); the vulgar answers were sent back and rewritten to O-40's rule first. SUBTITLES ONLY: every companion speaks in a voice type of their own (Piper, Preston, Cait ...), none of which the six core renders cover, and the owner picks every voice by ear (V-9) - so none of these is rendered, and scripts/stage-voice.py counts them as subtitle-only by design. Greetings are persona-neutral because a greeting is chosen before any script has run. The answers are per persona and per verdict: a companion's answer is decided by their own state and their desire (O-22, B-lite), never by which register the player picked - so each answer set stands behind every proposition on the wheel. ASCII only (the plugin's zstring refuses anything else). Rewritten after microscope wave 3 (2026-09-23): a refusal is said for four different reasons and a 'not now' for two, so each line has to be true for all of them; and a yes promises no walk anywhere, since the follow (methodology 6) is not built.",
   "wheel": {
     "_": "The player's four options. Three propositions, the stage-3 wording; the neutral slot (the offer's) holds the costless 'Later.' - 'Name your price for the night' is not a thing to say to someone who travels with you, and registers decide nothing here.",
     "charm": {
@@ -23,37 +23,31 @@
     {
       "id": "co_moment_01",
       "kind": "companion_moment",
-      "draft": true,
       "text": "Hey. Got a minute? Not for the road."
     },
     {
       "id": "co_moment_02",
       "kind": "companion_moment",
-      "draft": true,
       "text": "Can we stop a while? Just the two of us."
     },
     {
       "id": "co_start_01",
       "kind": "companion_start",
-      "draft": true,
       "text": "That look again. What's on your mind?"
     },
     {
       "id": "co_start_02",
       "kind": "companion_start",
-      "draft": true,
       "text": "You're staring. Something you want to say?"
     },
     {
       "id": "co_later_01",
       "kind": "companion_later",
-      "draft": true,
       "text": "Later, then. I'll hold you to it."
     },
     {
       "id": "co_later_02",
       "kind": "companion_later",
-      "draft": true,
       "text": "Sure. It'll keep."
     },
     {
@@ -61,7 +55,6 @@
       "kind": "companion_answer",
       "persona": "mercantile",
       "outcome": "accept",
-      "draft": true,
       "text": "Now that's a deal I'll take."
     },
     {
@@ -69,7 +62,6 @@
       "kind": "companion_answer",
       "persona": "mercantile",
       "outcome": "notyet",
-      "draft": true,
       "text": "Not tonight. Give it a few more days on the road with me."
     },
     {
@@ -77,7 +69,6 @@
       "kind": "companion_answer",
       "persona": "mercantile",
       "outcome": "refuse",
-      "draft": true,
       "text": "No. That's not a deal I'm making."
     },
     {
@@ -85,7 +76,6 @@
       "kind": "companion_answer",
       "persona": "mercantile",
       "outcome": "nothere",
-      "draft": true,
       "text": "Here? With an audience? Find us somewhere private."
     },
     {
@@ -93,7 +83,6 @@
       "kind": "companion_answer",
       "persona": "mercantile",
       "outcome": "notnow",
-      "draft": true,
       "text": "Not now. Later, when the work's done."
     },
     {
@@ -101,7 +90,6 @@
       "kind": "companion_answer",
       "persona": "romantic",
       "outcome": "accept",
-      "draft": true,
       "text": "I was hoping you'd ask."
     },
     {
@@ -109,7 +97,6 @@
       "kind": "companion_answer",
       "persona": "romantic",
       "outcome": "notyet",
-      "draft": true,
       "text": "Not tonight. Stay close to me a while longer first."
     },
     {
@@ -117,7 +104,6 @@
       "kind": "companion_answer",
       "persona": "romantic",
       "outcome": "refuse",
-      "draft": true,
       "text": "No. Not like this."
     },
     {
@@ -125,7 +111,6 @@
       "kind": "companion_answer",
       "persona": "romantic",
       "outcome": "nothere",
-      "draft": true,
       "text": "Not in front of everyone. Somewhere that's only ours."
     },
     {
@@ -133,7 +118,6 @@
       "kind": "companion_answer",
       "persona": "romantic",
       "outcome": "notnow",
-      "draft": true,
       "text": "Not now. Later, when it's just the two of us."
     },
     {
@@ -141,47 +125,41 @@
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "accept",
-      "draft": true,
-      "text": "Finally. I thought you'd never ask."
+      "text": "About fucking time. Strip, whore, and spread your legs for me."
     },
     {
       "id": "co_vulgar_notyet_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "notyet",
-      "draft": true,
-      "text": "Not tonight. Wind me up a little more first."
+      "text": "Not yet, you desperate slut. Beg me a few more nights and maybe I'll let you taste me."
     },
     {
       "id": "co_vulgar_refuse_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "refuse",
-      "draft": true,
-      "text": "No. Not happening."
+      "text": "Fuck off. Go dry-hump a Protectron, you sad little pervert."
     },
     {
       "id": "co_vulgar_nothere_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "nothere",
-      "draft": true,
-      "text": "Not with all these eyes on us. Get me somewhere private."
+      "text": "Not with all these eyes on us, you filthy animal. Get me alone and I'll fuck you senseless."
     },
     {
       "id": "co_vulgar_notnow_01",
       "kind": "companion_answer",
       "persona": "vulgar",
       "outcome": "notnow",
-      "draft": true,
-      "text": "Hold that thought. Later, and I'll make it worth the wait."
+      "text": "Keep it in your pants for now, fucktoy. Later I'm going to fuck you until you can't walk."
     },
     {
       "id": "co_reticent_accept_01",
       "kind": "companion_answer",
       "persona": "reticent",
       "outcome": "accept",
-      "draft": true,
       "text": "Yes. Please."
     },
     {
@@ -189,7 +167,6 @@
       "kind": "companion_answer",
       "persona": "reticent",
       "outcome": "notyet",
-      "draft": true,
       "text": "Not yet. I need more time with you first."
     },
     {
@@ -197,7 +174,6 @@
       "kind": "companion_answer",
       "persona": "reticent",
       "outcome": "refuse",
-      "draft": true,
       "text": "No. I... no."
     },
     {
@@ -205,7 +181,6 @@
       "kind": "companion_answer",
       "persona": "reticent",
       "outcome": "nothere",
-      "draft": true,
       "text": "Not here. People are watching."
     },
     {
@@ -213,7 +188,6 @@
       "kind": "companion_answer",
       "persona": "reticent",
       "outcome": "notnow",
-      "draft": true,
       "text": "Not now. Later, maybe. When it's quiet."
     }
   ]

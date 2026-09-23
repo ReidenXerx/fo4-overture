@@ -29,27 +29,24 @@
       "note": "Parenthesised because the player does not speak it, so spoken is empty. The only option whose content is an absence, which is why it sits in the question slot."
     }
   ],
-  "_stages": "stage2 and stage3 are DRAFTS written 2026-09-23 overnight without the owner, for the staged build (tools/overture_stages.py, --stages 3). Every one needs the owner's eye the way O-6's vulgar pass did before anything is built on them. Stage 3 is the proposition phrased in each register: only the persona's own register gets a verdict, the other three are refused.",
+  "_stages": "stage2 and stage3 were written 2026-09-23 overnight without the owner, for the staged build (tools/overture_stages.py, --stages 3), and APPROVED by the owner 2026-09-24 (docs/decisions.md O-39). Stage 3 is the proposition phrased in each register: only the persona's own register gets a verdict, the other three are refused (unless the NPC is the player's lover: O-31).",
   "stage2": [
     {
       "register": "offer",
       "slot": "NETO",
       "text": "I kept the good one back for you.",
-      "draft": true,
       "note": "More of the thing, not more words."
     },
     {
       "register": "charm",
       "slot": "PTOP",
       "text": "I keep finding reasons to walk past here.",
-      "draft": true,
       "note": "Admits the pattern; the compliment is the confession."
     },
     {
       "register": "blunt",
       "slot": "NTOP",
       "text": "I want to hear what you sound like when you come.",
-      "draft": true,
       "note": "O-6: it names something. Sex-neutral, like stage 1's line, because the player may be either."
     },
     {
@@ -57,7 +54,6 @@
       "slot": "QTOP",
       "text": "(Stay. Let the silence go on.)",
       "spoken": "",
-      "draft": true,
       "note": "Still an absence, a longer one."
     }
   ],
@@ -66,21 +62,18 @@
       "register": "offer",
       "slot": "NETO",
       "text": "Name your price for the night.",
-      "draft": true,
       "note": "The proposition as a deal."
     },
     {
       "register": "charm",
       "slot": "PTOP",
       "text": "Come away with me tonight. Just us.",
-      "draft": true,
       "note": "The proposition as an invitation."
     },
     {
       "register": "blunt",
       "slot": "NTOP",
       "text": "Enough talking. Let's fuck.",
-      "draft": true,
       "note": "The proposition as itself."
     },
     {
@@ -88,7 +81,6 @@
       "slot": "QTOP",
       "text": "(Take their hand.)",
       "spoken": "",
-      "draft": true,
       "note": "The proposition as a gesture. The verdict is decided before this wheel opens, so an empty line races nothing."
     }
   ]

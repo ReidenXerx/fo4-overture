@@ -479,3 +479,41 @@ cannot cross. The code did not. **Fixed the same night, NOT YET RUN IN GAME:**
 - O-37 and O-38 needed nothing: they are what was built.
 
 **The O-26 table**, owed since the morning, went to the owner with this report for review.
+
+## O-39 — The review: everything approved except the vulgar lines (owner, 2026-09-24)
+
+The owner reviewed the O-26 persona table, the two wordings, and the 62 draft lines (26 companion and 36
+stranger), and answered: **"i approve all and vulgar has your usual problems - its not vulgar at all,
+where is obsense words where is abuse and naughty shit?"**
+
+| item | answer |
+| --- | --- |
+| O-26 persona pins | **approved as drafted**: romantic Piper, Preston, Curie; vulgar Cait, Hancock (Ivy already, R-15); reticent Danse, Deacon, X6-88, Longfellow; mercantile MacCready, Gage. Rapport pins them |
+| "Ask for a moment" (O-35's prompt) | **approved** |
+| Moments' Narrator hint, "{second} keeps glancing your way, like there's something on {their} mind." | **approved** |
+| the 62 draft lines | **approved, except the vulgar persona's 11** (O-40) |
+| the lover and jealous greetings' contractions (the rest of the bank has none: 0 of 128) | **kept**. A reading: "approve all" covered the lines as they were shown, contractions included |
+
+## O-40 — The vulgar persona swears, degrades and gets filthy (owner poll, 2026-09-24)
+
+O-6's rule ("it names something") is the floor, and the second time drafts only met the floor, the owner
+sent them back. **The test for every vulgar line now: it swears, it insults or degrades the one it talks
+to, and it says something specifically dirty.** A line missing one of the three needs a reason.
+Consensual throughout: the degradation is dirty talk from someone who wants it.
+
+| # | question | answer |
+| --- | --- | --- |
+| O-40a | the 11 rewritten drafts (6 voiced stranger lines, 5 companion subtitles) | **record them** (recommended) |
+| O-40b | the 32 older vulgar lines O-6 approved: only 7 swear, and none insults the player | **rewrite all 32** (recommended), shown to the owner before anything is recorded |
+| O-40c | male and female versions, so the persona can say cock, pussy and tits | **yes** (recommended): each version is shown only to the speakers (and players) it fits |
+
+**Why O-40c needed a question.** Every bank line is voiced in three female and three male voice types, and
+the player may be either sex, so a line with no condition has to fit anyone. That is why the drafts
+stayed with fuck, slut, whore, ass and mouth. It also exposed a defect in the approved bank:
+`ov_vulgar_greet_01`, "You going to keep staring at my tits, or say something?", is RECORDED in the three
+male voices too. The poll said male settlers speak it, and that was wrong. The plugin uses none of the
+bank's 24 `greeting`, `farewell` and `returning` lines (the voice registry names 0 INFOs for them), so the
+line has never played in game. Corrected to the owner the same night.
+
+**Measured before the rewrite:** of the persona's 32 approved lines, 7 contain an obscene word, and the
+only insults are "Completely useless" and "that desperate look".

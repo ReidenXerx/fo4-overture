@@ -1228,8 +1228,7 @@
       "persona": "mercantile",
       "outcome": "nothere",
       "text": "Not out here, with the whole market listening. Somewhere private, and we have a deal.",
-      "chars": 85,
-      "draft": true
+      "chars": 85
     },
     {
       "id": "ov3_mercantile_nothere_02",
@@ -1238,8 +1237,7 @@
       "persona": "mercantile",
       "outcome": "nothere",
       "text": "Lower your voice. Find us somewhere with a door and I am yours.",
-      "chars": 63,
-      "draft": true
+      "chars": 63
     },
     {
       "id": "ov3_romantic_nothere_01",
@@ -1248,8 +1246,7 @@
       "persona": "romantic",
       "outcome": "nothere",
       "text": "Yes. But not here, not like this. Take me somewhere we can be alone.",
-      "chars": 68,
-      "draft": true
+      "chars": 68
     },
     {
       "id": "ov3_romantic_nothere_02",
@@ -1258,8 +1255,7 @@
       "persona": "romantic",
       "outcome": "nothere",
       "text": "Ask me again somewhere quiet, and I will not make you wait.",
-      "chars": 59,
-      "draft": true
+      "chars": 59
     },
     {
       "id": "ov3_vulgar_nothere_01",
@@ -1267,9 +1263,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "nothere",
-      "text": "Yes. Now get me behind a door before I fuck you in front of all of them.",
-      "chars": 72,
-      "draft": true
+      "text": "Fuck, yes. Behind a door, I bend you over and fuck you raw, you greedy slut.",
+      "chars": 76
     },
     {
       "id": "ov3_vulgar_nothere_02",
@@ -1277,9 +1272,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "nothere",
-      "text": "Somewhere private. Then you can have my mouth, and anything else you want.",
-      "chars": 74,
-      "draft": true
+      "text": "Somewhere private, whore. Then I sit on your fucking face until you forget your own name.",
+      "chars": 89
     },
     {
       "id": "ov3_reticent_nothere_01",
@@ -1288,8 +1282,7 @@
       "persona": "reticent",
       "outcome": "nothere",
       "text": "Not with people watching. Please. Somewhere quieter, and... yes.",
-      "chars": 64,
-      "draft": true
+      "chars": 64
     },
     {
       "id": "ov3_reticent_nothere_02",
@@ -1298,8 +1291,7 @@
       "persona": "reticent",
       "outcome": "nothere",
       "text": "Everyone would see. Take me somewhere else, if you mean it.",
-      "chars": 59,
-      "draft": true
+      "chars": 59
     },
     {
       "id": "ov3_mercantile_notnow_01",
@@ -1308,8 +1300,7 @@
       "persona": "mercantile",
       "outcome": "notnow",
       "text": "Not now. I am working. Come back when the stall is shut.",
-      "chars": 56,
-      "draft": true
+      "chars": 56
     },
     {
       "id": "ov3_mercantile_notnow_02",
@@ -1318,8 +1309,7 @@
       "persona": "mercantile",
       "outcome": "notnow",
       "text": "Later. Right now I have customers to see to.",
-      "chars": 44,
-      "draft": true
+      "chars": 44
     },
     {
       "id": "ov3_romantic_notnow_01",
@@ -1328,8 +1318,7 @@
       "persona": "romantic",
       "outcome": "notnow",
       "text": "Not in broad daylight. Find me tonight, and ask me properly.",
-      "chars": 60,
-      "draft": true
+      "chars": 60
     },
     {
       "id": "ov3_romantic_notnow_02",
@@ -1338,8 +1327,7 @@
       "persona": "romantic",
       "outcome": "notnow",
       "text": "Not like this. Somewhere with a little more candlelight.",
-      "chars": 56,
-      "draft": true
+      "chars": 56
     },
     {
       "id": "ov3_vulgar_notnow_01",
@@ -1347,9 +1335,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notnow",
-      "text": "Not now. Tonight, and then I want your mouth on me.",
-      "chars": 51,
-      "draft": true
+      "text": "Not now, you horny fucking freak. Later I spank your ass red and you thank me for every one.",
+      "chars": 92
     },
     {
       "id": "ov3_vulgar_notnow_02",
@@ -1357,9 +1344,8 @@
       "stage": 3,
       "persona": "vulgar",
       "outcome": "notnow",
-      "text": "Hold that thought. Later I am going to ride you until you beg.",
-      "chars": 62,
-      "draft": true
+      "text": "Hold that fucking thought, pervert. Later I ride you until you are a begging, dripping mess.",
+      "chars": 92
     },
     {
       "id": "ov3_reticent_notnow_01",
@@ -1368,8 +1354,7 @@
       "persona": "reticent",
       "outcome": "notnow",
       "text": "Not right now. Later, maybe. When it is quiet.",
-      "chars": 46,
-      "draft": true
+      "chars": 46
     },
     {
       "id": "ov3_reticent_notnow_02",
@@ -1378,8 +1363,7 @@
       "persona": "reticent",
       "outcome": "notnow",
       "text": "Not yet today. Come and find me when there is nobody around.",
-      "chars": 60,
-      "draft": true
+      "chars": 60
     },
     {
       "id": "ov_lover_greet_01",
@@ -1387,8 +1371,7 @@
       "stage": 0,
       "persona": "any",
       "text": "There you are.",
-      "chars": 14,
-      "draft": true
+      "chars": 14
     },
     {
       "id": "ov_lover_greet_02",
@@ -1396,8 +1379,7 @@
       "stage": 0,
       "persona": "any",
       "text": "I was hoping it'd be you.",
-      "chars": 25,
-      "draft": true
+      "chars": 25
     },
     {
       "id": "ov_lover_greet_03",
@@ -1405,8 +1387,7 @@
       "stage": 0,
       "persona": "any",
       "text": "You came back.",
-      "chars": 14,
-      "draft": true
+      "chars": 14
     },
     {
       "id": "ov_lover_greet_04",
@@ -1414,8 +1395,7 @@
       "stage": 0,
       "persona": "any",
       "text": "Look who's here.",
-      "chars": 16,
-      "draft": true
+      "chars": 16
     },
     {
       "id": "ov_jealous_mercantile_01",
@@ -1423,8 +1403,7 @@
       "stage": 0,
       "persona": "mercantile",
       "text": "Heard you've been making the rounds. Business is business.",
-      "chars": 58,
-      "draft": true
+      "chars": 58
     },
     {
       "id": "ov_jealous_mercantile_02",
@@ -1432,8 +1411,7 @@
       "stage": 0,
       "persona": "mercantile",
       "text": "I don't keep books on who you see. Only on what you owe me.",
-      "chars": 59,
-      "draft": true
+      "chars": 59
     },
     {
       "id": "ov_jealous_romantic_01",
@@ -1441,8 +1419,7 @@
       "stage": 0,
       "persona": "romantic",
       "text": "So I'm not the only one. I thought we had something.",
-      "chars": 52,
-      "draft": true
+      "chars": 52
     },
     {
       "id": "ov_jealous_romantic_02",
@@ -1450,26 +1427,23 @@
       "stage": 0,
       "persona": "romantic",
       "text": "Word travels. I hoped it was only talk.",
-      "chars": 39,
-      "draft": true
+      "chars": 39
     },
     {
       "id": "ov_jealous_vulgar_01",
       "kind": "jealous_greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Heard you've been busy. Tell me everything.",
-      "chars": 43,
-      "draft": true
+      "text": "Heard you fucked someone else, you dirty whore. Tell me every filthy detail.",
+      "chars": 76
     },
     {
       "id": "ov_jealous_vulgar_02",
       "kind": "jealous_greeting",
       "stage": 0,
       "persona": "vulgar",
-      "text": "Someone else, huh? Good. Now show me what you learned.",
-      "chars": 54,
-      "draft": true
+      "text": "So you have been fucking around, you shameless slut. Good. Show me what they taught you.",
+      "chars": 88
     },
     {
       "id": "ov_jealous_reticent_01",
@@ -1477,8 +1451,7 @@
       "stage": 0,
       "persona": "reticent",
       "text": "...I heard. It's fine. It's fine.",
-      "chars": 33,
-      "draft": true
+      "chars": 33
     },
     {
       "id": "ov_jealous_reticent_02",
@@ -1486,9 +1459,8 @@
       "stage": 0,
       "persona": "reticent",
       "text": "People talk. I wish I hadn't listened.",
-      "chars": 38,
-      "draft": true
+      "chars": 38
     }
   ],
-  "_drafts": "Lines marked \"draft\": true were written 2026-09-23 overnight WITHOUT the owner, for the staged build's two stage-3 answers the bank did not have: 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy). They need the owner's review the way O-6's vulgar pass did. They are VOICED all the same: the owner's 'render them' (2026-09-23) covered every missing line, and all 28 drafts were rendered in the six core voices and staged, so a rewrite means re-rendering that line (render-barks.py and stage-voice.py both refuse audio recorded for other words). Also DRAFT, written 2026-09-23 for O-12's lover state: the four 'lover_greeting' lines, which open a conversation with someone who has said yes before. Persona-neutral on purpose: a greeting is chosen before any script can say who the speaker is. Also DRAFT, written 2026-09-23 for O-33 (the owner: jealousy in the lover's own voice): the eight 'jealous_greeting' lines, two per persona, which open a lover's next conversation after they heard about the player's scene with someone else. Persona-specific, unlike the lover greetings, because the marker that picks them is written at that scene, when the persona is known. The romantic and the reticent are stung, the vulgar is thrilled, the mercantile shrugs (O-29)."
+  "_drafts": "HISTORY. 28 lines were written 2026-09-23 overnight WITHOUT the owner: the stage-3 answers 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy), O-12's four persona-neutral 'lover_greeting' lines (a greeting is chosen before any script can say who the speaker is), and O-33's eight 'jealous_greeting' lines, two per persona (the romantic and the reticent are stung, the vulgar is thrilled, the mercantile shrugs: O-29). They were voiced on the owner's 'render them' while still drafts. REVIEWED 2026-09-24 (docs/decisions.md O-39, O-40): all approved except the vulgar persona's six, which were rewritten to O-40's rule -- every vulgar line swears, degrades the one it talks to, and says something specifically dirty -- and approved and re-voiced."
 }
