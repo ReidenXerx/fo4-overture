@@ -173,6 +173,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		app.SetTo(who, app.SAID_YES_AV_ID, 0.0)
 		app.SetTo(who, app.INVITED_UNTIL_AV_ID, 0.0)
 		app.SetTo(who, app.JEALOUSY_MARK_AV_ID, 0.0)
+		app.SetTo(who, app.JEALOUS_PENDING_AV_ID, 0.0)
 		If app.HasApi()
 			Rapport:Core.SetLovers(Game.GetPlayer().GetFormID(), who.GetFormID(), False)
 		EndIf
@@ -212,7 +213,7 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		Actor player = Game.GetPlayer()
 		s = s + " | bond=" + Rapport:Relations.BondBetween(player, who)
 		If app.HasApi()
-			s = s + " | lovers=" + Rapport:Core.AreLovers(player.GetFormID(), who.GetFormID()) + " scenesTogether=" + Rapport:Core.PairSceneCount(player.GetFormID(), who.GetFormID()) + " jealousyMark=" + app.ValueOf(who, app.JEALOUSY_MARK_AV_ID)
+			s = s + " | lovers=" + Rapport:Core.AreLovers(player.GetFormID(), who.GetFormID()) + " scenesTogether=" + Rapport:Core.PairSceneCount(player.GetFormID(), who.GetFormID()) + " jealousyMark=" + app.ValueOf(who, app.JEALOUSY_MARK_AV_ID) + " jealousPending=" + app.ValueOf(who, app.JEALOUS_PENDING_AV_ID)
 		EndIf
 		MCP:Core.Reply(tag, s)
 		Return

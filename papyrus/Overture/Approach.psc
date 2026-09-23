@@ -69,6 +69,9 @@ Int Property TIER_AV_ID = 0x00000848 AutoReadOnly
 Int Property SAID_YES_AV_ID = 0x00000849 AutoReadOnly
 Int Property INVITED_UNTIL_AV_ID = 0x0000084A AutoReadOnly
 Int Property JEALOUSY_MARK_AV_ID = 0x0000084B AutoReadOnly
+; OvertureJealousPending: the persona + 1 of a lover who heard, at the player's
+; scene with someone else, and has not said it yet -- the greeting reads it (O-33).
+Int Property JEALOUS_PENDING_AV_ID = 0x0000084C AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
 ; Rapport.esp's quest, which carries Rapport:Bridge and its OnPlayerSceneRecorded.
 Int Property RAPPORT_BRIDGE_ID = 0x00000800 AutoReadOnly
@@ -369,9 +372,33 @@ Event Rapport:Bridge.OnPlayerSceneRecorded(Rapport:Bridge akSender, Var[] akArgs
 	c.quiet = True
 	String note = Self.BetweenConversations(c)
 	Debug.Trace("Overture: a scene with " + who.GetFormID() + " was recorded" + note, 0)
-	If c.lovers && _api >= NEEDS_API
+	If _api < NEEDS_API
+		Return
+	EndIf
+	If c.lovers
 		Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), who.GetFormID(), "Word gets around - you and {second} are a couple now.", "")
 	EndIf
+	; O-33 (owner, 2026-09-23): every OTHER lover hears of it now, and says so in
+	; their own voice when the player next talks to them -- the greeting reads the
+	; marker. Once per conversation, as before: one who has not had their say yet
+	; only has their count moved on, and reacts again after they have.
+	Int p = Game.GetPlayer().GetFormID()
+	Int count = Rapport:Core.LoverCount(p)
+	Int i = 0
+	While i < count
+		Actor lover = Game.GetForm(Rapport:Core.LoverAt(p, i)) as Actor
+		If lover != None && lover != who
+			Conversation heard = new Conversation
+			heard.who = lover
+			Bool react = Self.ValueOf(lover, JEALOUS_PENDING_AV_ID) <= 0.0
+			String what = Self.Jealousy(heard, react)
+			If heard.jealous != 0
+				Self.SetTo(lover, JEALOUS_PENDING_AV_ID, (Self.PersonaIndex(lover) + 1) as Float)
+				Debug.Trace("Overture: " + lover.GetFormID() + what + " - their next greeting says so", 0)
+			EndIf
+		EndIf
+		i += 1
+	EndWhile
 EndEvent
 
 Event Scene.OnBegin(Scene akSender)
@@ -461,7 +488,15 @@ String Function Opening(Conversation c)
 	String note = ""
 	If _api >= NEEDS_API
 		note = note + Self.UpdateWorldLovers(c)
-		note = note + Self.Jealousy(c)
+		Int pending = Self.ValueOf(who, JEALOUS_PENDING_AV_ID) as Int
+		If pending > 0
+			; Heard at the scene (O-33): the bond moved then, and their greeting has
+			; just said it. What remains is the Narrator's line, and the count.
+			c.jealous = Self.ReactionOf(pending - 1)
+			note = note + Self.Jealousy(c, False) + " | said their piece in the greeting"
+		Else
+			note = note + Self.Jealousy(c, True)
+		EndIf
 	EndIf
 	If !Self.OpensAtProposition(who)
 		Return note
@@ -576,6 +611,10 @@ String Function BetweenConversations(Conversation c)
 	Int tier = Self.TierOf(who)
 	Self.SetTo(who, TIER_AV_ID, tier as Float)
 	note = note + " | tier " + tier
+	; O-33: a conversation began with their jealous greeting, and it has been said.
+	If !c.quiet && Self.ValueOf(who, JEALOUS_PENDING_AV_ID) > 0.0
+		Self.SetTo(who, JEALOUS_PENDING_AV_ID, 0.0)
+	EndIf
 	; O-28, and the rule that a proposition which could only be refused is never
 	; offered (methodology 2): a falling-out, or someone now spoken for and faithful
 	; enough to always refuse (methodology 7), no longer opens at the proposition on
@@ -673,8 +712,9 @@ EndFunction
 ; what happened before they were a lover. What it means is the persona's --
 ; methodology 11's table, which the owner applied to strangers too: the romantic
 ; and the reticent take it badly, the mercantile shrugs, the vulgar likes hearing
-; it. Once per conversation, however many there were. Returns the note.
-String Function Jealousy(Conversation c)
+; it. Once per conversation, however many there were: abReact False moves the
+; count on and nothing else (a lover who has not had their say yet). Returns the note.
+String Function Jealousy(Conversation c, Bool abReact)
 	Actor who = c.who
 	Actor player = Game.GetPlayer()
 	Int p = player.GetFormID()
@@ -687,22 +727,20 @@ String Function Jealousy(Conversation c)
 	Int known = who.GetValue(mark) as Int
 	; Written before anything else can run: a second look finds nothing new.
 	who.SetValue(mark, (others + 1) as Float)
-	If known == 0 || others < known
+	If known == 0 || others < known || !abReact
 		Return ""
 	EndIf
 	String note = " | heard about " + (others - known + 1) + " scene(s) with someone else"
 	Int persona = Self.PersonaIndex(who)
-	Float worth = 0.0
-	If persona == 1 || persona == 3
-		c.jealous = JEALOUS_STUNG
-		worth = Self.Tuned("fJealousySting:Jealousy", -0.06)
-	ElseIf persona == 2
-		c.jealous = JEALOUS_THRILLED
-		worth = Self.Tuned("fJealousyThrill:Jealousy", 0.03)
-	ElseIf persona == 0
-		c.jealous = JEALOUS_SHRUGGED
-	Else
+	c.jealous = Self.ReactionOf(persona)
+	If c.jealous == 0
 		Return note + ", and no persona to react with"
+	EndIf
+	Float worth = 0.0
+	If c.jealous == JEALOUS_STUNG
+		worth = Self.Tuned("fJealousySting:Jealousy", -0.06)
+	ElseIf c.jealous == JEALOUS_THRILLED
+		worth = Self.Tuned("fJealousyThrill:Jealousy", 0.03)
 	EndIf
 	If worth != 0.0
 		Float after = Rapport:Relations.AddBondBetween(player, who, worth, REASON_DIALOGUE)
@@ -710,6 +748,19 @@ String Function Jealousy(Conversation c)
 		note = note + ", bond now " + after
 	EndIf
 	Return note
+EndFunction
+
+; What a persona makes of hearing about the others (O-29): the romantic and the
+; reticent are stung, the vulgar thrilled, the mercantile shrugs. 0: no persona.
+Int Function ReactionOf(Int aiPersona)
+	If aiPersona == 1 || aiPersona == 3
+		Return JEALOUS_STUNG
+	ElseIf aiPersona == 2
+		Return JEALOUS_THRILLED
+	ElseIf aiPersona == 0
+		Return JEALOUS_SHRUGGED
+	EndIf
+	Return 0
 EndFunction
 
 ; ---- the numbers --------------------------------------------------------------

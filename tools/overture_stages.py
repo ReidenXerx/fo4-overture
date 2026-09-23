@@ -78,6 +78,7 @@ LAST_OUTCOME_GLOBAL = 0x01000847  # Overture:Reply's OnBegin writes it; phases 2
 # persona from Rapport, and a stage-3 verdict never decided.
 FALLBACK_NO_PERSONA = 0x01000D00   # + stage * 0x10 + register slot
 FALLBACK_NO_VERDICT = 0x01000D40   # + register slot
+FALLBACK_NO_VERDICT_LOVER = 0x01000D50   # + register slot * 4 + persona (O-31's lover sets)
 RUNON_QUEST_ALIAS = 5
 
 # Overture:Reply's Outcome, continued from make_overture_esp's 1..5.
@@ -165,6 +166,23 @@ def verdict_condition(verdict):
                                        value=float(verdict), runon=0))
 
 
+def a_lover():
+    """On the speaker: they said yes before (O-12) OR the lover tier (O-14) -- the
+    two markers O-31 lets every register reach the verdict for. One OR group."""
+    return (m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.SAID_YES_AV, value=1.0,
+                                        op=m.CTDA_OP_EQ | m.CTDA_OR, runon=m.RUNON_SUBJECT))
+            + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.TIER_AV, value=float(m.TIER_LOVER),
+                                          op=m.CTDA_OP_EQ, runon=m.RUNON_SUBJECT)))
+
+
+def not_a_lover():
+    """Its negation: no yes before AND not the lover tier."""
+    return (m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.SAID_YES_AV, value=1.0,
+                                        op=m.CTDA_OP_NE, runon=m.RUNON_SUBJECT))
+            + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.TIER_AV, value=float(m.TIER_LOVER),
+                                          op=m.CTDA_OP_NE, runon=m.RUNON_SUBJECT)))
+
+
 def no_persona_condition():
     return m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, m.PERSONA_GLOBAL,
                                        value=-1.0, runon=0))
@@ -206,6 +224,7 @@ def build_staged():
            (m.NEXT_DAY_AV, 'next-day actor value'), (m.STAGE_REACHED_AV, 'stage-reached actor value'),
            (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
            (m.INVITED_UNTIL_AV, 'invited-until actor value'), (m.JEALOUSY_MARK_AV, 'jealousy-mark actor value'),
+           (m.JEALOUS_PENDING_AV, 'jealous-pending actor value'),
            (m.GREET_TOPIC, 'greeting topic'), (m.GREET_INFO, 'greeting line')]
     children, count = b'', 0
     topics = {1: {}, 2: {}, 3: {}}
@@ -286,20 +305,31 @@ def build_staged():
         ids.append((rtid, f's3 reply topic {register}'))
         block, n_infos = b'', 0
         for k, persona in enumerate(m.PERSONAS):
-            if lands_on.get(persona) == register:
-                # The register that got here: the verdict decides. "Not here" has
-                # lines of its own now (DRAFT, voice/lines.json): the stage-2
-                # recoils it used to borrow answer a crude line the player may
-                # not have said, and two of them say no (review 2026-09-23).
-                sets = ((VERDICT_NOT_HERE, OUTCOME_NOT_HERE, propose.get((persona, 'nothere'), [])),
+            # The persona's answers, one set per verdict. "Not here" has lines of
+            # its own now (DRAFT, voice/lines.json): the stage-2 recoils it used to
+            # borrow answer a crude line the player may not have said, and two of
+            # them say no (review 2026-09-23).
+            verdicts = ((VERDICT_NOT_HERE, OUTCOME_NOT_HERE, propose.get((persona, 'nothere'), [])),
                         (VERDICT_REFUSE, OUTCOME_REFUSE, propose.get((persona, 'refuse'), [])),
                         (VERDICT_NOTYET, OUTCOME_NOTYET, propose.get((persona, 'notyet'), [])),
                         (VERDICT_ACCEPT, OUTCOME_ACCEPT, propose.get((persona, 'accept'), [])),
                         (VERDICT_NOT_NOW, OUTCOME_NOT_NOW, propose.get((persona, 'notnow'), [])))
+            if lands_on.get(persona) == register:
+                # The register that got here: the verdict decides.
+                sets = tuple((v, c, t, b'') for v, c, t in verdicts)
             else:
-                # Propositioned in the wrong register: refused, whatever the bond.
-                sets = ((None, OUTCOME_REFUSE, propose.get((persona, 'refuse'), [])),)
-            for s_index, (verdict, code, texts) in enumerate(sets):
+                # Propositioned in another register: refused, whatever the bond --
+                # unless they are the player's lover. O-31 (owner, 2026-09-23: "any
+                # register answers"): someone who said yes, or the lover tier, has
+                # nothing left to guess, so every register reaches the verdict, in
+                # their own voice. The refusal carries NOT-a-lover and the verdict
+                # sets carry the lover markers, so exactly one group can ever pass:
+                # a Random run pools every line that passes, and two groups at once
+                # would be a coin flip (make_overture_esp's recoil fence). The
+                # refusal keeps set 0, so its ids -- which name voice files -- stay.
+                sets = (((None, OUTCOME_REFUSE, propose.get((persona, 'refuse'), []), not_a_lover()),)
+                        + tuple((v, c, t, a_lover()) for v, c, t in verdicts))
+            for s_index, (verdict, code, texts, gate) in enumerate(sets):
                 if not texts:
                     raise SystemExit(f'no stage-3 lines for {persona} verdict {verdict}')
                 if len(texts) > 2:
@@ -317,7 +347,7 @@ def build_staged():
                 for v, text in enumerate(texts):
                     iid = INFO_BASE_S3 + (n * len(m.PERSONAS) + k) * S3_CELL + s_index * 2 + v
                     ids.append((iid, f's3 {register}/{persona} set {s_index} {v}'))
-                    extra = verdict_condition(verdict) if verdict is not None else b''
+                    extra = (verdict_condition(verdict) if verdict is not None else b'') + gate
                     block += m.line(iid, None, text, persona_index=k, enam=enam,
                                     reply=(3, code), extra=extra)
                     n_infos += 1
@@ -329,6 +359,14 @@ def build_staged():
                 ids.append((fid, f's3 no-verdict fallback {register}'))
                 block += m.line(fid, None, '...', persona_index=k, enam=0,
                                 reply=(3, m.OUTCOME_MISS), extra=verdict_condition(0))
+                n_infos += 1
+            else:
+                # A lover's verdict never decided (0), in another register: the same
+                # neutral beat, or no line would match at all.
+                fid = FALLBACK_NO_VERDICT_LOVER + n * len(m.PERSONAS) + k
+                ids.append((fid, f's3 lover no-verdict fallback {register}/{persona}'))
+                block += m.line(fid, None, '...', persona_index=k, enam=0,
+                                reply=(3, m.OUTCOME_MISS), extra=verdict_condition(0) + a_lover())
                 n_infos += 1
         fid = FALLBACK_NO_PERSONA + 3 * 0x10 + n
         ids.append((fid, f's3 no-persona fallback {register}'))
@@ -342,9 +380,13 @@ def build_staged():
     m.check_unique(ids)
 
     lover_lines = [l['text'] for l in bank['lines'] if l.get('kind') == 'lover_greeting']
-    if len(lover_lines) > 14:
-        raise SystemExit('more lover greetings than 0x832..0x83F holds')
-    children += m.greeting(lover_lines)
+    if len(lover_lines) > 4:
+        raise SystemExit('more lover greetings than 0x832..0x835 holds')
+    jealous_lines = [(m.PERSONAS.index(l['persona']), l['text'])
+                     for l in bank['lines'] if l.get('kind') == 'jealous_greeting']
+    if len(jealous_lines) > 10:
+        raise SystemExit('more jealous greetings than 0x836..0x83F holds')
+    children += m.greeting(lover_lines, jealous_lines)
     children += scene_staged(topics)
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global()
@@ -355,7 +397,8 @@ def build_staged():
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
                     + m.actor_value(m.INVITED_UNTIL_AV, 'OvertureInvitedUntil')
-                    + m.actor_value(m.JEALOUSY_MARK_AV, 'OvertureJealousyMark'))
+                    + m.actor_value(m.JEALOUSY_MARK_AV, 'OvertureJealousyMark')
+                    + m.actor_value(m.JEALOUS_PENDING_AV, 'OvertureJealousPending'))
 
     # The header, and the uniqueness check, from the bytes actually written.
     return m.finish(blob), topics

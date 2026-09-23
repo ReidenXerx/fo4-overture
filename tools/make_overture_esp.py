@@ -57,20 +57,21 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # A LIGHT plugin (O-18, owner 2026-09-23): every record this plugin owns sits in
 # object ids 0x800-0xFFF, which is all an ESL-flagged plugin may hold. Renumbered
 # before any line is voiced, because a voice file is NAMED by its INFO's id.
-#   0x800-0x84F  quest, scene, topics, greeting, globals, actor values (to 0x84B)
+#   0x800-0x84F  quest, scene, topics, greetings, globals, actor values (to 0x84C)
 #   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A)
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
-#   0xC00-0xCFF  stage 3                            0xD00-0xD43  fallbacks
+#   0xC00-0xCFF  stage 3                            0xD00-0xD5F  fallbacks
 #   0xE00-0xE0F  RETIRED: the MCM's numbers were globals here until they moved to
 #                MCM's settings.ini. Not reused -- a dev save may still name them.
 #   0x846        RETIRED likewise: OvertureScenesEnabled, now an MCM setting too.
-#   0xD44-0xDFF, 0xE10-0xFFF  free
+#   0xD60-0xDFF, 0xE10-0xFFF  free
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
-LOVER_GREET_BASE = 0x01000832  # O-12's lover greetings, 0x832..0x83F
+LOVER_GREET_BASE = 0x01000832    # O-12's lover greetings, 0x832..0x835
+JEALOUS_GREET_BASE = 0x01000836  # O-33's jealous greetings, 0x836..0x83F
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
@@ -82,6 +83,7 @@ TIER_AV = 0x01000848           # O-14's tier: -1 fallen out, 0 stranger, 1 warm,
 SAID_YES_AV = 0x01000849       # 1 once they have said yes to the player (O-12)
 INVITED_UNTIL_AV = 0x0100084A  # the game day a "not now" / "not here" invitation lasts until (O-30)
 JEALOUSY_MARK_AV = 0x0100084B  # O-29's count; the script alone reads it
+JEALOUS_PENDING_AV = 0x0100084C  # O-33: persona + 1 of a lover who heard and has not said it yet
 TIER_LOVER = 3                 # Approach.TIER_LOVER must match
 
 # The register O-4 calls intimate. Only this one recoils in public: a gift or a
@@ -505,7 +507,7 @@ CTDA_OR = 0x01                    # OR with the NEXT condition -- and OR binds t
 CTDA_USE_GLOBAL = 0x04            # the compared value is a GLOB form id
 
 
-def greeting(lover_lines=()):
+def greeting(lover_lines=(), jealous_lines=()):
     """The GREE topic, and the line that starts the scene.
 
     THIS IS THE PIECE THAT MAKES IT WORK. Measured on FFGoodneighbor02: its
@@ -529,7 +531,7 @@ def greeting(lover_lines=()):
     f += field('QNAM', struct.pack('<I', QUEST_FORMID))
     f += field('DATA', bytes([0x00, 0x07, 0x73, 0x00]))
     f += field('SNAM', b'GREE')
-    f += field('TIFC', struct.pack('<I', 1 + len(lover_lines)))
+    f += field('TIFC', struct.pack('<I', 1 + len(lover_lines) + len(jealous_lines)))
     topic = record('DIAL', GREET_TOPIC, f)
 
     # O-12's LOVERS first: a Random run of their own greetings, for someone who
@@ -546,6 +548,18 @@ def greeting(lover_lines=()):
                   + field('CTDA', condition(FUNC_GET_VALUE, TIER_AV, value=float(TIER_LOVER),
                                             op=CTDA_OP_EQ, runon=RUNON_SUBJECT)))
     infos = b''
+    # O-33's JEALOUS first (owner, 2026-09-23: jealousy in their own voice): a lover
+    # who heard about the player's scene with someone else says so before anything
+    # else. The marker is the persona + 1, written at that scene, when the persona is
+    # known -- so these lines can be the persona's own, where the lover greetings
+    # below cannot. Their own Random run, fenced by Random End, so a jealous lover
+    # never draws a plain lover's line.
+    for i, (persona_index, text) in enumerate(jealous_lines):
+        last = i == len(jealous_lines) - 1
+        infos += greeting_info(JEALOUS_GREET_BASE + i, text,
+                               ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
+                               field('CTDA', condition(FUNC_GET_VALUE, JEALOUS_PENDING_AV,
+                                                       value=float(persona_index + 1), runon=RUNON_SUBJECT)))
     for i, text in enumerate(lover_lines):
         last = i == len(lover_lines) - 1
         infos += greeting_info(LOVER_GREET_BASE + i, text,

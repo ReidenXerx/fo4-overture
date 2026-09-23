@@ -47,9 +47,9 @@ Early, and running. What the game has actually done (`docs/dialogue-route.md` ha
   is a scripted step with the game's own `LipGenerator`.
 
 Built, not yet run in game: after a yes, or once you are close enough, a conversation opens straight at
-the proposition. A bond of 0.75 and a scene together make you lovers to everyone else too (Chemistry
-treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, and
-takes it the way their persona would. "Not now" and "not here" mean you can ask again later that day.
+the proposition, and then any way you ask gets their real answer. A bond of 0.75 and a scene together make you lovers to everyone else too (Chemistry
+treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, takes it the way
+their persona would, and tells you so in their own words the next time you talk. "Not now" and "not here" mean you can ask again later that day.
 Every number is on the MCM page.
 
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, the

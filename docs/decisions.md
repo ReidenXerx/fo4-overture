@@ -259,3 +259,21 @@ Microscope pass 2 (the same evening) settled four more, also reversible:
   began at the first yes, so "lovers now" would have announced what the player took to be true already.
 - **"A yes starts a scene" is an MCM setting, like the numbers.** A global's value is frozen into every
   save, and this is the one switch whose default is meant to change once stage 4 is proven.
+
+## O-31 to O-34 — After the second microscope pass (owner poll, 2026-09-23 ~19:45)
+
+| # | question | answer |
+| --- | --- | --- |
+| O-31 | a lover's conversation is four propositions, and three of them were refused (the persona already solved) | **any register answers** (recommended): for someone who said yes or is at the lover tier, all four propositions get the real verdict, in their own voice. An invitation (O-30) keeps the rule that only their register answers |
+| O-32 | "not here" in a room that is always public (the Third Rail), with no follow built | **keep it, and build the follow once stage 4 is proven** (recommended). The hint points at the place ("Catch them alone") |
+| O-33 | jealousy as a bond change and a Narrator line only | **their own jealous lines** (not the recommended same-day "not tonight"): the lover says it, in their own voice. Lines to write (DRAFT) and review before voicing |
+| O-34 | Rapport's Narrator names the player in the third person, Overture says "you" | **"you" for the player** (recommended): every Narrator line about the player's own moment says "you" |
+
+**Built the same evening, NOT YET RUN IN GAME:**
+- O-31: every register's stage-3 topic carries each persona's verdict sets for a lover, gated on the lover
+  markers; the refusal is gated on NOT being one, so exactly one group can pass. Existing ids kept.
+- O-33 (the commit that adds this line, and Rapport 46d9777): at a scene with someone, each other lover reacts
+  and a marker picks their jealous greeting, two DRAFT lines per persona, for the owner's review before
+  voicing. The Narrator's line stays, after the greeting.
+- O-34 (Rapport aeacc91): "You and Dottie are inseparable now", "A first time for you and Dottie".
+- O-32 needs nothing now: the follow waits for stage 4.

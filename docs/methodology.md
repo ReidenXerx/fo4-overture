@@ -59,7 +59,8 @@ convenience, and gating it off in a release build is a packaging item.)
                                        -> STAGE 3 at once; its verdict is decided as the scene begins
   STAGE 3  the proposition, in each of the four registers
       their register  -> ACCEPT (-> STAGE 4) | NOT YET | NOT HERE (public; §6) | NOT NOW (the moment; §2)
-      any other       -> REFUSE
+      any other       -> REFUSE -- except for a lover (said yes, or the lover tier): any register gets
+                         the verdict, in their own voice (O-31)
       every answer but a yes hands back; a yes just ends the scene, so Rapport's can start
       leaving the conversation is the goodbye (no bond change: leaving well costs nothing)
   STAGE 4  the scene, through Rapport (player + NPC)
@@ -280,6 +281,9 @@ faithful spouse an automatic yes and wrote Rapport's lovers flag on a promise; O
   markers buy. Someone who said yes, or the lover tier, gets one of four persona-neutral lover greetings
   (DRAFT); an invitation keeps the stranger's. The slot is held from a yes verdict when scenes are on,
   taken BEFORE Rapport is asked whether it is busy, so nothing can slip in between.
+- **Any register answers a lover (O-31, owner 2026-09-23)**: for someone who said yes or is at the
+  lover tier, all four propositions reach the verdict, in the persona's own lines -- there is nothing
+  left to guess. An invitation (O-30) keeps "only their register answers".
 - **Never a proposition that can only be refused, on a marker's strength** (§2): someone spoken for
   and faithful enough to always refuse stays at the close tier and keeps the flirt, and an old yes stops
   opening at the proposition once they fall out or are faithfully taken.
@@ -293,11 +297,16 @@ faithful spouse an automatic yes and wrote Rapport's lovers flag on a promise; O
   refreshed at the scene too.
 - **Falling out ends it (O-28)**: Rapport ends its lovers flag at -0.25, and Overture, at the end of the
   next conversation, sees the fallen-out tier and forgets that a yes once opened at the proposition.
-- **Jealousy (O-29)**: as a lover's conversation opens, Overture compares the player's scenes with anyone
-  else against what this lover last knew (Rapport counts them: all the player's scenes, minus the ones
-  with this lover). If there are new ones, the persona reacts once: the romantic and the reticent take a
-  sting (`fJealousySting`, -0.06, a bond event), the vulgar a small thrill (`fJealousyThrill`, +0.03),
-  the mercantile shrugs. The Narrator tells the player. What they knew before becoming lovers doesn't
+- **Jealousy (O-29, O-33)**: the moment a scene with someone is recorded, every OTHER lover of the
+  player hears of it (Rapport's `OnPlayerSceneRecorded`, `LoverCount` / `LoverAt`): Overture compares
+  the player's scenes with anyone else against what this lover last knew, and the persona reacts once --
+  the romantic and the reticent take a sting (`fJealousySting`, -0.06, a bond event), the vulgar a small
+  thrill (`fJealousyThrill`, +0.03), the mercantile shrugs. At the player's next conversation with them,
+  they say it in their own voice: a jealous greeting, two DRAFT lines per persona (voice/lines.json),
+  chosen by a marker written at that scene (the persona is known then, as it never is for a greeting
+  otherwise). The Narrator's line follows at the end. Once per conversation: a lover who has not had
+  their say yet only has their count moved on. A lover the game had not loaded at the scene catches up
+  as their next conversation opens, without the greeting. What they knew before becoming lovers doesn't
   count.
 - **"Not now" and "not here" invite you back (O-13, O-30)**: the day stamp comes down to an hour of
   game time ahead, and the rest of the day opens at the proposition -- never less than two game hours
@@ -374,7 +383,7 @@ comes first: *Word gets around - you and X are a couple now.*, then jealousy, th
 | a yes | nothing, not even the name: Rapport's own scene-start line names them both. Only a lover's news is said: a couple now, *X heard you've been with someone else - and said yes anyway.*, or the thrill |
 | a yes, with scenes switched off | *X said yes.* |
 | a yes Rapport never had a slot for, or one the player left for somebody else's | *X said yes, but the moment passed.* |
-| a lover heard about the others (O-29) | *X heard you've been with someone else. It stung.* / *- and liked hearing it.* / *, and didn't mind.* |
+| a lover heard about the others (O-29, O-33) | their own jealous greeting says it first (DRAFT lines); then *X heard you've been with someone else. It stung.* / *- and liked hearing it.* / *, and didn't mind.* |
 | nothing chosen, a fallback beat, or no persona | nothing (only the name, if they were just introduced) |
 
 **What the hints give away.** None names a persona, but two are only ever said to one of them: "indoors,
@@ -466,6 +475,7 @@ actually talked to (R-5's rule, for free), and gone with the actor:
 | `OvertureSaidYes` | 1 once they have said yes (O-12); cleared at a falling-out (O-28) | built |
 | `OvertureInvitedUntil` | the game day a "not now" or "not here" invitation lasts until (O-30) | built |
 | `OvertureJealousyMark` | the player's scenes with anyone else, plus one, as this lover last knew it (O-29); 0 = never counted | built |
+| `OvertureJealousPending` | the persona + 1 of a lover who heard, at the player's scene with someone else, and has not said it yet; the jealous greeting reads it (O-33) | built |
 
 And four GLOBALS that belong to one conversation at a time, reset as each scene begins:
 `OverturePersona`, `OverturePublic` (both also forgotten when a conversation really ends),

@@ -1416,7 +1416,79 @@
       "text": "Look who's here.",
       "chars": 16,
       "draft": true
+    },
+    {
+      "id": "ov_jealous_mercantile_01",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "mercantile",
+      "text": "Heard you've been making the rounds. Business is business.",
+      "chars": 58,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_mercantile_02",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "mercantile",
+      "text": "I don't keep books on who you see. Only on what you owe me.",
+      "chars": 59,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_romantic_01",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "romantic",
+      "text": "So I'm not the only one. I thought we had something.",
+      "chars": 52,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_romantic_02",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "romantic",
+      "text": "Word travels. I hoped it was only talk.",
+      "chars": 39,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_vulgar_01",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "vulgar",
+      "text": "Heard you've been busy. Tell me everything.",
+      "chars": 43,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_vulgar_02",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "vulgar",
+      "text": "Someone else, huh? Good. Now show me what you learned.",
+      "chars": 54,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_reticent_01",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "reticent",
+      "text": "...I heard. It's fine. It's fine.",
+      "chars": 33,
+      "draft": true
+    },
+    {
+      "id": "ov_jealous_reticent_02",
+      "kind": "jealous_greeting",
+      "stage": 0,
+      "persona": "reticent",
+      "text": "People talk. I wish I hadn't listened.",
+      "chars": 38,
+      "draft": true
     }
   ],
-  "_drafts": "Lines marked \"draft\": true were written 2026-09-23 overnight WITHOUT the owner, for the staged build's two stage-3 answers the bank did not have: 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy). They need the owner's review the way O-6's vulgar pass did, and nothing voices them until then. Also DRAFT, written 2026-09-23 for O-12's lover state: the four 'lover_greeting' lines, which open a conversation with someone who has said yes before. Persona-neutral on purpose: a greeting is chosen before any script can say who the speaker is."
+  "_drafts": "Lines marked \"draft\": true were written 2026-09-23 overnight WITHOUT the owner, for the staged build's two stage-3 answers the bank did not have: 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy). They need the owner's review the way O-6's vulgar pass did, and nothing voices them until then. Also DRAFT, written 2026-09-23 for O-12's lover state: the four 'lover_greeting' lines, which open a conversation with someone who has said yes before. Persona-neutral on purpose: a greeting is chosen before any script can say who the speaker is. Also DRAFT, written 2026-09-23 for O-33 (the owner: jealousy in the lover's own voice): the eight 'jealous_greeting' lines, two per persona, which open a lover's next conversation after they heard about the player's scene with someone else. Persona-specific, unlike the lover greetings, because the marker that picks them is written at that scene, when the persona is known. The romantic and the reticent are stung, the vulgar is thrilled, the mercantile shrugs (O-29)."
 }
