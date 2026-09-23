@@ -62,7 +62,8 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD43  fallbacks
-#   0xD44-0xFFF  free
+#   0xE00-0xE0F  the MCM's numbers (overture_stages.SETTINGS)
+#   0xD44-0xDFF, 0xE10-0xFFF  free
 INFO_BASE = 0x01000A00
 RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene

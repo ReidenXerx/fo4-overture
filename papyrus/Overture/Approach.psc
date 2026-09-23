@@ -320,20 +320,31 @@ ActorValue Function StageReachedAV()
 	Return Game.GetFormFromFile(STAGE_REACHED_AV_ID, "Overture.esp") as ActorValue
 EndFunction
 
+; A number the MCM page tunes: its global, or the built-in default when the
+; global is missing (the one-exchange build has none). tools/overture_stages.py
+; SETTINGS is the one table the globals, the page and these defaults come from.
+Float Function Tuned(Int aiID, Float afDefault)
+	GlobalVariable g = Game.GetFormFromFile(aiID, "Overture.esp") as GlobalVariable
+	If g == None
+		Return afDefault
+	EndIf
+	Return g.GetValue()
+EndFunction
+
 Float Function Worth(Int aiStage, Int aiOutcome)
 	If aiOutcome == OUTCOME_LAND
 		If aiStage >= 2
-			Return LAND_STAGE_2
+			Return Self.Tuned(0x00000E01, LAND_STAGE_2)
 		EndIf
-		Return LAND_STAGE_1
+		Return Self.Tuned(0x00000E00, LAND_STAGE_1)
 	ElseIf aiOutcome == OUTCOME_OFFEND
-		Return OFFEND
+		Return Self.Tuned(0x00000E02, OFFEND)
 	ElseIf aiOutcome == OUTCOME_RECOIL
-		Return RECOIL
+		Return Self.Tuned(0x00000E03, RECOIL)
 	ElseIf aiOutcome == OUTCOME_NOTYET
-		Return NOTYET
+		Return Self.Tuned(0x00000E04, NOTYET)
 	ElseIf aiOutcome == OUTCOME_REFUSE
-		Return REFUSE
+		Return Self.Tuned(0x00000E05, REFUSE)
 	EndIf
 	; A miss is the player learning, a recoil on the persona it would have landed
 	; with is "yes, not here", and a yes writes nothing: the scene does, and
@@ -352,13 +363,13 @@ EndFunction
 ; The bond a yes needs, per persona, in PERSONAS order (methodology 3). ASSUMED.
 Float Function Threshold(Int aiPersona)
 	If aiPersona == 0
-		Return 0.15
+		Return Self.Tuned(0x00000E06, 0.15)
 	ElseIf aiPersona == 1
-		Return 0.25
+		Return Self.Tuned(0x00000E07, 0.25)
 	ElseIf aiPersona == 2
-		Return 0.08
+		Return Self.Tuned(0x00000E08, 0.08)
 	EndIf
-	Return 0.30
+	Return Self.Tuned(0x00000E09, 0.30)
 EndFunction
 
 ; The romantic's setting (R-8: "fancy words, patience, setting"): indoors, or
@@ -426,11 +437,11 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Bool abLover)
 		Float bar = Self.Threshold(persona)
 		If Self.SpokenFor(akWho)
 			Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
-			If faith >= SPOKEN_FOR_FAITH
+			If faith >= Self.Tuned(0x00000E0B, SPOKEN_FOR_FAITH)
 				_why = WHY_TAKEN
 				Return VERDICT_REFUSE
 			EndIf
-			bar += FAITH_WEIGHT * faith
+			bar += Self.Tuned(0x00000E0C, FAITH_WEIGHT) * faith
 		EndIf
 		If afBond < bar
 			If afBond < bar * 0.5
@@ -485,7 +496,7 @@ Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 	EndIf
 	GlobalVariable inPublic = Self.PublicGlobal()
 	Bool room = inPublic == None || inPublic.GetValue() != 0.0
-	Float bond = Self.AfterLand(Rapport:Relations.BondBetween(Game.GetPlayer(), akWho), LAND_STAGE_2)
+	Float bond = Self.AfterLand(Rapport:Relations.BondBetween(Game.GetPlayer(), akWho), Self.Tuned(0x00000E01, LAND_STAGE_2))
 	Int decided = Self.Decide(akWho, bond, room, False)
 	verdict.SetValue(decided as Float)
 	If akWho == _talkWith
@@ -677,7 +688,7 @@ Function BetweenConversations(Actor who, Int aiLastOutcome)
 	; lovers flag is the yes's alone.
 	If !Self.IsLover(who)
 		Actor player = Game.GetPlayer()
-		If Rapport:Relations.BondBetween(player, who) >= LOVER_BOND || Rapport:Relations.ArePartners(player, who)
+		If Rapport:Relations.BondBetween(player, who) >= Self.Tuned(0x00000E0A, LOVER_BOND) || Rapport:Relations.ArePartners(player, who)
 			ActorValue reached = Self.StageReachedAV()
 			If reached != None
 				who.SetValue(reached, STAGE_LOVER as Float)

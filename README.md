@@ -62,6 +62,7 @@ companion module (`companions/`, four variants, none shipped), and the owner's o
 python tools/make_overture_esp.py build/Overture.esp              # the verified one-exchange plugin
 python tools/make_overture_esp.py build/Overture.esp --stages 3   # stages 1-3 (data half verified)
 pwsh scripts/build-papyrus.ps1                                     # Overture:Approach, Overture:Reply
+python tools/make_mcm.py                                           # the MCM page, from the plugin's own settings table
 pwsh scripts/deploy-dev.ps1                                        # copy into the Vortex dev mod (game closed)
 python scripts/make-lip.py                                         # .lip for every rendered line
 pwsh companions/tools/check.ps1                                    # compile-check the companion scaffolds

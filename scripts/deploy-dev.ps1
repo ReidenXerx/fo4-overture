@@ -36,6 +36,13 @@ New-Item -ItemType Directory -Force (Join-Path $Staging 'Scripts\Overture') | Ou
 Copy-Item $esp (Join-Path $Staging 'Overture.esp') -Force
 Copy-Item (Join-Path $pex 'Overture\*.pex') (Join-Path $Staging 'Scripts\Overture') -Force
 
+# The MCM page (tools/make_mcm.py). A new file the first time: Vortex's Deploy puts it in Data.
+$mcm = Join-Path $root 'data\MCM'
+if (Test-Path $mcm) {
+    New-Item -ItemType Directory -Force (Join-Path $Staging 'MCM') | Out-Null
+    Copy-Item (Join-Path $mcm '*') (Join-Path $Staging 'MCM') -Recurse -Force
+}
+
 Get-ChildItem -Recurse -File $Staging |
     ForEach-Object { '  {0}  {1} bytes  {2:HH:mm:ss}' -f $_.FullName, $_.Length, $_.LastWriteTime }
 

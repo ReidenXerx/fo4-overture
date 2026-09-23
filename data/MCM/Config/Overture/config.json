@@ -1,0 +1,209 @@
+{
+  "modName": "Overture",
+  "displayName": "Overture",
+  "minMcmVersion": 1,
+  "pluginRequirements": [
+    "Overture.esp"
+  ],
+  "pages": [
+    {
+      "pageDisplayName": "Overture",
+      "content": [
+        {
+          "type": "text",
+          "text": "Walk up to someone and try. How it went is told by Rapport's Narrator (its \"addon moments\" switch). Numbers below apply at once."
+        },
+        {
+          "type": "section",
+          "text": "Overture"
+        },
+        {
+          "type": "switcher",
+          "text": "Approaches",
+          "help": "Talking to someone opens the approach, once a game day. Off: everyone has only their own dialogue.",
+          "valueOptions": {
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|842"
+          }
+        },
+        {
+          "type": "switcher",
+          "text": "A yes starts a scene",
+          "help": "When someone says yes, Rapport starts the scene. Off: they say yes and nothing more happens.",
+          "valueOptions": {
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|846"
+          }
+        },
+        {
+          "type": "section",
+          "text": "What words are worth"
+        },
+        {
+          "type": "slider",
+          "text": "The first thing that lands",
+          "help": "How much the bond grows when the first approach lands (a share of the distance left, as every source moves it).",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.3,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E00"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "The second thing that lands",
+          "help": "The same, for the second exchange.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.3,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E01"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Blunt at the wrong person",
+          "help": "What crude words cost with someone who did not want them.",
+          "valueOptions": {
+            "min": -0.3,
+            "max": 0.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E02"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Crude in public",
+          "help": "What an intimate line costs in front of people, with someone who would not have liked it anyway.",
+          "valueOptions": {
+            "min": -0.3,
+            "max": 0.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E03"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Asked too soon",
+          "help": "A proposition answered \"not yet\" still means something.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 0.2,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E04"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Asked the wrong way",
+          "help": "A proposition refused.",
+          "valueOptions": {
+            "min": -0.3,
+            "max": 0.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E05"
+          }
+        },
+        {
+          "type": "section",
+          "text": "How close before a yes"
+        },
+        {
+          "type": "slider",
+          "text": "Mercantile",
+          "help": "The bond a mercantile person needs before they say yes.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E06"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Romantic",
+          "help": "The same for a romantic, who also wants the right moment.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E07"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Vulgar",
+          "help": "The fast lane.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E08"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Reticent",
+          "help": "They take days to open up.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E09"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Lovers from a bond of",
+          "help": "At this bond, the next conversation opens at the proposition, as it does after a yes.",
+          "valueOptions": {
+            "min": 0.3,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E0A"
+          }
+        },
+        {
+          "type": "section",
+          "text": "Spoken for"
+        },
+        {
+          "type": "slider",
+          "text": "Faithful enough to always refuse",
+          "help": "Someone married or courting refuses outright at this faithfulness or above.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E0B"
+          }
+        },
+        {
+          "type": "slider",
+          "text": "How much being spoken for raises the bar",
+          "help": "Below that, the bar rises by this much of their faithfulness.",
+          "valueOptions": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "sourceType": "GlobalValue",
+            "sourceForm": "Overture.esp|E0C"
+          }
+        }
+      ]
+    }
+  ]
+}

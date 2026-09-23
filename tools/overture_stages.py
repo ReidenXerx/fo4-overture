@@ -97,6 +97,40 @@ S3_CELL = 16
 
 NPC_SLOT_ORDER = ('NPOT', 'NNGT', 'NNUT', 'NQUT')
 
+# THE TUNABLE NUMBERS (methodology 3; every one ASSUMED, for the owner to tune).
+# One GLOB each, so MCM binds a control straight to it -- tools/make_mcm.py reads
+# this same table, and Overture:Approach reads each global by id, falling back to
+# the same default when the global is missing. One table, three readers, no drift.
+#   (object id, edid, default, section, label, help, min, max, step)
+SETTINGS = [
+    (0xE00, 'OvertureLandFirst', 0.05, 'What words are worth', 'The first thing that lands',
+     'How much the bond grows when the first approach lands (a share of the distance left, as every source moves it).',
+     0.0, 0.3, 0.01),
+    (0xE01, 'OvertureLandSecond', 0.07, 'What words are worth', 'The second thing that lands',
+     'The same, for the second exchange.', 0.0, 0.3, 0.01),
+    (0xE02, 'OvertureOffend', -0.04, 'What words are worth', 'Blunt at the wrong person',
+     'What crude words cost with someone who did not want them.', -0.3, 0.0, 0.01),
+    (0xE03, 'OvertureRecoil', -0.06, 'What words are worth', 'Crude in public',
+     'What an intimate line costs in front of people, with someone who would not have liked it anyway.', -0.3, 0.0, 0.01),
+    (0xE04, 'OvertureNotYet', 0.02, 'What words are worth', 'Asked too soon',
+     'A proposition answered "not yet" still means something.', 0.0, 0.2, 0.01),
+    (0xE05, 'OvertureRefuse', -0.03, 'What words are worth', 'Asked the wrong way',
+     'A proposition refused.', -0.3, 0.0, 0.01),
+    (0xE06, 'OvertureBarMercantile', 0.15, 'How close before a yes', 'Mercantile',
+     'The bond a mercantile person needs before they say yes.', 0.0, 1.0, 0.01),
+    (0xE07, 'OvertureBarRomantic', 0.25, 'How close before a yes', 'Romantic',
+     'The same for a romantic, who also wants the right moment.', 0.0, 1.0, 0.01),
+    (0xE08, 'OvertureBarVulgar', 0.08, 'How close before a yes', 'Vulgar', 'The fast lane.', 0.0, 1.0, 0.01),
+    (0xE09, 'OvertureBarReticent', 0.30, 'How close before a yes', 'Reticent',
+     'They take days to open up.', 0.0, 1.0, 0.01),
+    (0xE0A, 'OvertureLoverBond', 0.75, 'How close before a yes', 'Lovers from a bond of',
+     'At this bond, the next conversation opens at the proposition, as it does after a yes.', 0.3, 1.0, 0.05),
+    (0xE0B, 'OvertureFaithRefuses', 0.80, 'Spoken for', 'Faithful enough to always refuse',
+     'Someone married or courting refuses outright at this faithfulness or above.', 0.0, 1.0, 0.05),
+    (0xE0C, 'OvertureFaithWeight', 0.40, 'Spoken for', 'How much being spoken for raises the bar',
+     'Below that, the bar rises by this much of their faithfulness.', 0.0, 1.0, 0.05),
+]
+
 
 def glob(form_id, edid, value):
     f = m.field('EDID', m.zstring(edid))
@@ -294,6 +328,8 @@ def build_staged():
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(SCENES_GLOBAL, 'OvertureScenesEnabled', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
+    for object_id, edid, default, *_ in SETTINGS:
+        globs += glob(0x01000000 | object_id, edid, default)
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob)
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av())
 
