@@ -70,6 +70,8 @@ Int Property SAID_YES_AV_ID = 0x00000849 AutoReadOnly
 Int Property INVITED_UNTIL_AV_ID = 0x0000084A AutoReadOnly
 Int Property JEALOUSY_MARK_AV_ID = 0x0000084B AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
+; Rapport.esp's quest, which carries Rapport:Bridge and its OnPlayerSceneRecorded.
+Int Property RAPPORT_BRIDGE_ID = 0x00000800 AutoReadOnly
 
 ; R-10: 3 is dialogue, the reason Rapport keeps for Overture.
 Int Property REASON_DIALOGUE = 3 AutoReadOnly
@@ -113,6 +115,10 @@ Float Property YES_RETRY_SECONDS = 5.0 AutoReadOnly
 Int Property YES_RETRIES = 12 AutoReadOnly
 ; A conversation ends when its scene has AND every reply that began has; this is
 ; the fallback, for a reply whose end never comes (a line cut off).
+; Two timer ids on one script: Rapport's bridge keeps one, having once blamed a
+; second id for a dead poll -- but its own run 2 (every StartTimer removed, the
+; same result) put it on an AAF call that never returns, and OnTimer queues behind
+; a stuck OnTimer (fo4-rapport docs/two-lifetimes.md). Nothing here calls AAF.
 Int Property END_TIMER = 3 AutoReadOnly
 Float Property END_FALLBACK = 3.0 AutoReadOnly
 
@@ -334,7 +340,39 @@ Function Hook()
 		; nothing but phases.
 		Self.RegisterForRemoteEvent(sc, "OnPhaseBegin")
 	EndIf
+
+	; Rapport says when a scene with the player has ended and been recorded: the
+	; moment O-27 is about, rather than the next conversation.
+	If _api >= NEEDS_API
+		Rapport:Bridge bridge = Game.GetFormFromFile(RAPPORT_BRIDGE_ID, "Rapport.esp") as Rapport:Bridge
+		If bridge != None
+			; The mangled name: the base sources are decompiled (Rapport:Bridge has why).
+			Self.RegisterForCustomEvent(bridge, "rapport:bridge_OnPlayerSceneRecorded")
+		EndIf
+	EndIf
 EndFunction
+
+; A scene with the player has ended and Rapport has recorded it -- the bond, the
+; pair's history. O-27's moment: lovers to the world now, and said now, not at the
+; next conversation a day late; and the tier with it. A scene is never one of
+; Overture's conversations, so the markers can be written.
+Event Rapport:Bridge.OnPlayerSceneRecorded(Rapport:Bridge akSender, Var[] akArgs)
+	If akArgs == None || akArgs.Length < 1
+		Return
+	EndIf
+	Actor who = akArgs[0] as Actor
+	If who == None
+		Return
+	EndIf
+	Conversation c = new Conversation
+	c.who = who
+	c.quiet = True
+	String note = Self.BetweenConversations(c)
+	Debug.Trace("Overture: a scene with " + who.GetFormID() + " was recorded" + note, 0)
+	If c.lovers && _api >= NEEDS_API
+		Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), who.GetFormID(), "Word gets around - you and {second} are a couple now.", "")
+	EndIf
+EndEvent
 
 Event Scene.OnBegin(Scene akSender)
 	Actor who = Self.TargetAlias().GetActorReference()

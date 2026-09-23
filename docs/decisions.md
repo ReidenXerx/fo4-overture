@@ -242,10 +242,9 @@ Four readings made while building it, each reversible, recorded so they can be o
   (Corrected by microscope pass 2: the first version of this said the lockout could not be avoided.)
 - **Jealousy counts only what happened after they became lovers**, once per conversation, however many
   scenes there were. Scenes with the player's engine spouse count like any other.
-- **Lovers to the world are checked when a conversation opens and when it ends**, the two moments Overture
-  hears of. Overture has no event for a scene's end, so the flag can lag a scene until the next talk.
-  (Addons can hear a scene end through their own AAF listeners, and a Rapport "scene recorded" event would
-  be the clean way; neither is built.)
+- **Lovers to the world are checked when a conversation opens and when it ends**, and -- since
+  microscope pass 2 -- the moment a scene with the player is recorded: Rapport's bridge sends
+  `OnPlayerSceneRecorded`, so "a couple now" is said at the scene, not a day later.
 
 Microscope pass 2 (the same evening) settled four more, also reversible:
 - **A proposition that can only be refused is never offered on a marker's strength.** The design review's

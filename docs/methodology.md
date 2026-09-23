@@ -288,9 +288,9 @@ faithful spouse an automatic yes and wrote Rapport's lovers flag on a promise; O
 - **Lovers to the world (O-27)**: Rapport's lovers flag, which Chemistry reads as spoken for, is set at
   a bond of `fLoverBond` AND at least one scene together, checked as a conversation opens and as it
   ends. Not at the yes: a yes is a promise, the scene is the fact. The Narrator says it as the world's
-  news: "Word gets around - you and X are a couple now." It can lag the scene that made it true until the
-  player next talks to them: Overture hears of no scene's end (Rapport's addons can, through their own
-  AAF listeners; a "scene recorded" event from Rapport would be the clean way, and is not built).
+  news: "Word gets around - you and X are a couple now." Checked the moment a scene with the player is
+  recorded (Rapport's `OnPlayerSceneRecorded`), and again as a conversation opens and ends; the tier is
+  refreshed at the scene too.
 - **Falling out ends it (O-28)**: Rapport ends its lovers flag at -0.25, and Overture, at the end of the
   next conversation, sees the fallen-out tier and forgets that a yes once opened at the proposition.
 - **Jealousy (O-29)**: as a lover's conversation opens, Overture compares the player's scenes with anyone
