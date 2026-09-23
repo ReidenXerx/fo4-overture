@@ -179,3 +179,27 @@ player approach them"*, *"if it's not very hassle"*.
 
 Built 2026-09-23. **Not yet run in game.** The open question is whether the game keeps a custom name on an
 actor through a save by itself. Rapport puts it back either way, and its log says which happened.
+
+## O-11 to O-26 — The morning poll (owner, 2026-09-23 ~13:20)
+
+The sixteen questions of methodology §13, asked in four rounds. Each is settled; the methodology
+section named is where it gets built.
+
+| # | question | answer |
+| --- | --- | --- |
+| O-11 | how much may the Narrator hint (O-9) | **hint, never label**, as built: what worked, what didn't, what to try; never the persona's name |
+| O-12 | after the first yes | **a lover state**: lovers skip the flirt and open at the proposition (§5a) |
+| O-13 | exceptions to once a day (O-8) | **both**: the "not here" follow, and "not now" leaves the day unstamped |
+| O-14 | bond tiers (§5a) | **yes**: partners, engine friends and the fallen-out get their own greeting and entry stage |
+| O-15 | the player's lover is spoken for, to Chemistry | **yes, behind an MCM switch**; amends Chemistry's C-4 and C-9 (noted there) |
+| O-16 | a player's request outranks Chemistry | **yes, a priority lane** in Rapport (its roadmap item 12) |
+| O-17 | does R-14 cover the player's own blood kin | **yes, same as NPCs**: flagged, never refused (vanilla: Father, the adult Shaun) |
+| O-18 | renumber to fit ESL before voicing | **yes, now**: ids into 0x800-0xFFF |
+| O-19 | the companion model (§11) | **B-lite + C + D** |
+| O-20 | animate Ivy's fade through Rapport | **ON by default** (not the recommended "off"), switchable; still after a player scene is proven end to end |
+| O-21 | dismissed companions | **confirmed**: anyone who has ever been a companion stays out of the stranger approach |
+| O-22 | must a companion be romanced first | **their own gates first**: romanced where they have romance, their affinity gates where they don't |
+| O-23 | who starts things with a companion | **the player can start too** (not the recommended "moments only"): a player option as well as the moments |
+| O-24 | may intimacy move a companion's own affinity | **no, for now**: only Rapport's store moves |
+| O-25 | which companions | **the strangers' rule**: adult humans and ghouls. Cait, Danse, Deacon, Hancock, MacCready, Piper, Preston, X6-88, Ivy, Curie once a synth, and the DLC's Gage and Old Longfellow; not Codsworth, Strong, Nick Valentine, robot Curie or Dogmeat |
+| O-26 | companion persona pins | **the owner reviews a proposed table**: "U will give me proposition table and I will review" |

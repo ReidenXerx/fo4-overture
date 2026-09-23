@@ -633,6 +633,11 @@ teleports her mid-scene when the player is carried off by AAF.
 
 ## 13. MORNING POLL LIST
 
+**ANSWERED 2026-09-23 ~13:20: decisions O-11 to O-26 in `decisions.md`.** Three answers differ from
+the recommendations below: Ivy's fade is animated ON by default (O-20), the player can start things
+with a companion as well as the moments (O-23), and R-14 covers the player's own kin (O-17, which had
+no recommendation). The persona pins wait on a table the owner reviews (O-26). The list stays as asked.
+
 **First, not polls — two things only the owner can do:**
 
 - ~~**Press Deploy in Vortex, with the game closed.**~~ **DONE** (the owner, 2026-09-23 ~11:00):
