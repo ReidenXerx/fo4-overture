@@ -58,7 +58,8 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # object ids 0x800-0xFFF, which is all an ESL-flagged plugin may hold. Renumbered
 # before any line is voiced, because a voice file is NAMED by its INFO's id.
 #   0x800-0x84F  quest, scene, topics, greetings, globals, actor values (to 0x84C)
-#   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A)
+#   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A). 0x851, Desire,
+#                is PUBLISHED: fo4-anatomy reads it (companions/README.md). Never renumber.
 #   0x900-0x90B  the player's lines, stages 1-3
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD5F  fallbacks

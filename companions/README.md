@@ -40,6 +40,12 @@ Favor: Sex scene is the moment and what plays (variant D binds it to the store).
 | id (Overture.esp) | record | used by |
 | --- | --- | --- |
 | `0x850` `0x851` `0x852` | AVIF OvertureCompanionTrust / Desire / Devotion | B (B-lite uses Desire only) |
+
+**`0x851` is PUBLISHED: never renumber it.** fo4-anatomy's `Anatomy:Arousal` (its commit ced951f) reads
+`GetFormFromFile(0x851, "Overture.esp") as ActorValue` for a companion's Desire, 0 to 1, read-only, to
+show arousal on the body (the owner's ask, 2026-09-23). Until the companion module ships, today's
+Overture.esp has no `0x851` and the lookup returns None. Any other id another mod comes to read goes
+into this list the same way.
 | `0x853` | AVIF OvertureCompanionMoment | C (the greeting's condition) |
 | `0x854` | AVIF OvertureMirroredAffinity | A |
 | `0x855` | QUST OvertureCompanions, with Registry, the adapters and the variant's scripts | all |
