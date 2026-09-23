@@ -58,9 +58,10 @@ NPC_TOPIC_S2 = 0x01000824       # four, after stage 1's 0x820..0x823
 NPC_TOPIC_S3 = 0x01000828
 PLAYER_INFO_S2 = 0x01000904     # after stage 1's 0x900..0x903
 PLAYER_INFO_S3 = 0x01000908
-INFO_BASE_S2 = 0x01001100
-RECOIL_BASE_S2 = 0x01002100
-INFO_BASE_S3 = 0x01003000
+# Light-plugin ranges (O-18); make_overture_esp.py has the whole map.
+INFO_BASE_S2 = 0x01000B00
+RECOIL_BASE_S2 = 0x01000B80
+INFO_BASE_S3 = 0x01000C00
 VERDICT_GLOBAL = 0x01000845     # Overture:Approach.VERDICT_*; the stage-3 replies read it
 SCENES_GLOBAL = 0x01000846      # 1 = an accept really asks Rapport for a scene; 0 until proven
 
@@ -71,8 +72,8 @@ CTDA_OR = 0x01                    # byte-0 flag: OR with the next condition
 CTDA_OP_NE = 0x20                 # "not equal to", byte 0's top three bits
 # Fallbacks for the two states no authored line covers (records review): no
 # persona from Rapport, and a stage-3 verdict never decided.
-FALLBACK_NO_PERSONA = 0x01004000   # + stage * 0x10 + register slot
-FALLBACK_NO_VERDICT = 0x01004100   # + register slot
+FALLBACK_NO_PERSONA = 0x01000D00   # + stage * 0x10 + register slot
+FALLBACK_NO_VERDICT = 0x01000D40   # + register slot
 RUNON_QUEST_ALIAS = 5
 
 # Overture:Reply's Outcome, continued from make_overture_esp's 1..5.

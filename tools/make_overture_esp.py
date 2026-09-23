@@ -46,6 +46,7 @@ AUTHOR = 'ReidenXerx'
 MASTER = 'Fallout4.esm'
 
 # Index 01: Fallout4.esm is master 00, so every record this plugin owns is 01xxxxxx.
+TES4_LIGHT = 0x200
 QUEST_FORMID = 0x01000800
 SCENE_FORMID = 0x01000801
 TOPIC_BASE = 0x01000810   # one DIAL per register
@@ -53,8 +54,17 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # ids run 0x820..0x899, straight through GREET_TOPIC 0x830, GREET_INFO 0x831 and
 # PERSONA_GLOBAL 0x840 -- duplicate form ids inside one plugin, which the engine
 # answered by crashing in InitGameDataThread while loading the file. Twice.
-INFO_BASE = 0x01001000
-RECOIL_BASE = 0x01002000   # its own range again; see check_unique
+# A LIGHT plugin (O-18, owner 2026-09-23): every record this plugin owns sits in
+# object ids 0x800-0xFFF, which is all an ESL-flagged plugin may hold. Renumbered
+# before any line is voiced, because a voice file is NAMED by its INFO's id.
+#   0x800-0x84F  quest, scene, topics, greeting, globals, actor values
+#   0x850-0x8FF  reserved for the companion module (its watermark AV is 0x85A)
+#   0x900-0x90B  the player's lines, stages 1-3
+#   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
+#   0xC00-0xCFF  stage 3                            0xD00-0xD43  fallbacks
+#   0xD44-0xFFF  free
+INFO_BASE = 0x01000A00
+RECOIL_BASE = 0x01000A80   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
@@ -822,12 +832,18 @@ def finish(blob):
     """
     recs, groups, ids = walk_written(blob)
     check_unique(ids)
+    # A light plugin can hold object ids 0x800-0xFFF and nothing else; one outside
+    # that range is a record the engine cannot address. Refuse to write it.
+    for formid, what in ids:
+        if formid >> 24 == 0x01 and not 0x800 <= (formid & 0x00FFFFFF) <= 0xFFF:
+            raise SystemExit(f'{formid:08X} ("{what}") is outside 0x800-0xFFF, the only ids a light plugin holds.')
     next_object = (max(i for i, _what in ids) + 1) & 0x00FFFFFF
     head = field('HEDR', struct.pack('<fiI', 1.0, recs + groups, next_object))
     head += field('CNAM', zstring(AUTHOR))
     head += field('MAST', zstring(MASTER))
     head += field('DATA', struct.pack('<Q', 0))
-    return record('TES4', 0, head) + blob
+    # 0x200: Light (ESL). The plugin loads in the FE slot and takes no load-order index.
+    return record('TES4', 0, head, flags=TES4_LIGHT) + blob
 
 
 def main():
