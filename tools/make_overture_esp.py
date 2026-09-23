@@ -51,9 +51,15 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 # PERSONA_GLOBAL 0x840 -- duplicate form ids inside one plugin, which the engine
 # answered by crashing in InitGameDataThread while loading the file. Twice.
 INFO_BASE = 0x01001000
+RECOIL_BASE = 0x01002000   # its own range again; see check_unique
 GREET_TOPIC = 0x01000830  # the GREE topic that starts the scene
 GREET_INFO = 0x01000831
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
+PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
+
+# The register O-4 calls intimate. Only this one recoils in public: a gift or a
+# compliment in a crowded bar is merely a gift or a compliment.
+INTIMATE_REGISTER = 'blunt'
 
 # The order IS the global's value. Overture:Approach maps Rapport's persona name
 # onto these indices, so the two lists must not drift apart.
@@ -176,6 +182,18 @@ def persona_global():
     return record('GLOB', PERSONA_GLOBAL, f)
 
 
+def public_global():
+    """1 when other people can see the target, 0 when not.
+
+    Set by Overture:Approach from Rapport:Core.ObserversNear against Rapport's
+    own observer tolerance, so "public" means here what it means there.
+    """
+    f = field('EDID', zstring('OverturePublic'))
+    f += field('FNAM', b'f')
+    f += field('FLTV', struct.pack('<f', 0.0))
+    return record('GLOB', PUBLIC_GLOBAL, f)
+
+
 def topic(topic_id, edid, infos=1):
     """One DIAL. Transcribed from DIAL 0010BEB4.
 
@@ -205,7 +223,7 @@ def topic(topic_id, edid, infos=1):
     return record('DIAL', topic_id, f)
 
 
-def line(info_id, player_prompt, npc_response, persona_index=None):
+def line(info_id, player_prompt, npc_response, persona_index=None, public=None):
     """One INFO. Transcribed from INFO 0010BEC4.
 
     RNAM is the PLAYER's menu text and NAM1 the NPC's spoken reply, both
@@ -231,6 +249,10 @@ def line(info_id, player_prompt, npc_response, persona_index=None):
         # topic, one per persona, and the engine takes the first that passes.
         f += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, PERSONA_GLOBAL,
                                      value=float(persona_index), runon=0))
+    if public is not None:
+        # AND, not OR: two CTDAs with the OR bit clear both have to pass.
+        f += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, PUBLIC_GLOBAL,
+                                     value=float(public), runon=0))
     f += field('RNAM', zstring(player_prompt))
     f += field('NAM0', b'\0')
     f += field('INAM', struct.pack('<I', 1))
@@ -436,13 +458,16 @@ def build():
     # three are variants for later.
     bank = json.loads((ROOT / 'voice' / 'lines.json').read_text(encoding='utf-8'))
     reply = {}
+    recoil = {}
     for l in bank['lines']:
         if l['kind'] == 'response' and l['stage'] == 1:
             reply.setdefault((l['register'], l['persona']), []).append(l['text'])
+        elif l['kind'] == 'recoil' and l['stage'] == 1:
+            recoil.setdefault(l['persona'], []).append(l['text'])
 
     topic_ids, children, count = {}, b'', 0
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
-               (PERSONA_GLOBAL, 'persona global'),
+               (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
         tid = TOPIC_BASE + n
@@ -455,6 +480,20 @@ def build():
         # on four reads. Using one line per cell made an NPC who says the same
         # sentence every time you ever approach them.
         block, n_infos = b'', 0
+
+        # THE RECOILS COME FIRST, and that ordering IS the rule. The engine takes
+        # the first INFO whose conditions pass, so a recoil ahead of the normal
+        # reply wins whenever the room is public and is skipped when it is not.
+        # Put them after and they would never be reached.
+        if register == INTIMATE_REGISTER:
+            for k, persona in enumerate(PERSONAS):
+                for v, text in enumerate(recoil.get(persona, [])):
+                    rid = RECOIL_BASE + k * MAX_VARIANTS + v
+                    all_ids.append((rid, f'recoil {persona} variant {v}'))
+                    block += line(rid, by_register[register]['text'], text,
+                                  persona_index=k, public=1)
+                    n_infos += 1
+
         for k, persona in enumerate(PERSONAS):
             texts = reply.get((register, persona))
             if not texts:
@@ -487,9 +526,9 @@ def build():
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('GLOB', persona_global()) + group('QUST', quest_blob)
+    blob = group('GLOB', persona_global() + public_global()) + group('QUST', quest_blob)
 
-    records = 1 + 1 + 1 + 2 + count  # glob, quest, scene, greeting pair, the rest
+    records = 2 + 1 + 1 + 2 + count  # globs, quest, scene, greeting pair, the rest
     next_object = max(SCENE_FORMID, TOPIC_BASE + len(SLOTS),
                       INFO_BASE + len(SLOTS) * len(PERSONAS),
                       GREET_INFO, PERSONA_GLOBAL) + 1
@@ -516,6 +555,7 @@ def main():
         print(f'  {slot}  {register:7} topic {topic_ids[slot]:08X}')
     print(f'  persona global {PERSONA_GLOBAL:08X}: ' +
           ', '.join(f'{k}={n}' for k, n in enumerate(PERSONAS)))
+    print(f'  public global  {PUBLIC_GLOBAL:08X}: 1 = others can see them')
     print('  master', MASTER)
     return 0
 

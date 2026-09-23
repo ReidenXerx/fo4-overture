@@ -27,6 +27,7 @@ find which one it means.}
 ; order and is not ours to predict.
 Int Property SCENE_ID  = 0x00000801 AutoReadOnly
 Int Property PERSONA_GLOBAL_ID = 0x00000840 AutoReadOnly
+Int Property PUBLIC_GLOBAL_ID = 0x00000841 AutoReadOnly
 Int Property BRIDGE_ID = 0x00000800 AutoReadOnly
 Int Property TARGET_ALIAS = 0 AutoReadOnly
 
@@ -44,6 +45,10 @@ EndFunction
 
 GlobalVariable Function PersonaGlobal()
 	Return Game.GetFormFromFile(PERSONA_GLOBAL_ID, "Overture.esp") as GlobalVariable
+EndFunction
+
+GlobalVariable Function PublicGlobal()
+	Return Game.GetFormFromFile(PUBLIC_GLOBAL_ID, "Overture.esp") as GlobalVariable
 EndFunction
 
 ; Rapport owns the persona; Overture only reads it (O-1). The order here IS the
@@ -171,6 +176,27 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 	Else
 		pg.SetValue(persona as Float)
 		note = note + " | persona=" + persona
+	EndIf
+
+	; O-4: an intimate register in a public room recoils even on the persona it
+	; would otherwise land with. Rapport owns what "public" means -- its own
+	; observer count against its own tolerance -- so the two never disagree.
+	GlobalVariable inPublic = Self.PublicGlobal()
+	If inPublic != None
+		Int watching = Rapport:Core.ObserversNear(who.GetFormID())
+		If watching < 0
+			; No scan has published yet. NOT the same as nobody watching, so
+			; assume public: a recoil the player did not expect is a smaller
+			; mistake than a proposition shouted across a room.
+			inPublic.SetValue(1.0)
+			note = note + " | observers unknown, assuming public"
+		ElseIf watching > Rapport:Core.ObserverTolerance()
+			inPublic.SetValue(1.0)
+			note = note + " | " + watching + " watching - PUBLIC"
+		Else
+			inPublic.SetValue(0.0)
+			note = note + " | " + watching + " watching - private"
+		EndIf
 	EndIf
 
 	If !startScene

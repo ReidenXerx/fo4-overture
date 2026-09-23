@@ -298,6 +298,31 @@ read when the options are built, so a global set afterwards is a global set too 
 `tools/make_overture_esp.py` and the name-to-index mapping in `Overture:Approach`. If they drift,
 every NPC gets somebody else's reply **and nothing errors**. Both carry a comment saying so.
 
+## Place overrides persona — O-4's recoil, running (2026-09-23)
+
+In the Third Rail, with **20 people watching**, Whitechapel Charlie (vulgar) answers the blunt
+register with:
+
+> "I want your hands on me and there are twelve people watching."
+
+instead of the line he gives when it lands. Same NPC, same persona, same words from the player. The
+room decided.
+
+**The chain, end to end:** Rapport's actor scan publishes a crowd snapshot under a lock →
+`Rapport:Core.ObserversNear(formID)` → Overture's script compares it to Rapport's own
+`ObserverTolerance()` → sets `OverturePublic` → a second `CTDA` on the recoil lines.
+
+**Order is the mechanism.** The recoil lines are emitted FIRST in the blunt topic. The engine takes
+the first INFO whose conditions pass, so a recoil ahead of the normal reply wins when the room is
+public and is skipped when it is not. Put them after and they would never be reached.
+
+**Two CTDAs AND.** Each recoil carries persona *and* public, with the OR bit clear, so both must pass.
+
+**-1 is not zero.** `ObserversNear` returns -1 when no scan has published yet, and the script says
+"observers unknown, assuming public" rather than rounding it down. Seen in practice: for about the
+first 25 seconds after a load the snapshot is empty, and treating that as "nobody is watching" would
+have had NPCs propositioned across a crowded bar every time the player reloaded.
+
 ## Status
 
 | | |
