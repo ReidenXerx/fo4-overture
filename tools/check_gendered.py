@@ -139,19 +139,21 @@ print('POSITIVE: gendered lines in every place the builder allows them')
 fresh()
 bank, cb = banks()
 L = bank['lines']
-s1f = add(L, 'ov_vulgar_blunt_land_02', 'f1', 'TEST s1 land female', gender='f')
-s1m = add(L, 'ov_vulgar_blunt_land_02', 'm1', 'TEST s1 land male', gender='m')
-p1m = add(L, 'ov_vulgar_offer_miss_02', 'pm', 'TEST s1 offer to a male player', player_gender='m')
-p1f = add(L, 'ov_vulgar_offer_miss_02', 'pf', 'TEST s1 offer to a female player', player_gender='f')
-r2f = add(L, 'ov2_vulgar_recoil_02', 'f1', 'TEST s2 recoil female', gender='f')
-r2m = add(L, 'ov2_vulgar_recoil_02', 'm1', 'TEST s2 recoil male', gender='m')
-a3f = add(L, 'ov3_vulgar_accept_02', 'f1', 'TEST s3 accept female', gender='f')
-a3m = add(L, 'ov3_vulgar_accept_02', 'm1', 'TEST s3 accept male', gender='m')
-jf = add(L, 'ov_jealous_vulgar_02', 'f1', 'TEST jealous female', gender='f')
-jm = add(L, 'ov_jealous_vulgar_02', 'm1', 'TEST jealous male', gender='m')
+# The TEST lines go into the MERCANTILE persona's cells, which the bank leaves ungendered;
+# the vulgar cells already hold their real male and female lines (O-40c).
+s1f = add(L, 'ov_mercantile_blunt_miss_02', 'tf', 'TEST s1 blunt female', gender='f')
+s1m = add(L, 'ov_mercantile_blunt_miss_02', 'tm', 'TEST s1 blunt male', gender='m')
+p1m = add(L, 'ov_mercantile_offer_land_02', 'pm', 'TEST s1 offer to a male player', player_gender='m')
+p1f = add(L, 'ov_mercantile_offer_land_02', 'pf', 'TEST s1 offer to a female player', player_gender='f')
+r2f = add(L, 'ov2_mercantile_recoil_02', 'tf', 'TEST s2 recoil female', gender='f')
+r2m = add(L, 'ov2_mercantile_recoil_02', 'tm', 'TEST s2 recoil male', gender='m')
+a3f = add(L, 'ov3_mercantile_accept_02', 'tf', 'TEST s3 accept female', gender='f')
+a3m = add(L, 'ov3_mercantile_accept_02', 'tm', 'TEST s3 accept male', gender='m')
+jf = add(L, 'ov_jealous_mercantile_02', 'tf', 'TEST jealous female', gender='f')
+jm = add(L, 'ov_jealous_mercantile_02', 'tm', 'TEST jealous male', gender='m')
 C = cb['lines']
-cf = add(C, 'co_vulgar_accept_01', 'f1', 'TEST companion accept female', gender='f')
-cm = add(C, 'co_vulgar_accept_01', 'm1', 'TEST companion accept male', gender='m')
+cf = add(C, 'co_mercantile_accept_01', 'tf', 'TEST companion accept female', gender='f')
+cm = add(C, 'co_mercantile_accept_01', 'tm', 'TEST companion accept male', gender='m')
 save(bank, cb)
 code, log = build()
 check(code == 0, f'build succeeds (exit {code})' + ('' if code == 0 else ': ' + log[-400:]))
@@ -165,24 +167,30 @@ if code == 0:
     def sex_ctdas(ctdas):
         return [c for c in ctdas if c[0] == 70]
 
-    for line, runon, ref in ((s1f, 0, 0), (s1m, 0, 0), (r2f, 0, 0), (r2m, 0, 0), (a3f, 0, 0), (a3m, 0, 0),
-                             (jf, 0, 0), (jm, 0, 0), (cf, 0, 0), (cm, 0, 0), (p1m, 2, 0x14), (p1f, 2, 0x14)):
-        sex = line.get('gender') or line.get('player_gender')
+    # EVERY gendered line, the bank's own and the TEST ones: its INFOs carry exactly one
+    # GetIsSex, on the speaker for `gender` and on PlayerRef for `player_gender`.
+    gendered_lines = [l for l in L + C if l.get('gender') or l.get('player_gender')]
+    for line in gendered_lines:
+        key = 'gender' if line.get('gender') else 'player_gender'
+        runon, ref = (0, 0) if key == 'gender' else (2, 0x14)
+        sex = line[key]
         hits = by_text.get(line['text'], [])
+        in_plugin = line['kind'] not in ('greeting', 'farewell', 'returning')
+        if not in_plugin:
+            continue
         check(bool(hits), f'{line["id"]}: written ({len(hits)} INFOs)')
-        for parent, fid, enam, ctdas in hits:
-            sc = sex_ctdas(ctdas)
-            check(len(sc) == 1 and sc[0][1] == SEX[sex] and sc[0][2] == runon and sc[0][3] == ref
-                  and sc[0][4] == 1.0 and sc[0][5] == 0,
-                  f'{line["id"]} {fid:08X}: GetIsSex({SEX[sex]}) == 1 on runon {runon} ref {ref:#x} -> {sc}')
-    # Ungendered lines carry no GetIsSex at all.
-    stray = [(fid, t) for _p, fid, _e, ctdas, t in got if sex_ctdas(ctdas) and not t.startswith('TEST')]
+        bad = [(fid, sex_ctdas(c)) for _p, fid, _e, c in hits
+               if not (len(sex_ctdas(c)) == 1 and sex_ctdas(c)[0][1:] == (SEX[sex], runon, ref, 1.0, 0))]
+        check(not bad, f'{line["id"]}: GetIsSex({SEX[sex]}) == 1 on runon {runon} on all {len(hits)} INFOs {bad[:2]}')
+    # And no line outside that set carries one.
+    gendered_texts = {l['text'] for l in gendered_lines}
+    stray = [(fid, t) for _p, fid, _e, ctdas, t in got if sex_ctdas(ctdas) and t not in gendered_texts]
     check(not stray, f'no ungendered line carries GetIsSex ({len(stray)} do)')
-    # Ids: stage 1 in the cell's spare slots; stage 3 in 0xF00; companion in 0xD60; jealous 0x83E/F.
+    # Ids: stage 1/2 in the cell's last two slots; stage 3 in 0xF00; companion in 0xD60; jealous in 0xDD8.
     ids = lambda line: sorted({fid & 0xFFF for _p, fid, _e, _c in by_text.get(line['text'], [])})
-    check(ids(s1f) == [0xA56] and ids(s1m) == [0xA57], f's1 blunt/vulgar: the cell\'s last two slots: f {list(map(hex, ids(s1f)))} m {list(map(hex, ids(s1m)))}')
-    check(ids(p1m) == [0xA36] and ids(p1f) == [0xA37], f's1 offer/vulgar player-gendered: {list(map(hex, ids(p1m) + ids(p1f)))}')
-    check(ids(r2f) == [0xB96] and ids(r2m) == [0xB97], f's2 vulgar recoil: {list(map(hex, ids(r2f) + ids(r2m)))}')
+    check(ids(s1f) == [0xA46] and ids(s1m) == [0xA47], f's1 blunt/mercantile: the cell\'s last two slots: f {list(map(hex, ids(s1f)))} m {list(map(hex, ids(s1m)))}')
+    check(ids(p1m) == [0xA26] and ids(p1f) == [0xA27], f's1 offer/mercantile player-gendered: {list(map(hex, ids(p1m) + ids(p1f)))}')
+    check(ids(r2f) == [0xB86] and ids(r2m) == [0xB87], f's2 mercantile recoil: {list(map(hex, ids(r2f) + ids(r2m)))}')
     # THE check the first run lacked: every plain line keeps the ids it has in the real build.
     real = {}
     for _p, fid, _e, _c, t in infos((SRC / 'build/Overture.esp').read_bytes()):
@@ -193,27 +201,27 @@ if code == 0:
             mine.setdefault(t, set()).add(fid)
     moved = [t for t in real if real[t] != mine.get(t)]
     check(not moved and set(real) == set(mine), f'every plain line keeps its ids from the real build ({len(moved)} moved: {moved[:3]})')
-    check(all(0xF00 <= i <= 0xFFF for i in ids(a3f) + ids(a3m)) and len(ids(a3f)) == 4,
-          f's3 accept in 0xF00 range, one per register: f {list(map(hex, ids(a3f)))} m {list(map(hex, ids(a3m)))}')
-    check(0xFA6 in ids(a3f) and 0xFA7 in ids(a3m), 's3 vulgar/blunt accept at 0xFA6 (f) and 0xFA7 (m)')
-    check(ids(jf) == [0xDDC] and ids(jm) == [0xDDD], f'jealous vulgar gendered at 0xDDC/0xDDD: {list(map(hex, ids(jf) + ids(jm)))}')
-    check(all(0xD60 <= i <= 0xDD7 for i in ids(cf) + ids(cm)) and len(ids(cf)) == 3,
-          f'companion accept in 0xD60..0xDD7, one per proposition: f {list(map(hex, ids(cf)))} m {list(map(hex, ids(cm)))}')
+    check(sorted(ids(a3f)) == [0xF08, 0xF46, 0xF88, 0xFC8] and sorted(ids(a3m)) == [0xF09, 0xF47, 0xF89, 0xFC9],
+          f's3 mercantile accept in 0xF00, one per register (its own offer set 3, the lover sets 4): '
+          f'f {list(map(hex, ids(a3f)))} m {list(map(hex, ids(a3m)))}')
+    check(ids(jf) == [0xDD8] and ids(jm) == [0xDD9], f'jealous mercantile gendered at 0xDD8/0xDD9: {list(map(hex, ids(jf) + ids(jm)))}')
+    check(ids(cf) == [0xD66, 0xD8E, 0xDB6] and ids(cm) == [0xD67, 0xD8F, 0xDB7],
+          f'companion mercantile accept, one per proposition: f {list(map(hex, ids(cf)))} m {list(map(hex, ids(cm)))}')
     # Fences: in every topic, each INFO carrying Random End (0x20) must be ungendered,
-    # and within the s2 vulgar recoil run the gendered lines come before the neutral ones.
+    # and within a fenced run the gendered lines come before the neutral ones.
     fenced_bad = [(fid, t) for _p, fid, e, c, t in got if e & 0x20 and sex_ctdas(c)]
     check(not fenced_bad, f'no gendered INFO carries Random End ({fenced_bad})')
-    rec = [(fid, t) for p, fid, e, c, t in got if 0xB80 <= (fid & 0xFFF) < 0xC00 and 'recoil' in t.lower()
-           or t in (r2f['text'], r2m['text'])]
-    order = [t for p, fid, e, c, t in got if (fid & 0xFFF) in range(0xB80 + 2 * 8, 0xB80 + 3 * 8)]
-    check(order[:2] == [r2f['text'], r2m['text']] and len(order) == 4,
-          f's2 vulgar recoil run order: gendered first, neutral last -> {order}')
-    last_enam = [e for p, fid, e, c, t in got if (fid & 0xFFF) in range(0xB80 + 2 * 8, 0xB80 + 3 * 8)]
-    check(last_enam[-1] & 0x20 and not any(x & 0x20 for x in last_enam[:-1]),
-          f's2 vulgar recoil: only the last (neutral) line has Random End -> {list(map(hex, last_enam))}')
+    run = [(t, e) for p, fid, e, c, t in got if (fid & 0xFFF) in range(0xB80, 0xB88)]
+    check([t for t, _ in run][:2] == [r2f['text'], r2m['text']] and len(run) == 4,
+          f's2 mercantile recoil run order: gendered first, neutral last -> {[t for t, _ in run]}')
+    check(run[-1][1] & 0x20 and not any(e & 0x20 for _, e in run[:-1]),
+          f's2 mercantile recoil: only the last (neutral) line has Random End -> {[hex(e) for _, e in run]}')
+    # The bank's own vulgar recoil run (O-40c's real lines) obeys the same rule.
+    vrun = [(t, e, bool(sex_ctdas(c))) for p, fid, e, c, t in got if (fid & 0xFFF) in range(0xB90, 0xB98)]
+    check(len(vrun) == 4 and vrun[-1][1] & 0x20 and not vrun[-1][2] and vrun[0][2] and vrun[1][2],
+          f's2 vulgar recoil (real lines): gendered first, a neutral fence last -> {[(t[:24], hex(e), g) for t, e, g in vrun]}')
     jorder = [t for p, fid, e, c, t in got if 0x836 <= (fid & 0xFFF) <= 0x83F or 0xDD8 <= (fid & 0xFFF) <= 0xDDF]
-    vul = [t for t in jorder if 'TEST jealous' in t or 'fuck' in t.lower()]
-    check(vul[:2] == [jf['text'], jm['text']], f'jealous vulgar run: gendered first -> {vul}')
+    check(jorder[:2] == [jf['text'], jm['text']], f'jealous mercantile run: gendered first -> {jorder[:4]}')
 
 # ------------------------------------------------------------------ negative
 def expect_refusal(label, mutate, needle):
@@ -229,7 +237,7 @@ print('NEGATIVE: what the builder must refuse')
 
 
 def all_gendered_fence(L, C):
-    idx = [n for n, l in enumerate(L) if l['id'] in ('ov2_vulgar_recoil_01', 'ov2_vulgar_recoil_02')]
+    idx = [n for n, l in enumerate(L) if l['id'] in ('ov2_mercantile_recoil_01', 'ov2_mercantile_recoil_02')]
     L[idx[0]]['gender'] = 'f'
     L[idx[1]]['gender'] = 'm'
 
@@ -239,7 +247,7 @@ expect_refusal('a fenced run whose every line is gendered', all_gendered_fence, 
 
 def missing_sex(L, C):
     for l in L:
-        if l['id'] in ('ov_vulgar_linger_miss_01', 'ov_vulgar_linger_miss_02'):
+        if l['id'] in ('ov_mercantile_linger_miss_01', 'ov_mercantile_linger_miss_02'):
             l['gender'] = 'f'
 
 
@@ -254,7 +262,7 @@ expect_refusal('a gendered companion greeting', gendered_greeting, 'cannot be ge
 
 
 def bad_value(L, C):
-    add(L, 'ov_vulgar_blunt_land_02', 'q', 'TEST bad', gender='x')
+    add(L, 'ov_mercantile_blunt_miss_02', 'q', 'TEST bad', gender='x')
 
 
 expect_refusal('gender "x"', bad_value, 'must be "m" or "f"')
@@ -262,7 +270,7 @@ expect_refusal('gender "x"', bad_value, 'must be "m" or "f"')
 
 def three_gendered(L, C):
     for s in ('a', 'b', 'c'):
-        add(L, 'ov_vulgar_blunt_land_02', s, f'TEST extra {s}', gender='f' if s != 'b' else 'm')
+        add(L, 'ov_mercantile_blunt_miss_02', s, f'TEST extra {s}', gender='f' if s != 'b' else 'm')
 
 
 expect_refusal('a third gendered line in a stage-1 cell', three_gendered, 'gendered lines; the id spacing')

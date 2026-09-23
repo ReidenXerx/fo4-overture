@@ -498,8 +498,11 @@ def build_staged():
         raise SystemExit('more lover greetings than 0x832..0x835 holds')
     jealous_lines = [(m.PERSONAS.index(l['persona']), l)
                      for l in bank['lines'] if l.get('kind') == 'jealous_greeting']
-    if len(jealous_lines) > 10:
-        raise SystemExit('more jealous greetings than 0x836..0x83F holds')
+    # Only PLAIN lines live in 0x836..0x83F. Gendered ones have their own range
+    # (JEALOUS_GENDERED_BASE), capped per persona by greeting() -- counting them here
+    # refused a bank that fit (tools/check_gendered.py caught it).
+    if sum(1 for _p, l in jealous_lines if not m.gendered(l)) > 10:
+        raise SystemExit('more plain jealous greetings than 0x836..0x83F holds')
     children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count)
     children += scene_staged(topics, companion_topics)
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
