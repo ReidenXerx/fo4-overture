@@ -30,14 +30,19 @@ shouted across a market. That is what makes place load-bearing rather than decor
 
 Early, and running. What the game has actually done (`docs/dialogue-route.md` has every measurement):
 
-- **Talking to someone opens it** (O-7): adults, humans and ghouls, not your current companion, once
-  a game day (O-8) — then their own dialogue takes over. No hotkey, no menu, no verb.
+- **Talking to someone opens it** (O-7): adults, humans and ghouls, nobody who has ever been your
+  companion, once a game day (O-8) — then their own dialogue takes over. No hotkey, no menu, no verb.
 - **The NPC answers in their persona**, with every authored variant rotating, and **place overrides
   it**: the crude register recoils in a crowded room, even on the persona it would have landed with.
 - **Three stages in one conversation** (the `--stages 3` build): a land runs on into the next wheel, a
   miss ends it, a returning NPC starts at stage 2, and a proposition in the wrong register is refused.
 - **Every reply now writes to Rapport's relationship store** — built, and read by the game on all 40
-  reply lines; it runs once its script file is deployed.
+  reply lines. Its script file was deployed on 2026-09-23; the writes have not been watched in game yet.
+- **The Narrator tells you how it went** (O-9): one line from Rapport's Narrator when a conversation
+  ends, saying what your words did and hinting at what to try next. It never says who they are. Built,
+  not yet run in game.
+- **The nameless get names** (O-10): a Settler or a Drifter you approach for the first time gets a
+  name, and keeps it. Built in Rapport 0.2.1, not yet run in game.
 - The player's half is text through XDI, which keeps the camera off the player's still face; lip sync
   is a scripted step with the game's own `LipGenerator`.
 
@@ -47,7 +52,7 @@ companion module (`companions/`, four variants, none shipped), and the owner's o
 ## Requirements
 
 - Fallout 4 1.10.163 (old-gen) and F4SE
-- [Rapport](https://github.com/ReidenXerx/fo4-rapport)
+- [Rapport](https://github.com/ReidenXerx/fo4-rapport) 0.2.1 or newer
 - [Extended Dialogue Interface (XDI)](https://www.nexusmods.com/fallout4/mods/27216) — required, and
   linked rather than bundled at its author's request
 

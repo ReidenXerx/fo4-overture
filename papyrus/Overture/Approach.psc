@@ -17,8 +17,10 @@ WHAT THIS SCRIPT DOES, on the scene's own events:
              before the NPC's reply is chosen, which is after the player picks;
              and the stamp closes the re-greet that follows the reply, 140 ms
              after it, so the conversation hands back to the NPC's own dialogue.
-  OnEnd   -- once the scene has really ended: the alias is let go, and the
-             persona and the room are forgotten.
+  OnEnd   -- once the scene has really ended: one line from the Narrator on how
+             it went (O-9), then the alias is let go, and the persona and the
+             room are forgotten.
+And on a nameless NPC's first approach, Rapport gives them a name (O-10).
 And on each NPC reply, through Overture:Reply: as the line BEGINS, stage 3's
 verdict (only at the stage-2 land); as it ENDS, the bond and the stage reached.
 
@@ -107,6 +109,34 @@ Float Property REFUSE = -0.03 AutoReadOnly
 Float Property SPOKEN_FOR_FAITH = 0.8 AutoReadOnly
 Float Property FAITH_WEIGHT = 0.4 AutoReadOnly
 
+; Rapport 0.2.1: NarrateLine, Introduce and ObserversNear. Older, and none of
+; the three is bound -- every call would be a Papyrus error and a wrong answer.
+Int Property NEEDS_API = 201 AutoReadOnly
+; Why a verdict came out as it did (Decide). The Narrator words two of them
+; differently; all of them go into the trace.
+Int Property WHY_NO_PERSONA = 1 AutoReadOnly
+Int Property WHY_TAKEN = 2 AutoReadOnly
+Int Property WHY_EARLY = 3 AutoReadOnly
+Int Property WHY_BOND = 4 AutoReadOnly
+Int Property WHY_PUBLIC = 5 AutoReadOnly
+Int Property WHY_SETTING = 6 AutoReadOnly
+Int Property WHY_BUSY = 7 AutoReadOnly
+Int Property WHY_YES = 8 AutoReadOnly
+
+Int _api = 0
+Int _why = 0
+
+; ONE conversation's facts, for its one Narrator line (O-9). Set at OnBegin,
+; filled by each reply as it ends, spoken and cleared at the real OnEnd.
+Actor _talkWith = None
+String _talkIntro = ""
+Float _talkBondBefore = 0.0
+Float _talkBondAfter = 0.0
+Int _talkStage = 0
+Int _talkOutcome = 0
+Int _talkVerdict = 0
+Int _talkWhy = 0
+
 MCP:Bridge Function Bridge()
 	Return Game.GetFormFromFile(BRIDGE_ID, "F4MCP.esp") as MCP:Bridge
 EndFunction
@@ -168,6 +198,12 @@ EndEvent
 Function Hook()
 	Self.RegisterForRemoteEvent(Game.GetPlayer(), "OnPlayerLoadGame")
 
+	_api = Rapport:Core.ApiVersion()
+	If _api < NEEDS_API
+		Debug.Trace("Overture: Rapport's ApiVersion is " + _api + ", Overture needs " + NEEDS_API + " - no narration, no names, and nobody counts as watching", 2)
+		Debug.Notification("Overture needs Rapport 0.2.1 or newer.")
+	EndIf
+
 	; THE ALWAYS-ON HALF. The scene's own events, for every approach the engine
 	; opens -- the dev verb is not involved.
 	Scene sc = Self.ApproachScene()
@@ -199,8 +235,15 @@ Event Scene.OnBegin(Scene akSender)
 		Debug.Trace("Overture: the approach scene began with NOBODY in the alias - ALFA did not fill it", 1)
 		Return
 	EndIf
+	; A conversation whose real end this script never saw: its OnEnd came while
+	; this one was already playing. Its line is still owed.
+	Self.Narrate()
 	String note = Self.Prepare(who)
 	Self.Stamp(who)
+	Self.BeginTalk(who)
+	If _talkIntro != ""
+		note = note + " | introduced as " + _talkIntro
+	EndIf
 	Debug.Trace("Overture: approach opened with " + who.GetFormID() + note, 0)
 EndEvent
 
@@ -214,6 +257,7 @@ Event Scene.OnEnd(Scene akSender)
 	If akSender.IsPlaying()
 		Return
 	EndIf
+	Self.Narrate()
 	Self.TargetAlias().Clear()
 	; And forget who it was: a persona or a room left in the globals is the next
 	; NPC's reply if their own OnBegin is late. -1 matches no reply (the staged
@@ -329,34 +373,43 @@ EndFunction
 ; (docs/methodology.md 2). The staged plugin reads it twice: phase 3 opens only
 ; if it is at least "not yet" -- so a proposition that could only be refused is
 ; never offered -- and the persona's own register answers with it.
+; Leaves the reason in _why, for the caller that wants it.
 Int Function Decide(Actor akWho, Float afBond, Bool abPublic)
 	Int persona = Self.PersonaIndex(akWho)
 	If persona < 0
+		_why = WHY_NO_PERSONA
 		Return VERDICT_REFUSE
 	EndIf
 	Float bar = Self.Threshold(persona)
 	If Self.SpokenFor(akWho)
 		Float faith = Rapport:Core.FaithfulnessOf(akWho.GetFormID())
 		If faith >= SPOKEN_FOR_FAITH
+			_why = WHY_TAKEN
 			Return VERDICT_REFUSE
 		EndIf
 		bar += FAITH_WEIGHT * faith
 	EndIf
 	If afBond < bar
 		If afBond < bar * 0.5
+			_why = WHY_EARLY
 			Return VERDICT_REFUSE
 		EndIf
+		_why = WHY_BOND
 		Return VERDICT_NOTYET
 	EndIf
 	If abPublic
+		_why = WHY_PUBLIC
 		Return VERDICT_NOT_HERE
 	EndIf
 	If persona == 1 && !Self.Setting(akWho)
+		_why = WHY_SETTING
 		Return VERDICT_NOT_NOW
 	EndIf
 	If Rapport:Core.Busy() || Rapport:Core.CanRun(Self.ScenarioFor(akWho, persona), Game.GetPlayer(), akWho) < 0
+		_why = WHY_BUSY
 		Return VERDICT_NOT_NOW
 	EndIf
+	_why = WHY_YES
 	Return VERDICT_ACCEPT
 EndFunction
 
@@ -391,7 +444,11 @@ Function ReplyBegins(Actor akWho, Int aiStage, Int aiOutcome)
 	Float bond = Self.AfterLand(Rapport:Relations.BondBetween(Game.GetPlayer(), akWho), LAND_STAGE_2)
 	Int decided = Self.Decide(akWho, bond, room)
 	verdict.SetValue(decided as Float)
-	Debug.Trace("Overture: " + akWho.GetFormID() + " stage 3 verdict " + decided + " on bond " + bond, 0)
+	If akWho == _talkWith
+		_talkVerdict = decided
+		_talkWhy = _why
+	EndIf
+	Debug.Trace("Overture: " + akWho.GetFormID() + " stage 3 verdict " + decided + " (why " + _why + ") on bond " + bond, 0)
 EndFunction
 
 ; Stage 4, behind OvertureScenesEnabled until a Rapport scene with the player in
@@ -437,6 +494,9 @@ Function AskForTheScene()
 	_yesTries += 1
 	If _yesTries >= YES_RETRIES
 		Debug.Trace("Overture: " + akWho.GetFormID() + " said yes and Rapport never had a free slot - the yes is lost", 1)
+		If _api >= NEEDS_API
+			Rapport:Core.NarrateLine(player.GetFormID(), akWho.GetFormID(), "{second} said yes, but the moment passed.", "")
+		EndIf
 		_yesWith = None
 		Return
 	EndIf
@@ -458,10 +518,20 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 	EndIf
 	String note = "Overture: " + akWho.GetFormID() + " replied, stage " + aiStage + " outcome " + aiOutcome
 	Float worth = Self.Worth(aiStage, aiOutcome)
+	Float after = -2.0
 	If worth != 0.0
 		Float before = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
-		Float after = Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, worth, REASON_DIALOGUE)
+		after = Rapport:Relations.AddBondBetween(Game.GetPlayer(), akWho, worth, REASON_DIALOGUE)
 		note = note + " | bond " + before + " -> " + after
+	EndIf
+	; The Narrator speaks for the LAST reply of the conversation, and the bond
+	; the whole conversation left.
+	If akWho == _talkWith
+		_talkStage = aiStage
+		_talkOutcome = aiOutcome
+		If after > -2.0
+			_talkBondAfter = after
+		EndIf
 	EndIf
 	; The stage they have reached with the player: a land at stages 1-2, and any
 	; answer at all at stage 3 ("3 proposed", methodology 8).
@@ -476,6 +546,186 @@ Function Replied(Actor akWho, Int aiStage, Int aiOutcome)
 		Self.Proposition(akWho)
 	EndIf
 	Debug.Trace(note, 0)
+EndFunction
+
+; ---- O-9: the Narrator ------------------------------------------------------
+; The owner, 2026-09-23: "we definitely need a narrator here as we have for
+; chemistry" -- to let players know, without killing the mood, what is
+; happening and how when they act. So: ONE line per conversation, when it has
+; really ended, through Rapport's Narrator (O-1: one module narrates every
+; mod). It says what the player's words did and hints at what to do about it:
+; the place, the time, patience, another way. It NEVER names a persona -- the
+; README's rule, "you are never told who they are", stands over this too.
+; And nothing on a yes: Rapport's own line says who and why as the scene starts.
+
+; O-10: a nameless NPC gets a name on their first approach. Rapport decides who
+; is nameless (a base not flagged Unique) and keeps it; "" means no new name.
+Function BeginTalk(Actor who)
+	_talkWith = who
+	_talkIntro = ""
+	If _api >= NEEDS_API
+		_talkIntro = Rapport:Core.Introduce(who)
+	EndIf
+	_talkBondBefore = Rapport:Relations.BondBetween(Game.GetPlayer(), who)
+	_talkBondAfter = _talkBondBefore
+	_talkStage = 0
+	_talkOutcome = 0
+	_talkVerdict = 0
+	_talkWhy = 0
+EndFunction
+
+; The conversation's line, then forget it. Safe to call twice: the second finds
+; nobody.
+Function Narrate()
+	Actor who = _talkWith
+	_talkWith = None
+	If who == None || _api < NEEDS_API
+		Return
+	EndIf
+	String headline = Self.TalkLine(who)
+	If _talkIntro != ""
+		; The name comes first, and the sentence after it says "she", not the name
+		; twice (Subject).
+		String intro = Self.Possessive(who) + " name is {second}."
+		If headline == ""
+			headline = intro
+		Else
+			headline = intro + " " + headline
+		EndIf
+	EndIf
+	If headline == ""
+		Return
+	EndIf
+	String numbers = "bond " + Self.Signed(_talkBondBefore)
+	If _talkBondAfter != _talkBondBefore
+		numbers = numbers + " -> " + Self.Signed(_talkBondAfter)
+	EndIf
+	Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), who.GetFormID(), headline, numbers)
+EndFunction
+
+; What the conversation's last reply did, in one sentence. "" for nothing said,
+; for a fallback beat, and for a yes.
+String Function TalkLine(Actor akWho)
+	If Self.PersonaIndex(akWho) < 0
+		; No persona from Rapport: every reply was a neutral "..." and none of the
+		; sentences below would be true.
+		Return ""
+	EndIf
+	String s = Self.Subject(akWho, True)
+	If _talkOutcome == OUTCOME_MISS
+		If _talkStage == 1
+			Return s + " didn't take to that. Another day, another way."
+		ElseIf _talkStage == 2
+			; A stage-2 miss is a DIFFERENT register from the one that landed.
+			Return s + " didn't take to that. What worked before might work again."
+		EndIf
+		; Stage 3's misses are the fallback beats, not something the player chose.
+		Return ""
+	ElseIf _talkOutcome == OUTCOME_OFFEND
+		Return s + " took offence. Not everyone likes it blunt."
+	ElseIf _talkOutcome == OUTCOME_RECOIL
+		Return s + " didn't care for that - least of all in front of people."
+	ElseIf _talkOutcome == OUTCOME_RECOIL_LIKED
+		Return s + " liked that - just not with people watching."
+	ElseIf _talkOutcome == OUTCOME_LAND
+		If _talkStage == 1
+			If Self.PersonaIndex(akWho) == 3
+				; R-8: nothing more the first time; the conversation handed back.
+				Return s + " heard you out. Some people take time."
+			EndIf
+			; A first land always opens stage 2, so the player walked away from it.
+			Return s + " warmed to you. Talk again tomorrow."
+		EndIf
+		; The stage-2 land, and what stage 3 would have said.
+		If _talkVerdict == VERDICT_REFUSE
+			If _talkWhy == WHY_TAKEN
+				Return s + " enjoyed that - but there's someone else."
+			EndIf
+			Return s + " enjoyed that. Only talk, for now - keep coming back."
+		EndIf
+		If _talkVerdict == 0
+			; No verdict recorded for this conversation, so whether stage 3 was
+			; offered is unknown -- say only what is known.
+			Return s + " enjoyed that."
+		EndIf
+		; Stage 3 was on the wheel and the player left without asking.
+		Return s + " enjoyed that. You could have asked for more."
+	ElseIf _talkOutcome == OUTCOME_NOTYET
+		Return "Close. A little more time with you, and " + Self.Subject(akWho, False) + " might."
+	ElseIf _talkOutcome == OUTCOME_NOT_HERE
+		Return s + " would - somewhere without an audience."
+	ElseIf _talkOutcome == OUTCOME_NOT_NOW
+		If _talkWhy == WHY_SETTING
+			Return s + " would - indoors, or after dark."
+		EndIf
+		Return s + " would - just not right now."
+	ElseIf _talkOutcome == OUTCOME_REFUSE
+		Return s + " turned you down. That wasn't the way to ask."
+	EndIf
+	Return ""
+EndFunction
+
+; Their name ("{second}", which Rapport fills), or right after "Her name is
+; ..." a pronoun. Every sentence above puts a pronoun subject before a past
+; tense or a modal, so "they" never needs a different verb.
+String Function Subject(Actor akWho, Bool abCapital)
+	If _talkIntro == ""
+		Return "{second}"
+	EndIf
+	Int sex = Self.SexOf(akWho)
+	If sex == 1
+		If abCapital
+			Return "She"
+		EndIf
+		Return "she"
+	ElseIf sex == 0
+		If abCapital
+			Return "He"
+		EndIf
+		Return "he"
+	EndIf
+	If abCapital
+		Return "They"
+	EndIf
+	Return "they"
+EndFunction
+
+String Function Possessive(Actor akWho)
+	Int sex = Self.SexOf(akWho)
+	If sex == 1
+		Return "Her"
+	ElseIf sex == 0
+		Return "His"
+	EndIf
+	Return "Their"
+EndFunction
+
+; 0 male, 1 female, -1 unknown.
+Int Function SexOf(Actor akWho)
+	ActorBase base = akWho.GetLeveledActorBase()
+	If base == None
+		Return -1
+	EndIf
+	Return base.GetSex()
+EndFunction
+
+; "+0.17", "-0.05": the Narrator's own format for a bond (Narrator.cpp Signed).
+String Function Signed(Float afValue)
+	String sign = "+"
+	Float size = afValue
+	If afValue < 0.0
+		size = -afValue
+	EndIf
+	Int hundredths = Math.Floor(size * 100.0 + 0.5)
+	If afValue < 0.0 && hundredths > 0
+		sign = "-"
+	EndIf
+	Int fraction = hundredths % 100
+	String digits = fraction as String
+	If fraction < 10
+		digits = "0" + digits
+	EndIf
+	Return sign + (hundredths / 100) + "." + digits
 EndFunction
 
 ; Once a game day (O-8). The greeting compares this against GameDaysPassed, so

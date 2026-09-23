@@ -132,3 +132,44 @@ anyone who has EVER been one (`HasBeenCompanionFaction`, which recruitment adds 
 owner's option read "minus companions", and tonight's brief says companions get a module "unlike other
 npcs"; the narrower reading let a dismissed Ivy be approached as a stranger at priority 100, in subtitles
 over her own voice. One condition on the greeting, reversible; the morning poll asks the owner to confirm.
+
+## O-9 — Overture is narrated, through Rapport's Narrator (owner, 2026-09-23)
+
+In the owner's words: *"we definitely need a narrator here as we have for chemistry"* -- to let players
+know, *"in not vibe destroying way"*, what is happening and how when they act.
+
+- **Through Rapport's Narrator**, not Overture's own notifications (O-1; Rapport's roadmap 11: "one module
+  narrates all of them"). Rapport 0.2.1 has `NarrateLine(first, second, headline, numbers)` for it, with
+  its own MCM switch ("addon moments", on by default) and the Narrator's numbers switch for the second
+  line.
+- **One line per conversation**, when the scene has really ended. Never one per reply: the NPC's own reply
+  already says it in their voice, and a notification on every line is what would break the mood.
+- **What it says:** what the player's words did, plus a hint at what to do next: another way, another day,
+  somewhere without an audience, indoors or after dark, more time. **Never the persona's name.** The README's
+  rule ("you are never told who they are") still holds. How much the hints may give away is a morning poll
+  (methodology §13, #16).
+- **Nothing on a yes.** Rapport's own line already says who and why as the scene starts. A yes that never
+  found a free scene slot does get a line ("said yes, but the moment passed"), so it doesn't vanish without
+  a word.
+
+Built 2026-09-23 (`Approach.psc`: `BeginTalk`, `Narrate`, `TalkLine`). The line table is in methodology §5b.
+
+## O-10 — The nameless get a name when the player first approaches them (owner, 2026-09-23)
+
+In the owner's words: *"generate persistent names for NPC if they didn't have names before in moment
+player approach them"*, *"if it's not very hassle"*.
+
+- **Rapport owns it** (O-1): `Rapport:Core.Introduce(actor)` in 0.2.1. It works for any mod, not only
+  Overture.
+- **Who counts as nameless:** an NPC whose base is not flagged Unique (Settler, Drifter, Diamond City
+  Resident), never the player, and never someone who already has a custom name (the player's own rename,
+  another mod's).
+- **Persistent:** the name is derived from the form id, so the same person always gets the same name and
+  the name costs the save nothing. The save keeps only WHO was introduced. A death forgets them: a dead
+  stranger's id can go to somebody new once the body is cleaned up, and a stranger must never walk in
+  already named.
+- **When:** at the first approach, as the scene begins. The conversation's Narrator line opens with it
+  ("Her name is Dottie Flynn.").
+
+Built 2026-09-23. **Not yet run in game.** The open question is whether the game keeps a custom name on an
+actor through a save by itself. Rapport puts it back either way, and its log says which happened.

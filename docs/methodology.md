@@ -213,6 +213,8 @@ Overture's to change; it is in the poll list.
 | Rapport | `FaithfulnessOf(npc)` | how spoken for (§7) |
 | Rapport history | `HoursSinceScene(npc)` | **not used — ASSUMED.** "They had one an hour ago" is flavour Overture can add later with its own lines |
 | Rapport | `Busy()`, `CanRun()` | whether a yes can become a scene now |
+| Rapport | `ApiVersion()` | read on every load: below 201 (Rapport 0.2.1) there is no `NarrateLine`, `Introduce` or `ObserversNear`, so Overture skips the first two and says so, once, on the HUD |
+| Rapport | `Introduce(npc)` | O-10: a nameless NPC's name, the first time they are approached; "" for everyone else |
 | the engine | cell ownership (`GetActorOwner` / `GetFactionOwner`), `IsInInterior`, the hour | place (§6), the romantic's setting |
 
 ## 5. What Overture writes (how it influences)
@@ -224,6 +226,7 @@ Overture's to change; it is in the poll list.
 | Rapport | `RequestScene(player, npc, scenario)` | stage 4 — re-checking `Busy()` first, and retried every 5 s for a minute if Rapport has no free slot, so a yes never silently vanishes |
 | the store | `NoteAffair(player, npc)` | AFTER `RequestScene` took, when the NPC is partnered with someone else — Rapport stages an affair only for the pair already in flight (`PapyrusLink.cpp` `StageAffair`), which is the order Chemistry uses; the first draft had it before, where it was thrown away |
 | the Narrator | `NarrateBonus(player, npc, "_bond", …)` just before `RequestScene` | a fact for the Narrator's words: the underscore marks the raw bond, where a plain `"bond"` is a score share and would be printed as one — **never a persona label** |
+| the Narrator | `NarrateLine(player, npc, headline, numbers)` | O-9: once per conversation, when the scene has really ended (§5b) |
 | its own AVs on the NPC | next approach day (built), stage reached (§8) | every conversation |
 
 Because the player is an ordinary pair member (R-11), everything Rapport already does for a scene
@@ -271,7 +274,45 @@ for companions (§11). None built; the tiers and the lover state are poll items.
 
 ---
 
-## 6. Place (N-3)
+## 5b. The Narrator and names (O-9, O-10)
+
+**One line per conversation**, spoken when the scene has really ended (the same `IsPlaying()` guard the
+tidy-up uses; a line whose end was missed is spoken as the next conversation begins). It describes the
+conversation's LAST reply, with the bond before and after on the numbers line (`bond +0.12 -> +0.17`).
+`{second}` is the NPC's name, which Rapport fills in. After an introduction, the name comes first and the
+sentence after it uses a pronoun. Every sentence puts a pronoun subject before a past tense or a modal, so
+"they" never needs a different verb.
+
+| last reply | the line (after "Her name is X." on a first approach) |
+| --- | --- |
+| stage 1 miss | *X didn't take to that. Another day, another way.* |
+| stage 2 miss (a different register from the one that landed) | *X didn't take to that. What worked before might work again.* |
+| offend (blunt, not the vulgar) | *X took offence. Not everyone likes it blunt.* |
+| public recoil | *X didn't care for that - least of all in front of people.* |
+| public recoil on the register that would have landed | *X liked that - just not with people watching.* |
+| stage 1 land, the reticent (R-8, hand-back) | *X heard you out. Some people take time.* |
+| stage 1 land, then the player left stage 2 | *X warmed to you. Talk again tomorrow.* |
+| stage 2 land, verdict refuse: spoken for and faithful | *X enjoyed that - but there's someone else.* |
+| stage 2 land, verdict refuse: the bond is too low | *X enjoyed that. Only talk, for now - keep coming back.* |
+| stage 2 land, stage 3 offered, the player left | *X enjoyed that. You could have asked for more.* |
+| stage 3 not yet | *Close. A little more time with you, and X might.* |
+| stage 3 not here | *X would - somewhere without an audience.* |
+| stage 3 not now: the romantic's setting | *X would - indoors, or after dark.* |
+| stage 3 not now: Rapport busy | *X would - just not right now.* |
+| stage 3 refuse (wrong register) | *X turned you down. That wasn't the way to ask.* |
+| a yes | nothing: Rapport's own scene-start line |
+| a yes Rapport never had a slot for | *X said yes, but the moment passed.* |
+| nothing chosen, a fallback beat, or no persona | nothing (only the name, if they were just introduced) |
+
+**What the hints give away.** None names a persona, but two are only ever said to one of them: "indoors,
+or after dark" (the romantic) and "some people take time" (the reticent). A player who has learned the
+rules can read the persona from those, the same way they can from the NPC's own reply. That's the level
+built tonight: hint, never label. The owner decides it (§13, #16).
+
+**Names (O-10).** `BeginTalk` calls `Rapport:Core.Introduce(npc)` at every approach. Rapport answers with
+a new name only the first time, and only for a nameless NPC (base not Unique, no custom name), so
+Overture keeps no list of its own.
+
 
 Built: **public or private**, from Rapport's own count and tolerance, and the recoil (O-4).
 
@@ -593,9 +634,8 @@ teleports her mid-scene when the player is carried off by AAF.
 
 **First, not polls — two things only the owner can do:**
 
-- **Press Deploy in Vortex, with the game closed.** It puts `Reply.pex` into Data (a new file never gets
-  there from a staging copy alone), and the Silhouette session's pending `Silhouette.esp` / `Adopter.pex`
-  go with the same press. The staged plugin is already in Data and becomes the whole conversation.
+- ~~**Press Deploy in Vortex, with the game closed.**~~ **DONE** (the owner, 2026-09-23 ~11:00):
+  `Reply.pex` is in Data, hardlinked from the staging folder (checked with `fsutil hardlink list`).
 - **Review the 24 DRAFT lines** (§10): 8 player lines, 16 NPC lines, written tonight without you.
 
 Each poll: the question, the options, the recommendation, and what the build does without an answer.
@@ -635,6 +675,10 @@ Each poll: the question, the options, the recommendation, and what the build doe
     `0x800-0xFFF`, and voice files are NAMED by INFO id, so after voicing a renumber costs every file.
     Recommend yes. Without an answer: as is.
 15. **Which companions** (§11.5 #6's list), and **dismissed companions** — kept by the companion module.
+16. **How much may the Narrator hint?** (O-9, §5b) (a) **hint, never label** — what worked, what didn't,
+    and what to try (place, time, patience, another way), as built; two hints are only ever said to one
+    persona. (b) **facts only**: landed / missed / refused, with no "how". (c) **name the persona**
+    ("she's the romantic sort"), which overturns the README's rule. Recommend (a). Without an answer: (a).
 
 **Decided tonight, not polled** (reversible; say if wrong): the `offer` register costs caps (10, then 25),
 charged only when it LANDS — a refused gift is kept; the numbers go on the MCM page; a second persona
