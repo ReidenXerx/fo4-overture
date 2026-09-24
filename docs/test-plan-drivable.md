@@ -102,6 +102,18 @@ INFO id.
 | vulgar | blunt |
 | reticent | linger |
 
+**Driver notes (from the 2026-09-24 run, fo4-mcp).** Two scars that no Overture assertion can catch:
+- **One `read_wheel()` for every path.** XDI can have the conversation open before the wheel is populated.
+  After waiting, read the wheel; if it is empty, wait once more (4 s) and read again before concluding
+  anything.
+  - That re-read belongs in ONE helper that every entry point calls: the fresh greeting, the continuous
+    route, and the retry.
+  - The run pasted it into two of three paths. The third (stage 2's `run`) produced two empty-wheel "fails"
+    that were the harness, not Overture. The two paths that had it kept passing, so the drift was invisible.
+- **An empty wheel and a dead game look the same** in a result: "no option matched that register".
+  - Before recording a cell, check the game is alive (`tasklist`) and re-read the wheel.
+  - Otherwise a crash and a slow XDI both get written down as findings about Overture.
+
 ## 1. Stage 1: every persona x register x room (32 branches)
 
 For each test NPC `P`:
