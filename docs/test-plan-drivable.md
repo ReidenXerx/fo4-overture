@@ -38,6 +38,12 @@ INFO id.
   - Eligible: adult, human or ghoul, not a Gen-2 synth, not the player's teammate, and never a companion.
     `approach status` shows `child=` and `teammate=`, and the greeting's own conditions refuse the rest.
     Record each one's form id, persona, sex and voice type.
+  - **A clean `approach status` is not enough.** An NPC with a greeting of their own can win over the approach.
+    Charlie did (docs/dialogue-route.md), and so did Audrey 2E001E0E, a mod's Goodneighbor NPC: six activates
+    opened her own greeting and wheel (fo4-mcp, 2026-09-24). Prefer a generic NPC (Settler, Drifter, Resident).
+    Before adopting any candidate, activate once and check that the greeting is Overture's `...`.
+  - Mailbox `bond 00000014 <ref>` prints both personas in one line, a cheaper persona probe than `approach
+    status` for screening candidates.
 - **Clean slate per NPC:** `approach forget <ref>` clears the day stamp, the stage, every marker and
   Rapport's lovers flag. The bond is Rapport's and stays.
 - **Steering the bond:** Rapport's mailbox verb `bond 00000014 <ref>` reads it (the player is `00000014`).
