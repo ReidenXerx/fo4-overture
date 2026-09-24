@@ -225,6 +225,14 @@ From every capture above, list each NPC INFO id against the NPC's voice type. Ma
 file is absent for a core type, and STRAY when a file exists that a gendered line's sex should not have.
 Both are FAILs. Hearing the audio and the lip sync is the owner's.
 
+**Look INSIDE every file, too (fo4-mcp, 2026-09-24).** For each voiced line, the FUZE header's lip size
+(the uint32 at offset 8) must be > 0. Mark it NOLIP otherwise; that is a FAIL.
+- A file being there is not evidence that a face will move.
+- All 6,656 of Rapport's barks shipped with lip 0 until 2e75926, and a presence-and-placement check would
+  have passed them all.
+- It is one pass over the folder and needs no game. On 2026-09-24 it read Overture.esp 1,860/1,860 and
+  Rapport.esp 6,656/6,656 with lip data.
+
 ## Not in this plan
 
 These are the owner's, and each needs an AAF scene or the UI:
