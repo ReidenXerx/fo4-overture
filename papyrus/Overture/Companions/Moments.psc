@@ -33,11 +33,19 @@ wanting and never re-armed it, so a companion asked once per recruitment):
          at); a window that lapses unused is spent too. Either way the next one is
          owed only after fMomentCooldown game days.
 
-THE CLOCK. One timer, every POLL_SECONDS: who is the current companion (the follower
-system's Companion alias -- a clock is needed anyway, for the window and the privacy
-check, and the greetings re-read the live faction so a lag can open nothing for an
-ex-companion), the feeders' tick, and the moment. Their combat is heard through their
-own OnCombatStateChanged.}
+THE CLOCK. One timer, every POLL_SECONDS: who the current companions are, the
+feeders' tick, and each one's moment. EVERY current companion, not the follower
+system's Companion alias: Amazing Follower Tweaks keeps up to five followers and
+rotates that alias among them every 15 seconds, which used to read as "the companion
+left" three times a minute and wipe the wanting of each (owner, 2026-09-24). A
+companion leaves when they are dismissed (Registry.CurrentAll). Their combat is heard
+through their own OnCombatStateChanged.
+
+SEVERAL AT ONCE: each keeps their own moment, window, cooldown and combat. ONE moment
+is open at a time -- two companions asking at once is a queue, not a conversation --
+and the others stay owed. Fellow companions are not onlookers (owner's call, 2026-09-24,
+reversible): they travel with the player, and counting them would mean no companion
+is ever alone with the player while others follow.}
 
 Int Property MOMENT_AV_ID = 0x00000853 AutoReadOnly
 Int Property NEXT_DAY_AV_ID = 0x00000843 AutoReadOnly
@@ -59,11 +67,20 @@ Float Property WINDOW_DAYS = 0.083333 AutoReadOnly
 Float Property REOPEN_AFTER = 0.041667 AutoReadOnly
 Int Property NEEDS_API = 201 AutoReadOnly
 
-Actor _watching = None
-Bool _owed = False
-Float _openUntil = 0.0
-Float _cooldownUntil = 0.0
-Bool _inCombat = False
+; How near a fellow companion must be to have been counted by Rapport's observer scan,
+; and so be taken back off it. A COPY of Rapport's scoring.json observerRadius (default
+; 900), which Rapport does not publish: change one, change the other. An edited radius
+; makes this subtract a companion Rapport never counted, or miss one it did.
+Float Property FELLOW_RADIUS = 900.0 AutoReadOnly
+
+; The companions being watched, and each one's state, index for index. A save made
+; before AFT support held one companion in a variable that no longer exists; the
+; first poll rebuilds these from the follower system, so nothing carries over wrong.
+Actor[] _watched
+Bool[] _owedEach
+Float[] _openUntilEach
+Float[] _cooldownEach
+Bool[] _inCombatEach
 Float _askedAt = 0.0
 
 Overture:Companions:Registry Function Registry()
@@ -90,9 +107,20 @@ Event Actor.OnPlayerLoadGame(Actor akSender)
 	Self.Hook()
 EndEvent
 
+Function EnsureArrays()
+	If _watched == None
+		_watched = new Actor[0]
+		_owedEach = new Bool[0]
+		_openUntilEach = new Float[0]
+		_cooldownEach = new Float[0]
+		_inCombatEach = new Bool[0]
+	EndIf
+EndFunction
+
 ; On the quest's start and every load: Ivy's ids checked, registrations re-made,
 ; the clock restarted.
 Function Hook()
+	Self.EnsureArrays()
 	Actor player = Game.GetPlayer()
 	Self.RegisterForRemoteEvent(player, "OnPlayerLoadGame")
 	; O-35's "Ask for a moment": the perk that puts it on a companion's prompt. Its own
@@ -105,9 +133,13 @@ Function Hook()
 	If ivyAdapter != None
 		ivyAdapter.Revalidate()
 	EndIf
-	If _watching != None
-		Self.RegisterForRemoteEvent(_watching, "OnCombatStateChanged")
-	EndIf
+	Int i = 0
+	While i < _watched.Length
+		If _watched[i] != None
+			Self.RegisterForRemoteEvent(_watched[i], "OnCombatStateChanged")
+		EndIf
+		i += 1
+	EndWhile
 	; Ivy's own scenes (variant D), whether or not she travels with the player now.
 	Overture:Companions:IvyNative ivy = (Self as Quest) as Overture:Companions:IvyNative
 	If ivy != None
@@ -127,51 +159,80 @@ Event OnTimer(Int aiTimerID)
 EndEvent
 
 Function Poll()
-	Actor now = Self.Registry().Current()
-	If now != _watching
-		If _watching != None
-			Self.UnregisterForRemoteEvent(_watching, "OnCombatStateChanged")
-			; Dismissed: not ours to open any more, and no wanting kept for them.
-			Self.SetMoment(_watching, MOMENT_NOT_OURS)
-			Self.Feeders().Left(_watching)
-			Debug.Trace("Overture companions: " + _watching.GetFormID() + " is no longer the companion", 0)
+	Self.EnsureArrays()
+	Actor[] now = Self.Registry().CurrentAll()
+	; Dismissed since the last poll: not ours to open any more, and no wanting kept.
+	Int i = _watched.Length - 1
+	While i >= 0
+		Actor was = _watched[i]
+		If was == None || now.Find(was) < 0
+			If was != None
+				Self.UnregisterForRemoteEvent(was, "OnCombatStateChanged")
+				Self.SetMoment(was, MOMENT_NOT_OURS)
+				Self.Feeders().Left(was)
+				Debug.Trace("Overture companions: " + was.GetFormID() + " is no longer a companion", 0)
+			EndIf
+			_watched.Remove(i)
+			_owedEach.Remove(i)
+			_openUntilEach.Remove(i)
+			_cooldownEach.Remove(i)
+			_inCombatEach.Remove(i)
 		EndIf
-		_watching = now
-		_owed = False
-		_openUntil = 0.0
-		_cooldownUntil = 0.0
-		_inCombat = False
-		If now != None
-			Self.RegisterForRemoteEvent(now, "OnCombatStateChanged")
-			Self.Feeders().Joined(now)
+		i -= 1
+	EndWhile
+	; Recruited since the last poll.
+	i = 0
+	While i < now.Length
+		If _watched.Find(now[i]) < 0
+			_watched.Add(now[i])
+			_owedEach.Add(False)
+			_openUntilEach.Add(0.0)
+			_cooldownEach.Add(0.0)
+			_inCombatEach.Add(False)
+			Self.RegisterForRemoteEvent(now[i], "OnCombatStateChanged")
+			Self.Feeders().Joined(now[i])
 		EndIf
-	EndIf
-	If now == None
+		i += 1
+	EndWhile
+	If _watched.Length == 0
 		Return
 	EndIf
 	Overture:Approach approach = Self.Overture()
-	If approach == None || !approach.Enabled()
-		; Overture switched off: nothing opens, and nothing counts.
-		Self.SetMoment(now, MOMENT_NOT_OURS)
-		Return
-	EndIf
-	Self.Feeders().Tick(now)
-	Self.Evaluate(now)
+	Bool enabled = approach != None && approach.Enabled()
+	i = 0
+	While i < _watched.Length
+		If !enabled
+			; Overture switched off: nothing opens, and nothing counts.
+			Self.SetMoment(_watched[i], MOMENT_NOT_OURS)
+		Else
+			Self.Feeders().Tick(_watched[i])
+			Self.Evaluate(i)
+		EndIf
+		i += 1
+	EndWhile
 EndFunction
 
 Event Actor.OnCombatStateChanged(Actor akSender, Actor akTarget, Int aeCombatState)
-	If akSender != _watching
+	Int i = Self.IndexOf(akSender)
+	If i < 0
 		Return
 	EndIf
 	If aeCombatState != 0
-		_inCombat = True
+		_inCombatEach[i] = True
 		Return
 	EndIf
-	If _inCombat && !akSender.IsDead()
+	If _inCombatEach[i] && !akSender.IsDead()
 		Self.Feeders().SurvivedTogether(akSender)
 	EndIf
-	_inCombat = False
+	_inCombatEach[i] = False
 EndEvent
+
+Int Function IndexOf(Actor akWho)
+	If akWho == None || _watched == None
+		Return -1
+	EndIf
+	Return _watched.Find(akWho)
+EndFunction
 
 Function SetMoment(Actor akWho, Int aiValue)
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
@@ -182,13 +243,27 @@ Function SetMoment(Actor akWho, Int aiValue)
 EndFunction
 
 ; Somewhere nobody is watching, by Rapport's own count against its own tolerance.
-; -1 is "no scan yet", NOT "nobody": a moment is not opened on a guess.
+; -1 is "no scan yet", NOT "nobody": a moment is not opened on a guess. Fellow
+; companions near enough to have been counted come back off the count: they travel
+; with the player and are not an audience (owner, 2026-09-24).
 Bool Function Private(Actor akWho)
 	If Rapport:Core.ApiVersion() < NEEDS_API
 		Return False
 	EndIf
 	Int watching = Rapport:Core.ObserversNear(akWho.GetFormID())
-	Return watching >= 0 && watching <= Rapport:Core.ObserverTolerance()
+	If watching < 0
+		Return False
+	EndIf
+	Int i = 0
+	While _watched != None && i < _watched.Length
+		Actor fellow = _watched[i]
+		; Alive, as Rapport counts only the living: a fallen companion was never on its count.
+		If fellow != None && fellow != akWho && fellow.Is3DLoaded() && !fellow.IsDead() && fellow.GetDistance(akWho) <= FELLOW_RADIUS
+			watching -= 1
+		EndIf
+		i += 1
+	EndWhile
+	Return watching <= Rapport:Core.ObserverTolerance()
 EndFunction
 
 ; The greeting's own once-a-day test: its stamp has come round.
@@ -197,7 +272,20 @@ Bool Function StampOpen(Actor akWho)
 	Return av != None && akWho.GetValue(av) <= Utility.GetCurrentGameTime()
 EndFunction
 
-Function Evaluate(Actor akWho)
+; Another companion's moment open right now: one at a time.
+Bool Function OtherOpen(Int aiIndex, Float afNow)
+	Int i = 0
+	While i < _watched.Length
+		If i != aiIndex && _openUntilEach[i] > afNow
+			Return True
+		EndIf
+		i += 1
+	EndWhile
+	Return False
+EndFunction
+
+Function Evaluate(Int aiIndex)
+	Actor akWho = _watched[aiIndex]
 	Overture:Companions:Registry reg = Self.Registry()
 	Overture:Companions:Adapter a = reg.AdapterFor(akWho)
 	If a == None || !a.OpensMoments(akWho) || a.OwnIntimateScene(akWho) != None || !reg.Eligible(akWho) || a.Closed(akWho) || a.Refuses(akWho)
@@ -211,28 +299,28 @@ Function Evaluate(Actor akWho)
 		Return
 	EndIf
 	Overture:Companions:Feeders feeders = Self.Feeders()
-	If _openUntil > 0.0 && now >= _openUntil
+	If _openUntilEach[aiIndex] > 0.0 && now >= _openUntilEach[aiIndex]
 		; The window lapsed unused: spent, and the next one waits out the cooldown.
-		_openUntil = 0.0
-		_cooldownUntil = now + feeders.Tuned("fMomentCooldown:Companions", 2.0)
+		_openUntilEach[aiIndex] = 0.0
+		_cooldownEach[aiIndex] = now + feeders.Tuned("fMomentCooldown:Companions", 2.0)
 		Debug.Trace("Overture companions: " + akWho.GetFormID() + "'s moment passed unused", 0)
 	EndIf
-	If !_owed && _openUntil <= 0.0 && now >= _cooldownUntil && feeders.Gate(akWho) == feeders.GATE_PASS
-		_owed = True
+	If !_owedEach[aiIndex] && _openUntilEach[aiIndex] <= 0.0 && now >= _cooldownEach[aiIndex] && feeders.Gate(akWho) == feeders.GATE_PASS
+		_owedEach[aiIndex] = True
 		Debug.Trace("Overture companions: " + akWho.GetFormID() + " wants the player - a moment is owed (" + feeders.LastGateNote() + ")", 0)
 	EndIf
 	Bool private = Self.Private(akWho)
-	If _owed && private && Self.StampOpen(akWho)
+	If _owedEach[aiIndex] && private && Self.StampOpen(akWho) && !Self.OtherOpen(aiIndex, now)
 		Overture:Approach approach = Self.Overture()
 		If approach != None && approach.CompanionOpenable(akWho)
-			_owed = False
-			_openUntil = now + WINDOW_DAYS
+			_owedEach[aiIndex] = False
+			_openUntilEach[aiIndex] = now + WINDOW_DAYS
 			; DRAFT wording, for the owner's review: a hint, never a label (O-11).
 			Rapport:Core.NarrateLine(Game.GetPlayer().GetFormID(), akWho.GetFormID(), "{second} keeps glancing your way, like there's something on {their} mind.", "")
 			Debug.Trace("Overture companions: " + akWho.GetFormID() + "'s moment is open", 0)
 		EndIf
 	EndIf
-	If _openUntil > now && private
+	If _openUntilEach[aiIndex] > now && private
 		Self.SetMoment(akWho, MOMENT_OPEN)
 	Else
 		Self.SetMoment(akWho, MOMENT_VOUCHED)
@@ -243,19 +331,20 @@ EndFunction
 ; "not now" keep the moment, stretched past the hour they reopen at (O-30); every
 ; other end spends it, and the next is owed only after the cooldown.
 Function Ended(Actor akWho, Bool abKeepMoment)
-	If akWho == None || akWho != _watching
+	Int i = Self.IndexOf(akWho)
+	If i < 0
 		Return
 	EndIf
 	Float now = Utility.GetCurrentGameTime()
 	If abKeepMoment
-		If _openUntil > 0.0 && _openUntil < now + REOPEN_AFTER + WINDOW_DAYS
-			_openUntil = now + REOPEN_AFTER + WINDOW_DAYS
+		If _openUntilEach[i] > 0.0 && _openUntilEach[i] < now + REOPEN_AFTER + WINDOW_DAYS
+			_openUntilEach[i] = now + REOPEN_AFTER + WINDOW_DAYS
 		EndIf
 		Return
 	EndIf
-	_owed = False
-	_openUntil = 0.0
-	_cooldownUntil = now + Self.Feeders().Tuned("fMomentCooldown:Companions", 2.0)
+	_owedEach[i] = False
+	_openUntilEach[i] = 0.0
+	_cooldownEach[i] = now + Self.Feeders().Tuned("fMomentCooldown:Companions", 2.0)
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
 	If av != None && akWho.GetValue(av) >= MOMENT_OPEN as Float
 		akWho.SetValue(av, MOMENT_VOUCHED as Float)
@@ -268,7 +357,7 @@ EndFunction
 ; greeting, whose second run needs ASKED, opens the conversation. Its conditions still
 ; decide: the perk shows only where they would pass.
 Function Ask(Actor akWho)
-	If akWho == None || akWho != _watching
+	If Self.IndexOf(akWho) < 0
 		Return
 	EndIf
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
@@ -281,19 +370,36 @@ Function Ask(Actor akWho)
 	akWho.Activate(Game.GetPlayer(), True)
 EndFunction
 
-; The dev verb's: a moment owed and opened now, on the current companion, whatever
-; their wanting -- for testing the entry without waiting days of game time.
+; The dev verb's: a moment owed and opened now, whatever their wanting -- for testing
+; the entry without waiting days of game time. On the follower system's Companion (the
+; one Dev reports on) when they are watched, else the first companion watched.
 String Function ForceMoment()
-	If _watching == None
+	Self.EnsureArrays()
+	Int i = Self.IndexOf(Self.Registry().Current())
+	If i < 0 && _watched.Length > 0
+		i = 0
+	EndIf
+	If i < 0
 		Return "no current companion"
 	EndIf
-	_owed = True
-	_cooldownUntil = 0.0
-	Self.Evaluate(_watching)
+	Actor who = _watched[i]
+	_owedEach[i] = True
+	_cooldownEach[i] = 0.0
+	Self.Evaluate(i)
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
-	Return "moment=" + _watching.GetValue(av) + " private=" + Self.Private(_watching) + " stampOpen=" + Self.StampOpen(_watching) + " openUntil=" + _openUntil
+	Return "moment=" + who.GetValue(av) + " private=" + Self.Private(who) + " stampOpen=" + Self.StampOpen(who) + " openUntil=" + _openUntilEach[i]
 EndFunction
 
+; The companion the dev verbs report on: the follower system's Companion when watched,
+; else the first watched. None with no companion.
 Actor Function Watching()
-	Return _watching
+	Self.EnsureArrays()
+	Actor primary = Self.Registry().Current()
+	If Self.IndexOf(primary) >= 0
+		Return primary
+	EndIf
+	If _watched.Length > 0
+		Return _watched[0]
+	EndIf
+	Return None
 EndFunction

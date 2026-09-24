@@ -135,7 +135,9 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		EndIf
 		Overture:Companions:Registry reg = (moments as Quest) as Overture:Companions:Registry
 		Overture:Companions:Feeders feeders = (moments as Quest) as Overture:Companions:Feeders
-		Actor mate = reg.Current()
+		; The companion Moments reports on, so the id printed and ForceMoment's numbers are
+		; the same actor's -- the Companion alias alone rotates under AFT.
+		Actor mate = moments.Watching()
 		If mate == None
 			MCP:Core.Reply(tag, "approach " + first + ": NOT DONE - no current companion")
 			Return

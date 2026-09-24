@@ -37,14 +37,49 @@ Bool Function IsCurrentCompanion(Actor akWho)
 	Return akWho != None && current != None && akWho.IsInFaction(current)
 EndFunction
 
-; The one companion the base game's follower system travels with: its Companion
-; alias. (Dogmeat has an alias of his own and is never a person here.)
+; The follower system's Companion ALIAS: one actor. NOT "the companion" under Amazing
+; Follower Tweaks, which rotates this alias among its followers every 15 seconds
+; (TweakDFScript.RotateCompanion) unless the player locks it. Ask CurrentAll for who
+; travels with the player. (Dogmeat has an alias of his own and is never a person here.)
 Actor Function Current()
 	FollowersScript followers = FollowersScript.GetScript()
 	If followers == None || followers.Companion == None
 		Return None
 	EndIf
 	Return followers.Companion.GetActorReference()
+EndFunction
+
+; EVERY current companion (AFT multi-follower support, owner 2026-09-24).
+; ActiveCompanions holds everyone who has EVER been one -- AFT's own comment on it:
+; "never cleaned up" -- so it is filtered by CurrentCompanionFaction, which AFT puts on
+; every follower it recruits and takes off on dismissal (AFT 1.23 TweakDFScript
+; SetCompanion / DismissCompanion, read from its archive 2026-09-24). Vanilla: one actor.
+; AFT: up to five, plus Dogmeat, whom Eligible drops. No dependency on AFT: the
+; collection and the faction are the game's own.
+Actor[] Function CurrentAll()
+	Actor[] out = new Actor[0]
+	FollowersScript followers = FollowersScript.GetScript()
+	If followers == None
+		Return out
+	EndIf
+	RefCollectionAlias everyone = followers.ActiveCompanions
+	If everyone != None
+		Int i = 0
+		Int n = everyone.GetCount()
+		While i < n
+			Actor a = everyone.GetAt(i) as Actor
+			If a != None && Self.IsCurrentCompanion(a) && out.Find(a) < 0
+				out.Add(a)
+			EndIf
+			i += 1
+		EndWhile
+	EndIf
+	; The alias too, for a follower the collection lacks.
+	Actor primary = Self.Current()
+	If primary != None && Self.IsCurrentCompanion(primary) && out.Find(primary) < 0
+		out.Add(primary)
+	EndIf
+	Return out
 EndFunction
 
 Bool Function Eligible(Actor akWho)

@@ -603,3 +603,48 @@ plugins:
   - Once recruited, the game adds HasBeenCompanionFaction and the stranger path is closed for good.
     Nothing to fix now.
 - No installed companion with a follower system of its own outside FollowersScript was found.
+
+## O-42 — Amazing Follower Tweaks: every follower is a companion (owner, 2026-09-24)
+
+The owner: "how hard would be make compatible with aft+ multi companion system?", then "u can go
+through all of points". Ivy's `AFT_Plus_Ivy.esp` forwards her travel packages and scenes into vanilla
+quests and AFT's interjections, and touches no follower slot. The owner: "ivy for ex sit always in slot
+1 bc its crucial for her brain and her quests".
+
+**Read from AFT 1.23's own source** (`AmazingFollowerTweaks - Main.ba2` ships it):
+- **The faction:** AFT puts EVERY follower in CurrentCompanionFaction on recruit and takes it off
+  on dismissal (TweakDFScript SetCompanion / DismissCompanion).
+- **The slot:** it rotates the follower system's Companion alias among them every 15 seconds
+  (`RotateCompanion`), unless the player locks it. That lock is how Ivy stays in slot 1.
+- **The record:** `ActiveCompanions` holds everyone who has EVER been a companion. AFT's own
+  comment: never cleaned.
+
+**The bug this found:** the module read the Companion alias every 20 s and took a change for a
+dismissal. So with two AFT followers, each one's wanting was wiped several times a minute, and no
+moment could ever open.
+
+**Built:**
+1. `Registry.CurrentAll()`: ActiveCompanions filtered by CurrentCompanionFaction, plus the alias.
+   This uses the game's own collection and faction, with no dependency on AFT. Vanilla: one actor.
+   `Current()` stays the alias, for the dev report only.
+2. Moments watches every current companion. A companion leaves only on dismissal. Each one keeps
+   their own owed flag, window, cooldown and combat, in arrays with new names, so an old save's
+   single-companion variables are simply dropped.
+3. ONE moment open at a time: the others stay owed.
+4. **Fellow companions are not onlookers** (my call, stated to the owner, reversible). Those within
+   Rapport's observer radius (900) come back off its count. Otherwise no companion could ever be
+   alone with the player while others follow.
+- The dialogue records needed nothing. Their conditions test CurrentCompanionFaction on the speaker,
+  and AFT keeps that on all its followers.
+- **Not covered:** jealousy BETWEEN travelling companions who are both lovers. A game test with AFT
+  and two followers is the owner's.
+- **Review (sonnet), same day.** No array, save or threading defect was found. Three findings:
+  - **Fellow radius:** a copy of Rapport's observerRadius. It is now documented as a copy, and dead
+    companions are no longer subtracted.
+  - **The dev report** now uses `Moments.Watching()`, so the id it prints and ForceMoment's numbers
+    are the same actor's.
+  - **"Vanilla never removes CurrentCompanionFaction on dismissal": REFUTED from the records.**
+    Fallout4.esm's Followers quest applies the faction as an ALIAS faction (ALFC 00023C01 on
+    Companion and DogmeatCompanion), so clearing the alias takes it off. AFT's override of that
+    quest carries no alias factions at all and manages the faction by script on every follower, so
+    its rotation cannot strip it.
