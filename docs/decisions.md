@@ -648,3 +648,42 @@ moment could ever open.
     Companion and DogmeatCompanion), so clearing the alias takes it off. AFT's override of that
     quest carries no alias factions at all and manages the faction by script on every follower, so
     its rotation cannot strip it.
+
+## O-43 — Everyone with a human voice is heard, in the nearest voice we have (owner poll, 2026-09-25)
+
+The owner tried Overture on Mayor McDonough: "there wasnt any lipsync or voices. Neither player or major.
+Only subtitles." It was working as designed. The player's lines are text (O-2/O-3), and the Mayor's
+unique voice type had no file (O-5). The owner's answer, by poll: "Use our vocal embeddings". They
+funded this month's ElevenLabs budget this way:
+
+- **Borrowing, 0 characters.** A dialogue line whose speaker's own voice type has no file is looked up
+  again in the nearest same-sex voice Overture ships, measured by fo4-rapport's speaker fingerprints.
+  The Mayor's nearest is MaleRough (0.423).
+  - This lives in Rapport, as an engine hook (fo4-rapport `src/DialogueVoice.*`), on the one place a
+    response's voice file is named.
+  - It applies only to plugins listed under voices.json "dialogue" (Overture.esp), and only when the
+    file is missing. Vanilla lines, every other mod's lines, and a line whose own file exists are never
+    touched.
+  - The map is `scripts/voice-dialogue-map.py`. 483 voice types borrow. 135 stay silent, children
+    always among them: the same hard rules as the bark map, taken from it.
+  - The SetOverrideVoiceType trick Rapport's barks use cannot work here. Held through a conversation,
+    it would send the speaker's own vanilla lines to the wrong folder.
+- **Five more voices.** The bank is rendered in the five voices most unique voices borrow today:
+  MaleGhoul, MaleOld, RaiderMale02, FemaleGhoul and DLC03TrapperMale01 (31/29/29/20/19 voice types).
+  That is 860 renders, 51k characters.
+- **The player stays text** (O-2/O-3).
+- UNVERIFIED in game: that the redirected path plays. The first line with the Mayor settles it. Rapport.log
+  says "dialogue voice: ... speaks dialogue lines as MaleRough".
+
+## O-44 — "Not my type": orientation is a hard line, said in character (owner poll, 2026-09-25)
+
+Rapport's R-27 gives every NPC an orientation: straight 70%, bi 20%, gay 10%, derived like a persona.
+Romanceable companions are playersexual. Overture's side:
+- **A sixth verdict, "not my type".** It is decided first, because no bond, room or moment changes it.
+  It costs nothing, and the Narrator says "you're not {their} type. No words and no time will change
+  that."
+- **The player learns it by asking.** Flirts still land, and nothing is said before the question.
+- **Eight lines,** one per persona and player sex (`outcome: nottype`, `player_gender`), in all six core
+  voices. DRAFTS: the owner reviews them before they are voiced.
+- **Companions:** one who is not into the player never opens a moment. If the player asks anyway, it is
+  a plain refusal, because the companion wheel has no set for this.

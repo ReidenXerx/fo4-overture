@@ -67,9 +67,11 @@ INFO id.
   - `gender` absent, or equal to the NPC's sex (`f`/`m`). A male NPC saying an `f` line, or a female an
     `m` one, is a FAIL of O-40c;
   - `text` equal to the captured subtitle, exactly.
-- **Voice.** For an NPC of a core voice type, `Sound/Voice/Overture.esp/<VoiceType>/<INFO & 0xFFFFFF, 8 hex>_1.fuz`
-  must exist. For any other voice type it must NOT exist, and the subtitle alone is correct (O-5). A gendered
-  line has files only in its own sex's three types.
+- **Voice.** For an NPC of a voice type Overture ships (the six core types and O-43's five),
+  `Sound/Voice/Overture.esp/<VoiceType>/<INFO & 0xFFFFFF, 8 hex>_1.fuz` must exist. Any other human voice
+  BORROWS (O-43): the line must be heard, and Rapport.log must say "dialogue voice: <id> (<its voice type>) -
+  speaks dialogue lines as <voice>" once per voice type. A voice fo4-rapport voices.json keeps silent (children,
+  robots, creatures) shows the subtitle alone. A gendered line has files only in its own sex's voices.
 - **Companion lines** are subtitles only, and none is in the registry. Match their text in
   `voice/companion-lines.json`.
 - **The player's options** must show the texts in `voice/player-prompts.json`:
