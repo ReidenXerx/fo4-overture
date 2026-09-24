@@ -137,11 +137,16 @@ COMPANION_WHEEL = (('PTOP', 'charm'), ('NETO', 'later'), ('NTOP', 'blunt'), ('QT
 OUTCOME_ACCEPT, OUTCOME_NOTYET, OUTCOME_REFUSE, OUTCOME_NOT_HERE, OUTCOME_NOT_NOW = 6, 7, 8, 9, 10
 # The companion's answer to "Later.": nothing happened, and nothing is paid.
 OUTCOME_LATER = 11
+# R-27 (owner poll, 2026-09-25): "not my type", orientation. Keyed on the PLAYER's sex.
+OUTCOME_NOT_TYPE = 12
 # OvertureVerdict. 0 = not decided. 5 "not now": the moment is wrong, not the
 # person (the romantic out of their setting, Rapport busy) -- once folded into
 # "not yet", which told the player to try harder at the one thing that was not
 # the problem (design review 2026-09-23).
 VERDICT_REFUSE, VERDICT_NOTYET, VERDICT_ACCEPT, VERDICT_NOT_HERE, VERDICT_NOT_NOW = 1, 2, 3, 4, 5
+# R-27: they are not into the player's sex. It passes phase 3's gate (>= NOTYET) on
+# purpose: the player asks, and learns it from them -- and it costs nothing.
+VERDICT_NOT_TYPE = 6
 # Phase 3 opens, after a stage-2 land, only for a verdict that has a chance: a
 # proposition that could only be refused is never offered there, so the player is
 # not punished for taking the only path on the wheel (design review 2026-09-23).
@@ -149,7 +154,7 @@ VERDICT_REFUSE, VERDICT_NOTYET, VERDICT_ACCEPT, VERDICT_NOT_HERE, VERDICT_NOT_NO
 # no race. A conversation that opens AT the proposition opens it whatever the
 # verdict (its markers are all the gate can read in time); Approach keeps the
 # only-refusable case out of those markers, and a refusal there costs nothing.
-# Five verdict sets of two lines per (register, persona) cell.
+# Six verdict sets of two lines per (register, persona) cell (R-27 added "not my type").
 S3_CELL = 16
 
 NPC_SLOT_ORDER = ('NPOT', 'NNGT', 'NNUT', 'NQUT')
@@ -414,7 +419,10 @@ def build_staged():
                         (VERDICT_REFUSE, OUTCOME_REFUSE, propose.get((persona, 'refuse'), [])),
                         (VERDICT_NOTYET, OUTCOME_NOTYET, propose.get((persona, 'notyet'), [])),
                         (VERDICT_ACCEPT, OUTCOME_ACCEPT, propose.get((persona, 'accept'), [])),
-                        (VERDICT_NOT_NOW, OUTCOME_NOT_NOW, propose.get((persona, 'notnow'), [])))
+                        (VERDICT_NOT_NOW, OUTCOME_NOT_NOW, propose.get((persona, 'notnow'), [])),
+                        # R-27. The sixth set: slots 12-13 of the cell (7 sets with the
+                        # lover branch's refusal, 14 of S3_CELL's 16), gendered 0xF00 + 13 max.
+                        (VERDICT_NOT_TYPE, OUTCOME_NOT_TYPE, propose.get((persona, 'nottype'), [])))
             if lands_on.get(persona) == register:
                 # The register that got here: the verdict decides.
                 sets = tuple((v, c, t, b'') for v, c, t in verdicts)
@@ -431,6 +439,8 @@ def build_staged():
                 sets = (((None, OUTCOME_REFUSE, propose.get((persona, 'refuse'), []), not_a_lover()),)
                         + tuple((v, c, t, a_lover()) for v, c, t in verdicts))
             for s_index, (verdict, code, lines, gate) in enumerate(sets):
+                if s_index * 2 + 1 >= S3_CELL:
+                    raise SystemExit(f'{persona}: verdict set {s_index} does not fit a stage-3 cell of {S3_CELL}')
                 if not lines:
                     raise SystemExit(f'no stage-3 lines for {persona} verdict {verdict}')
                 plain = [l for l in lines if not m.gendered(l)]

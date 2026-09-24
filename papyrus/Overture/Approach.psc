@@ -102,6 +102,9 @@ Int Property OUTCOME_NOT_NOW = 10 AutoReadOnly
 ; The companion's answer to "Later.": nothing happened, nothing is paid, and the day
 ; is not spent (CompanionEnded).
 Int Property OUTCOME_LATER = 11 AutoReadOnly
+; R-27 (owner poll, 2026-09-25): "not my type" -- orientation, a hard line. Costs
+; nothing: nothing the player says or does could have changed it.
+Int Property OUTCOME_NOT_TYPE = 12 AutoReadOnly
 
 ; THE STAGED BUILD (tools/overture_stages.py, --stages 3). The one-exchange
 ; plugin has none of these records: every lookup below comes back None there,
@@ -120,6 +123,10 @@ Int Property VERDICT_NOT_HERE = 4 AutoReadOnly
 ; into "not yet", which told the player to try harder at the one thing that was
 ; not the problem (design review 2026-09-23).
 Int Property VERDICT_NOT_NOW = 5 AutoReadOnly
+; R-27: they are not into the player's sex (Rapport:Core.Attracted). Their own answer,
+; keyed on the player's sex; a companion who is not says a plain refusal instead, since
+; the companion wheel has no set for it.
+Int Property VERDICT_NOT_TYPE = 6 AutoReadOnly
 ; GameHour, Fallout4.esm -- the clock Rapport's own "night" reads (Pairing.cpp).
 Int Property GAME_HOUR_ID = 0x00000038 AutoReadOnly
 ; A yes Rapport could not take at once -- another scene in flight, the bridge not
@@ -161,6 +168,7 @@ Int Property WHY_FALLEN_OUT = 9 AutoReadOnly
 Int Property WHY_THEIRS = 10 AutoReadOnly
 Int Property WHY_UNWON = 11 AutoReadOnly
 Int Property WHY_WANTING = 12 AutoReadOnly
+Int Property WHY_NOT_TYPE = 13 AutoReadOnly
 
 ; O-14's tiers (OvertureTier), from the bond as a conversation leaves it. The
 ; lines are Rapport's own -- its Narrator's "getting close", "close" and "have
@@ -749,6 +757,10 @@ Bool Function CompanionOpenable(Actor akWho)
 	If persona < 0
 		Return False
 	EndIf
+	; R-27: a companion who is not into the player's sex never asks for a moment.
+	If !Self.Attracted(akWho)
+		Return False
+	EndIf
 	If Rapport:Relations.BondBetween(Game.GetPlayer(), akWho) <= BOND_FALLEN_OUT
 		Return False
 	EndIf
@@ -1068,6 +1080,14 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
 		_why = WHY_NO_PERSONA
 		Return VERDICT_REFUSE
 	EndIf
+	; R-27, a hard line: first, because no bond, room or moment changes it.
+	If !Self.Attracted(akWho)
+		_why = WHY_NOT_TYPE
+		If Self.IsCompanionTalk(akWho)
+			Return VERDICT_REFUSE
+		EndIf
+		Return VERDICT_NOT_TYPE
+	EndIf
 	If afBond <= BOND_FALLEN_OUT
 		_why = WHY_FALLEN_OUT
 		Return VERDICT_REFUSE
@@ -1119,6 +1139,12 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
 	EndIf
 	_why = WHY_YES
 	Return VERDICT_ACCEPT
+EndFunction
+
+; R-27: would akWho have the player, by orientation? Rapport decides (derived from the
+; form id, pinned in its personas.json; romanceable companions are open to the player).
+Bool Function Attracted(Actor akWho)
+	Return Rapport:Core.Attracted(akWho.GetFormID(), Game.GetPlayer().GetFormID())
 EndFunction
 
 ; ---- the replies --------------------------------------------------------------
@@ -1482,6 +1508,10 @@ String Function TalkLine(Conversation c, Bool abNamed)
 		If c.verdict == VERDICT_REFUSE
 			Return s + " enjoyed that" + Self.WhyNot(c.why, " Only talk, for now - keep coming back.")
 		EndIf
+		If c.verdict == VERDICT_NOT_TYPE
+			; Not told before it is asked: the player learns it from them (R-27).
+			Return s + " enjoyed that."
+		EndIf
 		If c.verdict == 0
 			; No verdict recorded for this conversation, so whether stage 3 was
 			; offered is unknown -- say only what is known.
@@ -1507,6 +1537,8 @@ String Function TalkLine(Conversation c, Bool abNamed)
 			Return s + " would - indoors, or after dark. Ask again later today."
 		EndIf
 		Return s + " would - just not right now. Ask again later today."
+	ElseIf outcome == OUTCOME_NOT_TYPE
+		Return s + " turned you down - you're not {their} type. No words and no time will change that."
 	ElseIf outcome == OUTCOME_REFUSE
 		If c.verdict == VERDICT_REFUSE
 			; Even the right words would have been refused (a conversation that
@@ -1530,6 +1562,8 @@ String Function WhyNot(Int aiWhy, String asWhenEarly)
 		Return " - {they} had other things on {their} mind."
 	ElseIf aiWhy == WHY_UNWON
 		Return " - win {them} over first, {their} own way."
+	ElseIf aiWhy == WHY_NOT_TYPE
+		Return " - you're not {their} type."
 	EndIf
 	Return "." + asWhenEarly
 EndFunction
@@ -1752,6 +1786,8 @@ String Function DebugWhy(Int aiWhy)
 		Return "a companion not won over yet"
 	ElseIf aiWhy == WHY_WANTING
 		Return "a companion who does not want it now"
+	ElseIf aiWhy == WHY_NOT_TYPE
+		Return "not their type - orientation (R-27)"
 	EndIf
 	Return "why " + aiWhy
 EndFunction

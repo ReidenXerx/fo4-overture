@@ -1686,6 +1686,86 @@
       "chars": 60
     },
     {
+      "id": "ov3_mercantile_nottype_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "nottype",
+      "text": "Put your caps away. Men are the one thing I do not trade in.",
+      "chars": 60,
+      "player_gender": "m"
+    },
+    {
+      "id": "ov3_mercantile_nottype_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "mercantile",
+      "outcome": "nottype",
+      "text": "Nice try, sweetheart, but women are not a market I deal in.",
+      "chars": 59,
+      "player_gender": "f"
+    },
+    {
+      "id": "ov3_romantic_nottype_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "nottype",
+      "text": "You are sweet, truly. But my heart has never gone looking for a man.",
+      "chars": 68,
+      "player_gender": "m"
+    },
+    {
+      "id": "ov3_romantic_nottype_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "romantic",
+      "outcome": "nottype",
+      "text": "You are lovely, and I mean it. But I have never wanted a woman that way.",
+      "chars": 72,
+      "player_gender": "f"
+    },
+    {
+      "id": "ov3_vulgar_nottype_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nottype",
+      "text": "Keep your cock in your pants, you sad slut. It does fuck all for me.",
+      "chars": 68,
+      "player_gender": "m"
+    },
+    {
+      "id": "ov3_vulgar_nottype_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "vulgar",
+      "outcome": "nottype",
+      "text": "Put that pussy away, you desperate slut. It does fuck all for me.",
+      "chars": 65,
+      "player_gender": "f"
+    },
+    {
+      "id": "ov3_reticent_nottype_m1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "nottype",
+      "text": "I... no. It is not you. I just do not feel that way about men.",
+      "chars": 62,
+      "player_gender": "m"
+    },
+    {
+      "id": "ov3_reticent_nottype_f1",
+      "kind": "propose",
+      "stage": 3,
+      "persona": "reticent",
+      "outcome": "nottype",
+      "text": "I... no. It is not you. I just do not feel that way about women.",
+      "chars": 64,
+      "player_gender": "f"
+    },
+    {
       "id": "ov_lover_greet_01",
       "kind": "lover_greeting",
       "stage": 0,
@@ -1800,5 +1880,5 @@
       "chars": 38
     }
   ],
-  "_drafts": "HISTORY. 28 lines were written 2026-09-23 overnight WITHOUT the owner: the stage-3 answers 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy), O-12's four persona-neutral 'lover_greeting' lines (a greeting is chosen before any script can say who the speaker is), and O-33's eight 'jealous_greeting' lines, two per persona (the romantic and the reticent are stung, the vulgar is thrilled, the mercantile shrugs: O-29). They were voiced on the owner's 'render them' while still drafts. REVIEWED 2026-09-24 (docs/decisions.md O-39, O-40): all approved except the vulgar persona's six, which were rewritten to O-40's rule -- every vulgar line swears, degrades the one it talks to, and says something specifically dirty -- and approved and re-voiced."
+  "_drafts": "HISTORY. 28 lines were written 2026-09-23 overnight WITHOUT the owner: the stage-3 answers 'nothere' (it would be a yes, but not in front of people -- an invitation, not a refusal) and 'notnow' (the moment is wrong: the romantic out of their setting, or Rapport busy), O-12's four persona-neutral 'lover_greeting' lines (a greeting is chosen before any script can say who the speaker is), and O-33's eight 'jealous_greeting' lines, two per persona (the romantic and the reticent are stung, the vulgar is thrilled, the mercantile shrugs: O-29). They were voiced on the owner's 'render them' while still drafts. REVIEWED 2026-09-24 (docs/decisions.md O-39, O-40): all approved except the vulgar persona's six, which were rewritten to O-40's rule -- every vulgar line swears, degrades the one it talks to, and says something specifically dirty -- and approved and re-voiced. R-27 (2026-09-25): the eight 'nottype' stage-3 answers -- orientation, a hard line; keyed on the PLAYER's sex, so each is recorded in all six voices -- were written WITHOUT the owner and are DRAFTS until reviewed. The vulgar two follow O-40's rule."
 }
