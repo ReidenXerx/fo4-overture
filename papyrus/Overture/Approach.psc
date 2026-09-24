@@ -1747,6 +1747,22 @@ String Function DebugWhy(Int aiWhy)
 	Return "why " + aiWhy
 EndFunction
 
+; The rules no debug button skips (DESIGN hard rules, as Rapport's own triggers keep
+; them): "" when akWho may be approached at all. Rapport's picker already never
+; hands over a child; this does not rely on it (review of R-23, 2026-09-24).
+String Function DebugHardRule(Actor akWho)
+	If akWho.IsChild()
+		Return "is a child - never"
+	ElseIf akWho.IsDead()
+		Return "is dead"
+	ElseIf !akWho.Is3DLoaded()
+		Return "is not loaded"
+	ElseIf akWho.IsInCombat()
+		Return "is fighting"
+	EndIf
+	Return ""
+EndFunction
+
 ; The approach, now. FORCED starts Overture's approach scene on akWho whether or not
 ; they are eligible -- what F4MCP's `approach <npc>` does. REAL makes the player talk
 ; to them, and the engine picks the greeting exactly as it does in play: Overture's
@@ -1754,6 +1770,10 @@ EndFunction
 String Function DebugApproach(Actor akWho, Bool abForce)
 	If akWho == None
 		Return "Overture debug: nobody in front of you"
+	EndIf
+	String hard = Self.DebugHardRule(akWho)
+	If hard != ""
+		Return "Overture debug: " + akWho.GetFormID() + " " + hard
 	EndIf
 	; Out of the menu first: Wait does not run while a menu is open, so this returns
 	; once the MCM page has been closed, and the dialogue opens in the world.
@@ -1797,6 +1817,10 @@ String Function DebugYes(Actor akWho, Bool abForce)
 	If akWho == None
 		Return "Overture debug: nobody in front of you"
 	EndIf
+	String hard = Self.DebugHardRule(akWho)
+	If hard != ""
+		Return "Overture debug: " + akWho.GetFormID() + " " + hard
+	EndIf
 	If Self.Talking()
 		Return "Overture debug: a conversation is still going - end it first"
 	EndIf
@@ -1807,6 +1831,10 @@ String Function DebugYes(Actor akWho, Bool abForce)
 	If abForce
 		mode = "forced"
 	Else
+		; The greeting reads this switch before anything else; REAL obeys it too.
+		If !Self.Enabled()
+			Return "Overture debug (real): Approaches are switched off (MCM)"
+		EndIf
 		Float bond = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
 		Int decided = Self.Decide(akWho, bond, Self.InPublic(akWho), 0)
 		If decided != VERDICT_ACCEPT
@@ -1824,7 +1852,12 @@ String Function DebugYes(Actor akWho, Bool abForce)
 	c.companion = Self.IsCompanionTalk(akWho)
 	Self.Finish(c, False)
 	If abForce && !c.sceneAsked
-		; Finish let the slot go because the switch is off; forced asks anyway.
+		; Finish let the slot go because the switch is off; forced asks anyway -- and
+		; holds the player's slot as a real yes does. Hold() itself would not: it
+		; re-reads the very switch this bypasses (review of R-23).
+		If Self.HasApi()
+			Rapport:Core.ReservePlayerScene(akWho, HOLD_AT_YES)
+		EndIf
 		Self.Proposition(akWho, True)
 		Return "Overture debug (forced): " + akWho.GetFormID() + " said yes - the scene is asked for although 'A yes starts a scene' is off"
 	EndIf
