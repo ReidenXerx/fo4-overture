@@ -377,6 +377,95 @@
           }
         }
       ]
+    },
+    {
+      "pageDisplayName": "Debug",
+      "content": [
+        {
+          "type": "text",
+          "text": "Overture's entry points on demand, for testing. Face the NPC you mean, then click - or bind a key below. FORCED skips the checks; REAL goes through the same door as play and says on the HUD what refused."
+        },
+        {
+          "type": "section",
+          "text": "Approach"
+        },
+        {
+          "type": "button",
+          "text": "Approach the one I face - FORCED",
+          "help": "Overture's approach scene on the NPC you are facing, eligible or not (what F4MCP's \"approach <npc>\" does).",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Overture:DebugTriggers",
+            "function": "ApproachForced",
+            "params": []
+          }
+        },
+        {
+          "type": "button",
+          "text": "Approach the one I face - REAL",
+          "help": "You talk to them, and the game picks the greeting exactly as in play: the approach only when every condition holds. From this page it opens once the menu is closed.",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Overture:DebugTriggers",
+            "function": "ApproachReal",
+            "params": []
+          }
+        },
+        {
+          "type": "section",
+          "text": "A yes"
+        },
+        {
+          "type": "button",
+          "text": "Straight to a yes - FORCED",
+          "help": "A yes from the NPC you are facing without asking: the same markers, Narrator line and scene request a real yes gets - the scene even with \"A yes starts a scene\" off.",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Overture:DebugTriggers",
+            "function": "YesForced",
+            "params": []
+          }
+        },
+        {
+          "type": "button",
+          "text": "Straight to a yes - REAL",
+          "help": "The stage-3 verdict decides (bond, room, setting, Rapport free); the HUD says why when it is not a yes. A yes asks for its scene only with \"A yes starts a scene\" on.",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Overture:DebugTriggers",
+            "function": "YesReal",
+            "params": []
+          }
+        },
+        {
+          "type": "section",
+          "text": "Hotkeys"
+        },
+        {
+          "id": "OvertureApproachForced",
+          "text": "Approach - forced",
+          "type": "hotkey",
+          "help": "Overture's approach scene on the NPC you are facing, eligible or not (what F4MCP's \"approach <npc>\" does)."
+        },
+        {
+          "id": "OvertureApproachReal",
+          "text": "Approach - real",
+          "type": "hotkey",
+          "help": "You talk to them, and the game picks the greeting exactly as in play: the approach only when every condition holds. From this page it opens once the menu is closed."
+        },
+        {
+          "id": "OvertureYesForced",
+          "text": "Yes - forced",
+          "type": "hotkey",
+          "help": "A yes from the NPC you are facing without asking: the same markers, Narrator line and scene request a real yes gets - the scene even with \"A yes starts a scene\" off."
+        },
+        {
+          "id": "OvertureYesReal",
+          "text": "Yes - real",
+          "type": "hotkey",
+          "help": "The stage-3 verdict decides (bond, room, setting, Rapport free); the HUD says why when it is not a yes. A yes asks for its scene only with \"A yes starts a scene\" on."
+        }
+      ]
     }
   ]
 }

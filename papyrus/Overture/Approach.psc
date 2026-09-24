@@ -1715,3 +1715,121 @@ EndFunction
 Bool Function Talking()
 	Return _current != None
 EndFunction
+
+; ---- for Overture:DebugTriggers (R-23: the MCM's Debug page and hotkeys) --------
+; Owner poll, 2026-09-24: every trigger twice. FORCED skips the soft gates; REAL goes
+; through the same door a player's own action does. Each returns one line for the HUD.
+
+String Function DebugWhy(Int aiWhy)
+	If aiWhy == WHY_NO_PERSONA
+		Return "no persona"
+	ElseIf aiWhy == WHY_TAKEN
+		Return "spoken for, and faithful"
+	ElseIf aiWhy == WHY_EARLY
+		Return "too early - the bond is under half the bar"
+	ElseIf aiWhy == WHY_BOND
+		Return "not yet - the bond is under the bar"
+	ElseIf aiWhy == WHY_PUBLIC
+		Return "not here - the room is public"
+	ElseIf aiWhy == WHY_SETTING
+		Return "not now - wrong setting (romantic: indoors or at night)"
+	ElseIf aiWhy == WHY_BUSY
+		Return "not now - Rapport is busy or cannot run the scene"
+	ElseIf aiWhy == WHY_FALLEN_OUT
+		Return "bad blood - they have fallen out"
+	ElseIf aiWhy == WHY_THEIRS
+		Return "a companion's own reasons"
+	ElseIf aiWhy == WHY_UNWON
+		Return "a companion not won over yet"
+	ElseIf aiWhy == WHY_WANTING
+		Return "a companion who does not want it now"
+	EndIf
+	Return "why " + aiWhy
+EndFunction
+
+; The approach, now. FORCED starts Overture's approach scene on akWho whether or not
+; they are eligible -- what F4MCP's `approach <npc>` does. REAL makes the player talk
+; to them, and the engine picks the greeting exactly as it does in play: Overture's
+; approach when every condition holds, their own dialogue otherwise.
+String Function DebugApproach(Actor akWho, Bool abForce)
+	If akWho == None
+		Return "Overture debug: nobody in front of you"
+	EndIf
+	; Out of the menu first: Wait does not run while a menu is open, so this returns
+	; once the MCM page has been closed, and the dialogue opens in the world.
+	Utility.Wait(0.1)
+	If !abForce
+		akWho.Activate(Game.GetPlayer(), false)
+		Return "Overture debug (real): talking to " + akWho.GetFormID() + " - the engine picks whose greeting wins"
+	EndIf
+	Scene sc = Self.ApproachScene()
+	ReferenceAlias target = Self.TargetAlias()
+	If sc == None || target == None
+		Return "Overture debug: Overture.esp did not resolve - the scene or the alias came back None"
+	EndIf
+	; Start() does not restart a playing scene: OnBegin would never fire, and the
+	; new NPC would get the last one's persona, room and verdict and no stamp.
+	If sc.IsPlaying() || Self.Talking()
+		Return "Overture debug: the approach scene is already playing - end that conversation first"
+	EndIf
+	If !(Self as Quest).IsRunning()
+		(Self as Quest).Start()
+	EndIf
+	target.ForceRefTo(akWho)
+	; What the engine THINKS, not what was asked for: Scene.Start() is void.
+	sc.Start()
+	Utility.Wait(0.5)
+	String note = "Overture debug (forced): approach on " + akWho.GetFormID() + " | playing after Start=" + sc.IsPlaying()
+	If !sc.IsPlaying()
+		sc.ForceStart()
+		Utility.Wait(0.5)
+		note = note + " | after ForceStart=" + sc.IsPlaying()
+	EndIf
+	Return note
+EndFunction
+
+; Straight to a yes, as if a stage-3 conversation with akWho had just ended on one:
+; the same markers, Narrator line and scene request a real yes gets (Finish). REAL
+; asks the verdict first -- bond, room, setting, Rapport free -- and a yes asks for
+; its scene only with "A yes starts a scene" on. FORCED skips the verdict and asks
+; for the scene even with that switch off.
+String Function DebugYes(Actor akWho, Bool abForce)
+	If akWho == None
+		Return "Overture debug: nobody in front of you"
+	EndIf
+	If Self.Talking()
+		Return "Overture debug: a conversation is still going - end it first"
+	EndIf
+	If Self.PersonaIndex(akWho) < 0
+		Return "Overture debug: " + akWho.GetFormID() + " has no persona - Overture never approaches them"
+	EndIf
+	String mode = "real"
+	If abForce
+		mode = "forced"
+	Else
+		Float bond = Rapport:Relations.BondBetween(Game.GetPlayer(), akWho)
+		Int decided = Self.Decide(akWho, bond, Self.InPublic(akWho), 0)
+		If decided != VERDICT_ACCEPT
+			Return "Overture debug (real): no yes from " + akWho.GetFormID() + " - " + Self.DebugWhy(_why) + " (bond " + bond + ", bar " + Self.Threshold(Self.PersonaIndex(akWho)) + ")"
+		EndIf
+	EndIf
+	Conversation c = new Conversation
+	c.who = akWho
+	c.stage = 3
+	c.outcome = OUTCOME_ACCEPT
+	c.reached = 3
+	c.verdict = VERDICT_ACCEPT
+	c.why = WHY_YES
+	c.at = Utility.GetCurrentGameTime()
+	c.companion = Self.IsCompanionTalk(akWho)
+	Self.Finish(c, False)
+	If abForce && !c.sceneAsked
+		; Finish let the slot go because the switch is off; forced asks anyway.
+		Self.Proposition(akWho, True)
+		Return "Overture debug (forced): " + akWho.GetFormID() + " said yes - the scene is asked for although 'A yes starts a scene' is off"
+	EndIf
+	If !c.sceneAsked
+		Return "Overture debug (real): " + akWho.GetFormID() + " said yes - no scene, because 'A yes starts a scene' is off (MCM)"
+	EndIf
+	Return "Overture debug (" + mode + "): " + akWho.GetFormID() + " said yes - the scene is asked for"
+EndFunction

@@ -1,0 +1,41 @@
+{
+  "modName": "Overture",
+  "keybinds": [
+    {
+      "id": "OvertureApproachForced",
+      "desc": "Overture debug: Approach - forced",
+      "action": {
+        "type": "CallGlobalFunction",
+        "script": "Overture:DebugTriggers",
+        "function": "ApproachForced"
+      }
+    },
+    {
+      "id": "OvertureApproachReal",
+      "desc": "Overture debug: Approach - real",
+      "action": {
+        "type": "CallGlobalFunction",
+        "script": "Overture:DebugTriggers",
+        "function": "ApproachReal"
+      }
+    },
+    {
+      "id": "OvertureYesForced",
+      "desc": "Overture debug: Yes - forced",
+      "action": {
+        "type": "CallGlobalFunction",
+        "script": "Overture:DebugTriggers",
+        "function": "YesForced"
+      }
+    },
+    {
+      "id": "OvertureYesReal",
+      "desc": "Overture debug: Yes - real",
+      "action": {
+        "type": "CallGlobalFunction",
+        "script": "Overture:DebugTriggers",
+        "function": "YesReal"
+      }
+    }
+  ]
+}
