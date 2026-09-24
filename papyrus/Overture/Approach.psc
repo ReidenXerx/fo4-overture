@@ -135,6 +135,11 @@ Int Property YES_RETRIES = 12 AutoReadOnly
 ; a stuck OnTimer (fo4-rapport docs/two-lifetimes.md). Nothing here calls AAF.
 Int Property END_TIMER = 3 AutoReadOnly
 Float Property END_FALLBACK = 3.0 AutoReadOnly
+; MCM reads mod settings on its own load, which can come after ours: 2 of 3 loads on
+; 2026-09-25 said "has not read Overture's settings" with the right settings.ini in
+; Data. So the warning waits and asks again; HasSettings() is read live everywhere.
+Int Property SETTINGS_TIMER = 4 AutoReadOnly
+Float Property SETTINGS_GRACE = 10.0 AutoReadOnly
 
 ; Rapport 0.2.1: NarrateLine, Introduce, ObserversNear, the priority lane and
 ; lovers. Older, and none of them is bound -- every call would be a Papyrus
@@ -361,7 +366,7 @@ Function Hook()
 		Debug.Notification("Overture needs Rapport 0.2.1 or newer.")
 	EndIf
 	If MCM.IsInstalled() && !Self.HasSettings()
-		Debug.Trace("Overture: MCM is installed but has not read Overture's settings (MCM/Config/Overture/settings.ini missing?) - the built-in numbers, and no scenes", 1)
+		Self.StartTimer(SETTINGS_GRACE, SETTINGS_TIMER)
 	EndIf
 
 	; A yes still waiting for its scene when the game was saved: Rapport forgets
@@ -522,6 +527,10 @@ EndEvent
 Event OnTimer(Int aiTimerID)
 	If aiTimerID == YES_TIMER
 		Self.AskForTheScene()
+	ElseIf aiTimerID == SETTINGS_TIMER
+		If MCM.IsInstalled() && !Self.HasSettings()
+			Debug.Trace("Overture: MCM is installed but has not read Overture's settings " + SETTINGS_GRACE + " s after the load (MCM/Config/Overture/settings.ini missing?) - the built-in numbers, and no scenes", 1)
+		EndIf
 	ElseIf aiTimerID == END_TIMER
 		; Only the conversation that started it: one that has begun since is not over.
 		Conversation c = _current
