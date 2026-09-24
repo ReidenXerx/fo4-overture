@@ -39,9 +39,15 @@ INFO id.
     `approach status` shows `child=` and `teammate=`, and the greeting's own conditions refuse the rest.
     Record each one's form id, persona, sex and voice type.
 - **Clean slate per NPC:** `approach forget <ref>` clears the day stamp, the stage, every marker and
-  Rapport's lovers flag. The bond is Rapport's and stays. Set it with mailbox `bond <player> <ref> add <x>`
-  and read it back from the same verb's reply. The move is proportional, not additive, so repeat until the
-  reply shows the value you want.
+  Rapport's lovers flag. The bond is Rapport's and stays.
+- **Steering the bond:** Rapport's mailbox verb `bond 00000014 <ref>` reads it (the player is `00000014`).
+  `bond 00000014 <ref> add <x>` moves it and replies with the new value. The verb is C++
+  (fo4-rapport src/Mailbox.cpp), not Papyrus, and until the R-22 DLL the unknown-verb hint does not list it.
+  - The move is a fraction of the distance left toward +1 or -1 (Ledger::AddBond), so ONE step lands exactly.
+    From the current bond B to a target T:
+    - up (T > B): x = (T - B) / (1 - B)
+    - down (T < B): x = (T - B) / (1 + B), which is negative
+  - Lowering a lover pair to the fallen-out line ends them as lovers (O-28). In step 4, only raise it.
 
 ## The oracle: how every captured line is judged
 
@@ -141,9 +147,9 @@ AT stage 2: `stageReached=1` in status, and the stage-2 wheel after `...`. Then 
 
 | verdict wanted | how |
 | --- | --- |
-| refuse (why EARLY) | bond below half P's bar (`bar=` in the verdict reply) |
-| not yet (why BOND) | bond between half the bar and the bar |
-| accept | bond at or above the bar, room private, Rapport not busy; for the romantic also indoors or at night (the setting) |
+| refuse (why EARLY) | bond below half P's bar (`bar=` in the verdict reply): T = 0.4 × bar |
+| not yet (why BOND) | bond between half the bar and the bar: T = 0.75 × bar |
+| accept | bond at or above the bar (T = bar + 0.05), room private, Rapport not busy; for the romantic also indoors or at night (the setting) |
 | not here | bond at the bar, `approach room public` |
 | not now | the romantic outdoors by day with the bond at the bar (why SETTING) |
 
