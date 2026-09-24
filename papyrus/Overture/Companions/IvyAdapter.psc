@@ -105,6 +105,18 @@ Bool Function Claims(Actor akWho)
 	Return _valid && akWho != None && akWho.GetActorBase() == _base
 EndFunction
 
+; Is this HER, whether or not this adapter validated? Only the plugin and her NPC id,
+; nothing of her version: an Ivy update that moves one of her globals turns this
+; adapter off, and she must then go quiet (the engine fallback), not fall through to
+; the framework adapter and get Overture's moments on top of her own (O-41).
+Bool Function IsHers(Actor akWho)
+	If akWho == None || !Game.IsPluginInstalled(PLUGIN)
+		Return False
+	EndIf
+	ActorBase hers = Game.GetFormFromFile(IVY_NPC_ID, PLUGIN) as ActorBase
+	Return hers != None && akWho.GetActorBase() == hers
+EndFunction
+
 ; Her unique actor, for the scripts that act on her scenes.
 Actor Function Ivy()
 	If !_valid

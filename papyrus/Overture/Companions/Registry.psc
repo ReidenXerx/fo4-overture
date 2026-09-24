@@ -9,9 +9,10 @@ The CURRENT one is in CurrentCompanionFaction (00023C01) and in FollowersScript'
 Companion alias. Ivy's own NPC record carries both, so a mod companion built on the
 vanilla framework needs no registration at all.
 
-Adapters are scripts on this same quest, asked most specific first. A new companion
-mod means one new adapter script and one line in AdapterFor -- never a patch to
-their plugin (C1).}
+Adapters are scripts on this same quest, asked most specific first. A companion mod
+built on the game's framework needs NOTHING: the framework adapter reads it like the
+base game's (O-41). Only one with a system of its own beyond the framework (Ivy)
+needs an adapter script and a line in AdapterFor -- never a patch to their plugin (C1).}
 
 Int Property CURRENT_COMPANION_FACTION_ID = 0x00023C01 AutoReadOnly
 Int Property HAS_BEEN_COMPANION_FACTION_ID = 0x000A1B85 AutoReadOnly
@@ -66,6 +67,12 @@ Overture:Companions:Adapter Function AdapterFor(Actor akWho)
 	Overture:Companions:Adapter a = Self.Named("Overture:Companions:IvyAdapter")
 	If a != None && a.Claims(akWho)
 		Return a
+	EndIf
+	; Ivy with her adapter off (an update moved one of her forms): the engine fallback,
+	; which opens nothing -- never the framework adapter's moments over her own (O-41).
+	Overture:Companions:IvyAdapter ivy = a as Overture:Companions:IvyAdapter
+	If ivy != None && ivy.IsHers(akWho)
+		Return Self.Named("Overture:Companions:EngineAdapter")
 	EndIf
 	a = Self.Named("Overture:Companions:VanillaAdapter")
 	If a != None && a.Claims(akWho)

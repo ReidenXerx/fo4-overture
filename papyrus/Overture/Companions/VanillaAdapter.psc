@@ -1,9 +1,8 @@
 Scriptname Overture:Companions:VanillaAdapter extends Overture:Companions:Adapter
-{The BASE GAME's companions: CompanionActorScript on the actor, affinity in
-CA_Affinity, the actor from Fallout4.esm or an official DLC master. A mod
-companion that reuses the framework (Ivy's actor carries it too) is NOT claimed
-here: it may have voiced content of its own, and only an adapter written for it
-knows (C6, design review 2026-09-23).
+{Every companion on the game's own framework: CompanionActorScript on the actor,
+affinity in CA_Affinity -- the base game's AND any mod's that builds on it (O-41,
+owner 2026-09-24). Ivy's actor carries it too, but her adapter is asked first and
+the Registry never hands her here.
 
 Read 2026-09-23 from Fallout4.esm with tools/dump_record.py:
   CA_Affinity      AVIF 000A1B80    CA_IsRomantic  AVIF 00148DF6
@@ -27,17 +26,18 @@ ActorValue Function VanillaAV(Int aiID)
 	Return Game.GetFormFromFile(aiID, "Fallout4.esm") as ActorValue
 EndFunction
 
-; THE BASE GAME'S companions only -- Fallout4.esm and the official DLC masters.
-; Claiming every actor that carries CompanionActorScript swept in every mod
-; companion built on the framework (Heather, the spouse companions, Ivy's actor
-; too), and sent them down the path meant for companions with no content of their
-; own (design review 2026-09-23). A mod companion gets its own adapter, or the
-; engine fallback, which opens nothing (C6).
+; EVERY companion built on the game's own framework: CompanionActorScript on the
+; actor, or a script that extends it. O-41 (owner poll, 2026-09-24: "Full, like
+; vanilla ones"): mod companions -- Heather, Dr Cabbage, Leer, Frost, Hosea -- get
+; exactly what the base game's get, moments included. Everything read here is the
+; framework's own bookkeeping (CA_Affinity through ModAffinity, CA_IsRomantic,
+; CA_WantsToTalk, CA_IsRomanceableNow, TemporaryAngerLevel), so it holds for them as
+; it does for Piper. This REVERSES the design review of 2026-09-23, which kept them
+; out for fear of doubling their own content; the owner chose the content.
+; A companion with a system of its own beyond the framework (Ivy) still gets its own
+; adapter, asked first; the Registry never lets hers fall through to this one.
 Bool Function Claims(Actor akWho)
-	If akWho == None || (akWho as CompanionActorScript) == None
-		Return False
-	EndIf
-	Return Self.FromOfficialMaster(akWho.GetActorBase())
+	Return akWho != None && (akWho as CompanionActorScript) != None
 EndFunction
 
 Bool Function FromOfficialMaster(Form akForm)
@@ -141,6 +141,15 @@ Bool Function Closed(Actor akWho)
 	Return av != None && akWho.GetValue(av) == -1.0
 EndFunction
 
+; "vanilla" for the base game's own, "framework" for a mod's -- for the traces, and so
+; a report can tell which kind a verdict came from. Nothing branches on it.
 String Function Name()
 	Return "vanilla"
+EndFunction
+
+String Function KindOf(Actor akWho)
+	If akWho != None && Self.FromOfficialMaster(akWho.GetActorBase())
+		Return "vanilla"
+	EndIf
+	Return "framework"
 EndFunction

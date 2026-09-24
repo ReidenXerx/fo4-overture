@@ -545,3 +545,61 @@ only insults are "Completely useless" and "that desperate look".
   "...wrapped AROUND my cock". The meaning is the same. The male voices say "around": a diagnostic take
   transcribed v3 as "around", and only v2 managed "round", once. The line's three male takes were all
   re-recorded on the new words, verbatim first time.
+
+## O-41 — Any companion on the game's framework gets the full module (owner poll, 2026-09-24)
+
+The owner asked for an audit: is the companion module compatible with any custom companion, not
+only the ones written for? "we made SPECIFIC code exactly for ivy bc its my favourite but we wont
+make it for all custom companions in the world obviously". Six sonnet gatherers, the owner's install.
+
+**What the audit found:**
+- **Safe with anything, verified.**
+  - Overture.esp has one master, Fallout4.esm, and no record names a companion.
+  - Ivy is reached only by string (`CastAs`, `CallFunction`) behind `IsPluginInstalled`, so Overture
+    builds and runs without her.
+  - Every property read is guarded against None.
+- **But inert for every custom companion.** Adapters are asked Ivy, then vanilla (official masters
+  only), then the engine fallback. On the fallback:
+  - affinity is unknown and there is no romance, so the gate is always "not won";
+  - the player's companion option needs an adapter's vouch, and moments never open;
+  - they are never counted.
+  - Heather, Dr Cabbage, Leer, Frost and Hosea, all on this install, got nothing at all.
+- **The reads are standard.** Everything the vanilla adapter reads is the framework's own
+  bookkeeping (CA_Affinity through ModAffinity, CA_IsRomantic, CA_WantsToTalk,
+  CA_IsRomanceableNow, TemporaryAngerLevel), which any companion on CompanionActorScript keeps.
+
+| # | question | the owner's answer |
+| --- | --- | --- |
+| O-41 | what custom companions on the framework get | **full, like vanilla ones** (not the recommended "reads + player may ask, no moments of ours") |
+| O-41b | measure the dismissed-companion risk (a companion with its own follower system reached by the stranger approach) | **yes, measure it** (recommended) |
+
+**Built:**
+- `VanillaAdapter.Claims` is any actor carrying CompanionActorScript. `KindOf` says "vanilla" or
+  "framework" for the traces.
+- This REVERSES the design review of 2026-09-23, which kept mod companions out for fear of
+  doubling their own content. The owner chose the content.
+- **Ivy never falls through.** If her adapter turns itself off (an update moved one of her forms),
+  `IvyAdapter.IsHers` still knows her by plugin and NPC id, and the Registry gives her the engine
+  fallback, which opens nothing.
+- A companion with a system of its own beyond the framework still needs its own adapter. That is
+  the Ivy model, and one written only for a favourite.
+- **Not covered:** a companion NOT on CompanionActorScript (a follower system of its own) is still
+  inert. Several simultaneous followers (Amazing Follower Tweaks, installed here) see only the
+  game's Companion slot; the rest are ignored, which is safe.
+
+**O-41b, measured (the same day).** Eight custom companions on this install were read from their
+plugins:
+- **All eight are on the game's follower system.** Every one's quests borrow the vanilla Followers quest
+  (000289E4, external aliases or scripts).
+- **All but Heather list both vanilla companion factions on their own record:** Dr Cabbage, VP25,
+  Leer, Frost, Hosea, Audrey, Birdie, Toby and Peterson, at rank -1, so FollowersScript manages them.
+  - Heather lists her own hired and dismissed factions. Her core quest borrows the Followers quest, so
+    recruitment should still add the vanilla ones at runtime. UNVERIFIED: one in-game check,
+    `GetInFaction` 000A1B85 on her after recruiting.
+- **The exposure is before recruitment only.** A custom companion not yet met can get the stranger
+  approach once a game day, like any quest NPC.
+  - Overture's dialogue quest runs at priority 100, above most of their intro greetings: Heather 55-56,
+    Frost 45-80, Audrey 30-95; Birdie ties at 100.
+  - Once recruited, the game adds HasBeenCompanionFaction and the stranger path is closed for good.
+    Nothing to fix now.
+- No installed companion with a follower system of its own outside FollowersScript was found.
