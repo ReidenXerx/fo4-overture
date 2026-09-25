@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2026-09-26)
 
 - **Not during the game's opening.** Talking to your spouse, a neighbour or the Vault-Tec rep in
   pre-war Sanctuary, or anyone in Vault 111, no longer opens an approach. Overture starts when you
