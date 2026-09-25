@@ -164,6 +164,11 @@ def main():
     rapport = pathlib.Path(a.rapport)
     esp = pathlib.Path(a.esp).read_bytes()
     bank = json.loads((ROOT / "voice" / "lines.json").read_text(encoding="utf-8"))["lines"]
+    # O-45 (owner, 2026-09-25): the player's own lines, in the two designed player voices only.
+    player_path = ROOT / "voice" / "player-lines.json"
+    player_bank = json.loads(player_path.read_text(encoding="utf-8"))["lines"] if player_path.is_file() else []
+    player_ids = {ln["id"] for ln in player_bank}
+    bank = bank + player_bank
     line_of = {ln["text"]: ln["id"] for ln in bank}
     if len(line_of) != len(bank):
         raise SystemExit("two bank lines share a text: a spoken text no longer names one line")
@@ -190,6 +195,10 @@ def main():
             unmatched.append((fid, text))
         else:
             registry[f"{fid:08X}"] = {"line": lid, "file": f"{fid & 0x00FFFFFF:08X}_1.fuz"}
+    player_line_of = {ln["text"]: ln["id"] for ln in player_bank}
+    for fid, text, _ in player:
+        if lid := player_line_of.get(text):
+            registry[f"{fid:08X}"] = {"line": lid, "file": f"{fid & 0x00FFFFFF:08X}_1.fuz"}
     lines_used = sorted({e["line"] for e in registry.values()})
     text_of = {ln["id"]: ln["text"] for ln in bank}
 
@@ -206,6 +215,9 @@ def main():
     refused, missing, ready, other_sex = [], [], {}, 0
     for vt in vts:
         for lid in lines_used:
+            # The player's lines in the player's voices, and nobody else's lines there.
+            if (lid in player_ids) != vt.lower().startswith("playervoice"):
+                continue
             if gender_of[lid] is not None and gender_of[lid] != voice_gender(vt):
                 other_sex += 1
                 continue

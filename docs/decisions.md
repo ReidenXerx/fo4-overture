@@ -687,3 +687,22 @@ Romanceable companions are playersexual. Overture's side:
   voices. The owner approved them as written, 2026-09-25.
 - **Companions:** one who is not into the player never opens a moment. If the player asks anyway, it is
   a plain refusal, because the companion wheel has no set for this.
+
+## O-45 — The player speaks, in two designed voices (owner poll, 2026-09-25)
+
+This supersedes the voice half of O-2/O-3: the player's lines stay the menu's text AND are now spoken.
+- **The test that made it possible (2026-09-25).** A placeholder file on a player INFO played through XDI.
+  The engine builds a path for a player line (`PlayerVoiceMale01\00000902_1.wav`); XDI does not block the
+  audio. Its XDI_AllowPlayerVoice keyword is still unused.
+- **The voices are DESIGNED, never a clone.** The owner asked about a "slightly different" clone of the
+  protagonists' actors. It was declined: a detuned clone is still built from the actors' voices without their
+  consent (ElevenLabs terms; Nexus removes such mods). The two voices come from text descriptions only. The
+  owner picked by ear (V-9): F3 (early thirties, warm, slightly husky, composed, a dry edge) and M3 (early
+  thirties, calm baritone with a rough edge, an ex-soldier).
+- **The lines:** `voice/player-lines.json`, 10 texts covering 12 player INFOs. The 4 "linger" options are
+  wordless. Rendered in PlayerVoiceFemale01 and PlayerVoiceMale01 only, with lip sync. 700 characters.
+- **Kept apart in fo4-rapport.** The two types are flagged `player`: they render only when named, and only
+  the player bank. They are never Rapport's own voices and never a borrowing target (R-11: the player never
+  barks).
+- A text changed in player-prompts.json or companion-lines.json must change in player-lines.json too, or that
+  line goes silent again.

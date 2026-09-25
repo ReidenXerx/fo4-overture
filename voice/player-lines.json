@@ -1,0 +1,65 @@
+{
+  "_": "The PLAYER's spoken lines (owner poll 2026-09-25, O-45: voiced, in two DESIGNED voices the owner picked by ear - F3 and M3 - never a clone of the protagonist's actors). Rendered by fo4-rapport's render-barks.py for PlayerVoiceFemale01 and PlayerVoiceMale01 only; scripts/stage-voice.py matches each player INFO's spoken text to a line here. A text changed in player-prompts.json or companion-lines.json must change here too, or that line goes back to silent.",
+  "lines": [
+    {
+      "id": "pl_charm_s1",
+      "kind": "player",
+      "text": "Nobody out here looks at you properly, do they.",
+      "chars": 47
+    },
+    {
+      "id": "pl_offer_s1",
+      "kind": "player",
+      "text": "I brought you something.",
+      "chars": 24
+    },
+    {
+      "id": "pl_blunt_s1",
+      "kind": "player",
+      "text": "I want to fuck you. Here, against that wall, I don't care.",
+      "chars": 58
+    },
+    {
+      "id": "pl_charm_s2",
+      "kind": "player",
+      "text": "I keep finding reasons to walk past here.",
+      "chars": 41
+    },
+    {
+      "id": "pl_offer_s2",
+      "kind": "player",
+      "text": "I kept the good one back for you.",
+      "chars": 33
+    },
+    {
+      "id": "pl_blunt_s2",
+      "kind": "player",
+      "text": "I want to hear what you sound like when you come.",
+      "chars": 49
+    },
+    {
+      "id": "pl_charm_s3",
+      "kind": "player",
+      "text": "Come away with me tonight. Just us.",
+      "chars": 35
+    },
+    {
+      "id": "pl_offer_s3",
+      "kind": "player",
+      "text": "Name your price for the night.",
+      "chars": 30
+    },
+    {
+      "id": "pl_blunt_s3",
+      "kind": "player",
+      "text": "Enough talking. Let's fuck.",
+      "chars": 27
+    },
+    {
+      "id": "pl_later",
+      "kind": "player",
+      "text": "Later.",
+      "chars": 6
+    }
+  ]
+}
