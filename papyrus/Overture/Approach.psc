@@ -110,6 +110,8 @@ Int Property OUTCOME_NOT_TYPE = 12 AutoReadOnly
 ; plugin has none of these records: every lookup below comes back None there,
 ; and every use is guarded.
 Int Property VERDICT_GLOBAL_ID = 0x00000845 AutoReadOnly
+; O-46: which of the five versions every player option shows in this conversation.
+Int Property PLAYER_VARIANT_GLOBAL_ID = 0x0000084D AutoReadOnly
 ; What the NPC's current line IS, written as it begins; the scene's phase 2
 ; starts only after a land (tools/overture_stages.py's docstring has why this and
 ; not a phase jump).
@@ -547,6 +549,14 @@ EndEvent
 String Function Opening(Conversation c)
 	Actor who = c.who
 	String note = ""
+	; O-46: this conversation's version of every player option, rolled before the
+	; first wheel opens. Condition-gated INFOs read it; exactly one version passes.
+	GlobalVariable variant = Game.GetFormFromFile(PLAYER_VARIANT_GLOBAL_ID, "Overture.esp") as GlobalVariable
+	If variant != None
+		Int roll = Utility.RandomInt(0, 4)
+		variant.SetValue(roll as Float)
+		note = note + " | player lines v" + (roll + 1)
+	EndIf
 	If _api >= NEEDS_API
 		note = note + Self.UpdateWorldLovers(c)
 		If c.companion

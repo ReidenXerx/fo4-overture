@@ -706,3 +706,22 @@ This supersedes the voice half of O-2/O-3: the player's lines stay the menu's te
   barks).
 - A text changed in player-prompts.json or companion-lines.json must change in player-lines.json too, or that
   line goes silent again.
+
+## O-46 — Five versions of every player option (owner, 2026-09-25)
+
+The owner: "why i have always the same propositions lines?" Each of the 12 player options now has 5 versions:
+the old line plus four new ones, all approved by the owner.
+- **One roll per conversation.** Approach.Opening sets OverturePlayerVariant (GLOB 0x84D) to 0-4 before the
+  first wheel opens. Every version is an INFO gated on "variant == k", so exactly one passes. The old line is
+  version 0 and keeps its id and its voice file.
+- **Layout:** the 48 new INFOs sit in 0x90C-0x93B, at + ((stage-1)*4 + slot)*4 + (v-1).
+- **A version keeps its option's job,** because NPC answers are written against it: offer is a gift or caps,
+  stage-2 charm is "coming by", stage-3 offer is a price.
+  - The blunt versions name DIFFERENT acts, positions and places (the owner: "why all blunt about the
+    wall?").
+  - So the one NPC answer that quoted the wall (0xA51, ov_vulgar_blunt_land_02) now reads "Right here?
+    Good. ...". It was re-voiced in all 11 voices.
+- **Voiced** in both player voices (O-45): 36 new spoken lines, 72 files, with lip sync. The linger versions
+  stay wordless menu actions.
+- UNVERIFIED in game: that the menu shows the rolled version. The Papyrus trace line "player lines vN" says
+  which version was rolled.

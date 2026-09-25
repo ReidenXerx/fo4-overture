@@ -60,6 +60,222 @@
       "kind": "player",
       "text": "Later.",
       "chars": 6
+    },
+    {
+      "id": "pl_offer_s1_v2",
+      "kind": "player",
+      "text": "Here. Found this and thought of you.",
+      "chars": 36
+    },
+    {
+      "id": "pl_offer_s1_v3",
+      "kind": "player",
+      "text": "This is for you. No strings.",
+      "chars": 28
+    },
+    {
+      "id": "pl_offer_s1_v4",
+      "kind": "player",
+      "text": "I picked something up for you on the road.",
+      "chars": 42
+    },
+    {
+      "id": "pl_offer_s1_v5",
+      "kind": "player",
+      "text": "Take it. I saved it for you.",
+      "chars": 28
+    },
+    {
+      "id": "pl_charm_s1_v2",
+      "kind": "player",
+      "text": "You're the only one here who still looks people in the eye.",
+      "chars": 59
+    },
+    {
+      "id": "pl_charm_s1_v3",
+      "kind": "player",
+      "text": "I notice you. I don't think anyone else here does.",
+      "chars": 50
+    },
+    {
+      "id": "pl_charm_s1_v4",
+      "kind": "player",
+      "text": "Most people out here stopped seeing each other. I haven't stopped seeing you.",
+      "chars": 77
+    },
+    {
+      "id": "pl_charm_s1_v5",
+      "kind": "player",
+      "text": "You carry this place and nobody thanks you for it.",
+      "chars": 50
+    },
+    {
+      "id": "pl_blunt_s1_v2",
+      "kind": "player",
+      "text": "I want you bent over something, and I want it now.",
+      "chars": 50
+    },
+    {
+      "id": "pl_blunt_s1_v3",
+      "kind": "player",
+      "text": "Get on your knees for me. Right here, right now.",
+      "chars": 48
+    },
+    {
+      "id": "pl_blunt_s1_v4",
+      "kind": "player",
+      "text": "I want you on top of me, riding me until you can't breathe.",
+      "chars": 59
+    },
+    {
+      "id": "pl_blunt_s1_v5",
+      "kind": "player",
+      "text": "I want you on your back with your legs wrapped around me.",
+      "chars": 57
+    },
+    {
+      "id": "pl_offer_s2_v2",
+      "kind": "player",
+      "text": "More. I set this aside the moment I saw it.",
+      "chars": 43
+    },
+    {
+      "id": "pl_offer_s2_v3",
+      "kind": "player",
+      "text": "I brought you another. The better one, this time.",
+      "chars": 49
+    },
+    {
+      "id": "pl_offer_s2_v4",
+      "kind": "player",
+      "text": "Here's something else. I've been saving it.",
+      "chars": 43
+    },
+    {
+      "id": "pl_offer_s2_v5",
+      "kind": "player",
+      "text": "I've got more for you. Don't argue.",
+      "chars": 35
+    },
+    {
+      "id": "pl_charm_s2_v2",
+      "kind": "player",
+      "text": "I've walked past here more times today than I'd admit.",
+      "chars": 54
+    },
+    {
+      "id": "pl_charm_s2_v3",
+      "kind": "player",
+      "text": "I keep finding excuses to come by. You're the excuse.",
+      "chars": 53
+    },
+    {
+      "id": "pl_charm_s2_v4",
+      "kind": "player",
+      "text": "Every time I'm in this part of town, I end up walking past you.",
+      "chars": 63
+    },
+    {
+      "id": "pl_charm_s2_v5",
+      "kind": "player",
+      "text": "I told myself I had business over here. I didn't.",
+      "chars": 49
+    },
+    {
+      "id": "pl_blunt_s2_v2",
+      "kind": "player",
+      "text": "I keep picturing you naked, on your hands and knees.",
+      "chars": 52
+    },
+    {
+      "id": "pl_blunt_s2_v3",
+      "kind": "player",
+      "text": "I want to taste you until your legs give out.",
+      "chars": 45
+    },
+    {
+      "id": "pl_blunt_s2_v4",
+      "kind": "player",
+      "text": "I want you riding my face tonight.",
+      "chars": 34
+    },
+    {
+      "id": "pl_blunt_s2_v5",
+      "kind": "player",
+      "text": "I want to fuck you slow, then hard, until you beg.",
+      "chars": 50
+    },
+    {
+      "id": "pl_offer_s3_v2",
+      "kind": "player",
+      "text": "What would it cost me to have you tonight?",
+      "chars": 42
+    },
+    {
+      "id": "pl_offer_s3_v3",
+      "kind": "player",
+      "text": "Whatever you want for it, I'll pay. One night.",
+      "chars": 46
+    },
+    {
+      "id": "pl_offer_s3_v4",
+      "kind": "player",
+      "text": "Let's make a deal. You and me, tonight.",
+      "chars": 39
+    },
+    {
+      "id": "pl_offer_s3_v5",
+      "kind": "player",
+      "text": "Tell me your price. I'm not leaving without paying it.",
+      "chars": 54
+    },
+    {
+      "id": "pl_charm_s3_v2",
+      "kind": "player",
+      "text": "Spend tonight with me. Nobody else.",
+      "chars": 35
+    },
+    {
+      "id": "pl_charm_s3_v3",
+      "kind": "player",
+      "text": "Let me take you somewhere quiet tonight.",
+      "chars": 40
+    },
+    {
+      "id": "pl_charm_s3_v4",
+      "kind": "player",
+      "text": "Stay with me tonight. I don't want this to end yet.",
+      "chars": 51
+    },
+    {
+      "id": "pl_charm_s3_v5",
+      "kind": "player",
+      "text": "Come with me. I want you all to myself tonight.",
+      "chars": 47
+    },
+    {
+      "id": "pl_blunt_s3_v2",
+      "kind": "player",
+      "text": "I'm done waiting. Take me somewhere and fuck me.",
+      "chars": 48
+    },
+    {
+      "id": "pl_blunt_s3_v3",
+      "kind": "player",
+      "text": "Find us somewhere. I want you on your back tonight.",
+      "chars": 51
+    },
+    {
+      "id": "pl_blunt_s3_v4",
+      "kind": "player",
+      "text": "No more talk. Get on your knees.",
+      "chars": 32
+    },
+    {
+      "id": "pl_blunt_s3_v5",
+      "kind": "player",
+      "text": "Stop teasing. I want to ride you until sunrise.",
+      "chars": 47
     }
   ]
 }

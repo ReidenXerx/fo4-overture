@@ -74,6 +74,12 @@ INFO_BASE_S3 = 0x01000C00
 # O-31's lover sets reach set 5, so the highest id is 0xFFB.
 GENDERED_S3_BASE = 0x01000F00
 VERDICT_GLOBAL = 0x01000845     # Overture:Approach.VERDICT_*; the stage-3 replies read it
+# O-46: which version of every player option this conversation shows (0-4), rolled by
+# Approach as a conversation opens. The existing line is version 0 and keeps its id (and
+# its voice file); versions 1-4 live in the free 0x90C-0x93B: + ((stage-1)*4 + slot)*4 + (v-1).
+PLAYER_VARIANT_GLOBAL = 0x0100084D
+PLAYER_VARIANT_BASE = 0x0100090C
+PLAYER_VARIANTS = 5
 # 0x846 was OvertureScenesEnabled: an MCM setting now (SWITCHES), and retired.
 
 ENAM_END_RUNNING_SCENE = 0x40   # only the YES carries it now (see the docstring)
@@ -281,13 +287,29 @@ def no_persona_condition():
                                        value=-1.0, runon=0))
 
 
+def player_versions(p, stage, n, pid):
+    """O-46: the option's five versions as INFOs, each shown only for its roll. The line
+    itself is version 0 on its old id; exactly one version passes, whatever the roll."""
+    versions = [p] + p.get('variants', [])
+    if len(versions) != PLAYER_VARIANTS:
+        raise SystemExit(f'stage {stage} {p["register"]}: {len(versions)} versions, the layout holds {PLAYER_VARIANTS}')
+    block, ids = b'', []
+    for v, version in enumerate(versions):
+        iid = pid if v == 0 else PLAYER_VARIANT_BASE + ((stage - 1) * 4 + n) * 4 + (v - 1)
+        cond = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, PLAYER_VARIANT_GLOBAL, value=float(v), runon=0))
+        block += m.line(iid, version['text'], version.get('spoken', version['text']), enam=0, extra=cond)
+        ids.append(iid)
+    return block, ids
+
+
 def player_stage(prompts, stage_key, topic_base, info_base, n, register):
     p = next(x for x in prompts[stage_key] if x['register'] == register)
     tid, pid = topic_base + n, info_base + n
     edid = f'OvertureTopic{register.capitalize()}{stage_key.capitalize()}'
-    rec = m.topic(tid, edid, infos=1)
-    rec += m.child_group(tid, 7, m.line(pid, p['text'], p.get('spoken', p['text']), enam=0))
-    return tid, pid, rec
+    block, vids = player_versions(p, {'stage2': 2, 'stage3': 3}[stage_key], n, pid)
+    rec = m.topic(tid, edid, infos=len(vids))
+    rec += m.child_group(tid, 7, block)
+    return tid, pid, rec, vids
 
 
 def build_staged():
@@ -315,7 +337,7 @@ def build_staged():
     ids = [(m.QUEST_FORMID, 'quest'), (m.SCENE_FORMID, 'scene'),
            (m.PERSONA_GLOBAL, 'persona global'), (m.PUBLIC_GLOBAL, 'public global'),
            (m.ENABLED_GLOBAL, 'enabled global'), (VERDICT_GLOBAL, 'verdict global'),
-           (LAST_OUTCOME_GLOBAL, 'last-outcome global'),
+           (LAST_OUTCOME_GLOBAL, 'last-outcome global'), (PLAYER_VARIANT_GLOBAL, 'player-variant global'),
            (m.NEXT_DAY_AV, 'next-day actor value'), (m.STAGE_REACHED_AV, 'stage-reached actor value'),
            (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
            (m.INVITED_UNTIL_AV, 'invited-until actor value'), (m.JEALOUSY_MARK_AV, 'jealousy-mark actor value'),
@@ -339,11 +361,13 @@ def build_staged():
             if stage == 1:
                 p = stage1_prompts[register]
                 tid, pid = ptopic + n, pinfo + n
-                prec = m.topic(tid, f'OvertureTopic{register.capitalize()}', infos=1)
-                prec += m.child_group(tid, 7, m.line(pid, p['text'], p.get('spoken', p['text']), enam=0))
+                block, vids = player_versions(p, 1, n, pid)
+                prec = m.topic(tid, f'OvertureTopic{register.capitalize()}', infos=len(vids))
+                prec += m.child_group(tid, 7, block)
             else:
-                tid, pid, prec = player_stage(prompts, 'stage2', ptopic, pinfo, n, register)
-            ids += [(tid, f's{stage} player topic {register}'), (pid, f's{stage} player line {register}')]
+                tid, pid, prec, vids = player_stage(prompts, 'stage2', ptopic, pinfo, n, register)
+            ids += [(tid, f's{stage} player topic {register}')]
+            ids += [(v, f's{stage} player line {register} version {k}') for k, v in enumerate(vids)]
             topics[stage][slot] = tid
             children += prec
             count += 2
@@ -400,8 +424,9 @@ def build_staged():
             count += 1 + n_infos
 
         # ---- stage 3: the proposition, in this register --------------------
-        tid, pid, prec = player_stage(prompts, 'stage3', PLAYER_TOPIC_S3, PLAYER_INFO_S3, n, register)
-        ids += [(tid, f's3 player topic {register}'), (pid, f's3 player line {register}')]
+        tid, pid, prec, vids = player_stage(prompts, 'stage3', PLAYER_TOPIC_S3, PLAYER_INFO_S3, n, register)
+        ids += [(tid, f's3 player topic {register}')]
+        ids += [(v, f's3 player line {register} version {k}') for k, v in enumerate(vids)]
         topics[3][slot] = tid
         children += prec
         count += 2
@@ -518,6 +543,7 @@ def build_staged():
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
+             + glob(PLAYER_VARIANT_GLOBAL, 'OverturePlayerVariant', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest())
     blob += m.group('PERK', ask_perk())

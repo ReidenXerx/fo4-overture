@@ -7,26 +7,86 @@
       "register": "offer",
       "slot": "NETO",
       "text": "I brought you something.",
-      "note": "Material. Deliberately flat - the point is the thing, not the words."
+      "note": "Material. Deliberately flat - the point is the thing, not the words.",
+      "variants": [
+        {
+          "text": "Here. Found this and thought of you."
+        },
+        {
+          "text": "This is for you. No strings."
+        },
+        {
+          "text": "I picked something up for you on the road."
+        },
+        {
+          "text": "Take it. I saved it for you."
+        }
+      ]
     },
     {
       "register": "charm",
       "slot": "PTOP",
       "text": "Nobody out here looks at you properly, do they.",
-      "note": "Flattery that costs the speaker something to say. Not a compliment on appearance - a claim to have noticed them."
+      "note": "Flattery that costs the speaker something to say. Not a compliment on appearance - a claim to have noticed them.",
+      "variants": [
+        {
+          "text": "You're the only one here who still looks people in the eye."
+        },
+        {
+          "text": "I notice you. I don't think anyone else here does."
+        },
+        {
+          "text": "Most people out here stopped seeing each other. I haven't stopped seeing you."
+        },
+        {
+          "text": "You carry this place and nobody thanks you for it."
+        }
+      ]
     },
     {
       "register": "blunt",
       "slot": "NTOP",
       "text": "I want to fuck you. Here, against that wall, I don't care.",
-      "note": "Owner asked for harder. It names the act and a place, which also sets up the public recoil: the vulgar NPC wants it and still does not want it in front of the whole settlement. If this reads as coy the register is broken (O-6)."
+      "note": "Owner asked for harder. It names the act and a place, which also sets up the public recoil: the vulgar NPC wants it and still does not want it in front of the whole settlement. If this reads as coy the register is broken (O-6).",
+      "variants": [
+        {
+          "text": "I want you bent over something, and I want it now."
+        },
+        {
+          "text": "Get on your knees for me. Right here, right now."
+        },
+        {
+          "text": "I want you on top of me, riding me until you can't breathe."
+        },
+        {
+          "text": "I want you on your back with your legs wrapped around me."
+        }
+      ]
     },
     {
       "register": "linger",
       "slot": "QTOP",
       "text": "(Say nothing. Stay where you are.)",
       "spoken": "",
-      "note": "Parenthesised because the player does not speak it, so spoken is empty. The only option whose content is an absence, which is why it sits in the question slot."
+      "note": "Parenthesised because the player does not speak it, so spoken is empty. The only option whose content is an absence, which is why it sits in the question slot.",
+      "variants": [
+        {
+          "text": "(Say nothing. Hold their gaze.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Stay quiet. Don't leave.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Lean on the wall beside them and wait.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Stay close, and let them speak first.)",
+          "spoken": ""
+        }
+      ]
     }
   ],
   "_stages": "stage2 and stage3 were written 2026-09-23 overnight without the owner, for the staged build (tools/overture_stages.py, --stages 3), and APPROVED by the owner 2026-09-24 (docs/decisions.md O-39). Stage 3 is the proposition phrased in each register: only the persona's own register gets a verdict, the other three are refused (unless the NPC is the player's lover: O-31).",
@@ -35,26 +95,86 @@
       "register": "offer",
       "slot": "NETO",
       "text": "I kept the good one back for you.",
-      "note": "More of the thing, not more words."
+      "note": "More of the thing, not more words.",
+      "variants": [
+        {
+          "text": "More. I set this aside the moment I saw it."
+        },
+        {
+          "text": "I brought you another. The better one, this time."
+        },
+        {
+          "text": "Here's something else. I've been saving it."
+        },
+        {
+          "text": "I've got more for you. Don't argue."
+        }
+      ]
     },
     {
       "register": "charm",
       "slot": "PTOP",
       "text": "I keep finding reasons to walk past here.",
-      "note": "Admits the pattern; the compliment is the confession."
+      "note": "Admits the pattern; the compliment is the confession.",
+      "variants": [
+        {
+          "text": "I've walked past here more times today than I'd admit."
+        },
+        {
+          "text": "I keep finding excuses to come by. You're the excuse."
+        },
+        {
+          "text": "Every time I'm in this part of town, I end up walking past you."
+        },
+        {
+          "text": "I told myself I had business over here. I didn't."
+        }
+      ]
     },
     {
       "register": "blunt",
       "slot": "NTOP",
       "text": "I want to hear what you sound like when you come.",
-      "note": "O-6: it names something. Sex-neutral, like stage 1's line, because the player may be either."
+      "note": "O-6: it names something. Sex-neutral, like stage 1's line, because the player may be either.",
+      "variants": [
+        {
+          "text": "I keep picturing you naked, on your hands and knees."
+        },
+        {
+          "text": "I want to taste you until your legs give out."
+        },
+        {
+          "text": "I want you riding my face tonight."
+        },
+        {
+          "text": "I want to fuck you slow, then hard, until you beg."
+        }
+      ]
     },
     {
       "register": "linger",
       "slot": "QTOP",
       "text": "(Stay. Let the silence go on.)",
       "spoken": "",
-      "note": "Still an absence, a longer one."
+      "note": "Still an absence, a longer one.",
+      "variants": [
+        {
+          "text": "(Say nothing. Keep looking at them.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Stay a little longer.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Stand closer, and stay quiet.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Let them fill the silence.)",
+          "spoken": ""
+        }
+      ]
     }
   ],
   "stage3": [
@@ -62,26 +182,87 @@
       "register": "offer",
       "slot": "NETO",
       "text": "Name your price for the night.",
-      "note": "The proposition as a deal."
+      "note": "The proposition as a deal.",
+      "variants": [
+        {
+          "text": "What would it cost me to have you tonight?"
+        },
+        {
+          "text": "Whatever you want for it, I'll pay. One night."
+        },
+        {
+          "text": "Let's make a deal. You and me, tonight."
+        },
+        {
+          "text": "Tell me your price. I'm not leaving without paying it."
+        }
+      ]
     },
     {
       "register": "charm",
       "slot": "PTOP",
       "text": "Come away with me tonight. Just us.",
-      "note": "The proposition as an invitation."
+      "note": "The proposition as an invitation.",
+      "variants": [
+        {
+          "text": "Spend tonight with me. Nobody else."
+        },
+        {
+          "text": "Let me take you somewhere quiet tonight."
+        },
+        {
+          "text": "Stay with me tonight. I don't want this to end yet."
+        },
+        {
+          "text": "Come with me. I want you all to myself tonight."
+        }
+      ]
     },
     {
       "register": "blunt",
       "slot": "NTOP",
       "text": "Enough talking. Let's fuck.",
-      "note": "The proposition as itself."
+      "note": "The proposition as itself.",
+      "variants": [
+        {
+          "text": "I'm done waiting. Take me somewhere and fuck me."
+        },
+        {
+          "text": "Find us somewhere. I want you on your back tonight."
+        },
+        {
+          "text": "No more talk. Get on your knees."
+        },
+        {
+          "text": "Stop teasing. I want to ride you until sunrise."
+        }
+      ]
     },
     {
       "register": "linger",
       "slot": "QTOP",
       "text": "(Take their hand.)",
       "spoken": "",
-      "note": "The proposition as a gesture. The verdict is decided before this wheel opens, so an empty line races nothing."
+      "note": "The proposition as a gesture. The verdict is decided before this wheel opens, so an empty line races nothing.",
+      "variants": [
+        {
+          "text": "(Take their hand and lead them away.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Brush their cheek with your fingers.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Hold out your hand and wait.)",
+          "spoken": ""
+        },
+        {
+          "text": "(Pull them gently closer.)",
+          "spoken": ""
+        }
+      ]
     }
-  ]
+  ],
+  "_variants": "O-46 (owner, 2026-09-25: 'why i have always the same propositions lines'): each option has five versions, the line itself and 'variants'. Overture rolls OverturePlayerVariant 0-4 once as a conversation opens; version k shows when it is k. A variant keeps its option's job, because NPC answers are written against it (offer = a gift or caps, stage-2 charm = coming by, stage-3 offer = a price). The owner approved every text."
 }
