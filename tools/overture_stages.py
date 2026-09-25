@@ -336,7 +336,7 @@ def build_staged():
 
     ids = [(m.QUEST_FORMID, 'quest'), (m.SCENE_FORMID, 'scene'),
            (m.PERSONA_GLOBAL, 'persona global'), (m.PUBLIC_GLOBAL, 'public global'),
-           (m.ENABLED_GLOBAL, 'enabled global'), (VERDICT_GLOBAL, 'verdict global'),
+           (m.ENABLED_GLOBAL, 'enabled global'), (m.OPENING_GLOBAL, 'opening global'), (VERDICT_GLOBAL, 'verdict global'),
            (LAST_OUTCOME_GLOBAL, 'last-outcome global'), (PLAYER_VARIANT_GLOBAL, 'player-variant global'),
            (m.NEXT_DAY_AV, 'next-day actor value'), (m.STAGE_REACHED_AV, 'stage-reached actor value'),
            (m.TIER_AV, 'tier actor value'), (m.SAID_YES_AV, 'said-yes actor value'),
@@ -541,7 +541,7 @@ def build_staged():
     children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count)
     children += scene_staged(topics, companion_topics)
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
-    globs = (m.persona_global() + m.public_global() + m.enabled_global()
+    globs = (m.persona_global() + m.public_global() + m.enabled_global() + m.opening_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(PLAYER_VARIANT_GLOBAL, 'OverturePlayerVariant', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))

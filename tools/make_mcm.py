@@ -101,13 +101,18 @@ def check_script(table, switches):
     if unread:
         raise SystemExit(f'SETTINGS has {unread}, which no script reads')
     # The guard. Without it MCM's 0 for a file it never read would be every number.
-    guard = re.compile(rf'(?i)MCM\.GetModSettingInt\(\s*"Overture"\s*,\s*"{re.escape(s.META)}"\s*\)\s*==\s*1')
+    # Rapport's reader since e26be71 (MCM.GetModSetting* answered 0 on 3 loads of 4); its
+    # default must be 0, or a missing file would read as "settings present".
+    guard = re.compile(rf'(?i)Rapport:Core\.ModSettingInt\(\s*"Overture"\s*,\s*"{re.escape(s.META)}"\s*,\s*0\s*\)\s*==\s*1')
     if not guard.search(body(approach, 'HasSettings')):
         raise SystemExit(f'Approach.HasSettings does not test {s.META} == 1')
-    if not re.search(r'(?is)If\s+!\s*Self\.HasSettings\(\)\s*Return\s+afDefault', body(approach, 'Tuned')):
-        raise SystemExit('Approach.Tuned does not return its default when HasSettings() is False')
+    # Rapport's reader returns the caller's default when neither the player's ini nor the
+    # shipped one names the key, so Tuned passing afDefault through IS the guard (e26be71).
+    if not re.search(r'(?is)Return\s+Rapport:Core\.ModSettingFloat\(\s*"Overture"\s*,\s*asKey\s*,\s*afDefault\s*\)',
+                     body(approach, 'Tuned')):
+        raise SystemExit('Approach.Tuned does not fall back to its default through Rapport:Core.ModSettingFloat')
     for name in switches:
-        if not re.search(rf'(?i)MCM\.GetModSettingBool\(\s*"Overture"\s*,\s*"{re.escape(name)}"\s*\)', code):
+        if not re.search(rf'(?i)Rapport:Core\.ModSettingBool\(\s*"Overture"\s*,\s*"{re.escape(name)}"\s*,', code):
             raise SystemExit(f'the switch {name} is on the page and no script reads it')
     return len(calls)
 
@@ -116,6 +121,11 @@ content = [
     {'type': 'text', 'text': 'Walk up to someone and try. How it went is told by Rapport\'s Narrator '
                              '(its "addon moments" switch). Changes apply from the next reply; the lover '
                              'bond, from the next conversation that ends.'},
+    {'type': 'section', 'text': 'Starting'},
+    {'type': 'button', 'text': 'Start now', 'help': 'Overture waits until you leave Vault 111. If an alternate '
+     'start mod means it never started, press this: Overture, Rapport and the mods built on it start now, in '
+     'this save. Needs Rapport 0.2.2.',
+     'action': {'type': 'CallGlobalFunction', 'script': 'Rapport:Core', 'function': 'StartNow', 'params': []}},
     {'type': 'section', 'text': 'Overture'},
     {'type': 'switcher', 'text': 'Approaches', 'help': 'Talking to someone opens the approach, once a game '
      'day. Off: everyone has only their own dialogue.',

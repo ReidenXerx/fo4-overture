@@ -5,6 +5,8 @@
 - **Not during the game's opening.** Talking to your spouse, a neighbour or the Vault-Tec rep in
   pre-war Sanctuary, or anyone in Vault 111, no longer opens an approach. Overture starts when you
   leave the vault. Alternate starts and MS Skip Prewar Sanctuary work as expected.
+- **Start now.** If an unusual alternate start means Overture never started, the MCM page's
+  "Start now" starts it, and Rapport and the mods built on it, in that save. Needs Rapport 0.2.2.
 
 ## 0.1.0 (unreleased)
 

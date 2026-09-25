@@ -85,6 +85,7 @@ JEALOUS_GENDERED_BASE = 0x01000DD8  # O-40c's gendered jealous greetings: + pers
 PERSONA_GLOBAL = 0x01000840   # GLOB the script sets before the scene starts
 PUBLIC_GLOBAL = 0x01000841    # 1 when other people can see them, 0 when not
 ENABLED_GLOBAL = 0x01000842   # the master switch: 1 = approaches open (a future MCM toggle)
+OPENING_GLOBAL = 0x0100084E   # 1 = the player started our mods by hand (Rapport's Start now)
 NEXT_DAY_AV = 0x01000843      # AVIF: the game day an NPC may be approached again (O-8)
 STAGE_REACHED_AV = 0x01000844  # AVIF: how far the player has got: 1-2 landed, 3 proposed (methodology 8)
 # The staged build's markers (O-12, O-14, O-27..O-30). Conditions read the first
@@ -293,6 +294,17 @@ def public_global():
     f += field('FNAM', b'f')
     f += field('FLTV', struct.pack('<f', 0.0))
     return record('GLOB', PUBLIC_GLOBAL, f)
+
+
+def opening_global():
+    """OvertureOpeningSkipped: the player's own "Start now" (owner, 2026-09-25), for an
+    alternate start that leaves the game's opening (MQ101) unfinished forever. Rapport's
+    Story::StartNow sets it (by Overture.esp and this id); the greeting's opening group
+    reads it. A global lives in the save, so a new game starts at 0."""
+    f = field('EDID', zstring('OvertureOpeningSkipped'))
+    f += field('FNAM', b'f')
+    f += field('FLTV', struct.pack('<f', 0.0))
+    return record('GLOB', OPENING_GLOBAL, f)
 
 
 def enabled_global():
@@ -755,11 +767,13 @@ def greeting_info(form_id, text, enam, extra, companion=False):
     # NOT DURING THE GAME'S OPENING (owner poll, 2026-09-25): MQ101 "War Never Changes"
     # runs from character creation to the vault door, and its stage 1000 completes it.
     # Stage 0 is an opening never played (an alternate start); MS Skip Prewar Sanctuary
-    # jumps to 900 and plays on to 1000. So: GetStage(MQ101) < 1 OR >= 1000. The two
-    # are one OR group (CTDA_OR on the first), ANDed with everything above. Rapport's
-    # RequestScene refuses on the same rule (fo4-rapport src/Story.h).
+    # jumps to 900 and plays on to 1000. So: GetStage(MQ101) < 1 OR >= 1000 OR the player
+    # started us by hand (OPENING_GLOBAL, Rapport's "Start now"). One OR group (CTDA_OR on
+    # all but the last), ANDed with everything above. Rapport's RequestScene refuses on the
+    # same rule (fo4-rapport src/Story.h).
     g += field('CTDA', condition(FUNC_GET_STAGE, QUEST_MQ101, value=1.0, op=CTDA_OP_LT | CTDA_OR))
-    g += field('CTDA', condition(FUNC_GET_STAGE, QUEST_MQ101, value=float(MQ101_OVER), op=CTDA_OP_GE))
+    g += field('CTDA', condition(FUNC_GET_STAGE, QUEST_MQ101, value=float(MQ101_OVER), op=CTDA_OP_GE | CTDA_OR))
+    g += field('CTDA', condition(FUNC_GET_GLOBAL_VALUE, OPENING_GLOBAL, value=1.0))
     g += extra
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     # FORCED ALIAS: the engine puts whoever says this line into alias 0 as the
@@ -917,7 +931,8 @@ def build():
     topic_ids, children, count = {}, b'', 0
     all_ids = [(QUEST_FORMID, 'quest'), (SCENE_FORMID, 'scene'),
                (PERSONA_GLOBAL, 'persona global'), (PUBLIC_GLOBAL, 'public global'),
-               (ENABLED_GLOBAL, 'enabled global'), (NEXT_DAY_AV, 'next-day actor value'),
+               (ENABLED_GLOBAL, 'enabled global'), (OPENING_GLOBAL, 'opening global'),
+               (NEXT_DAY_AV, 'next-day actor value'),
                (STAGE_REACHED_AV, 'stage-reached actor value'),
                (GREET_TOPIC, 'greeting topic'), (GREET_INFO, 'greeting line')]
     for n, (slot, register) in enumerate(SLOTS):
@@ -1021,7 +1036,7 @@ def build():
     children += greeting()
     children += scene(topic_ids)
     quest_blob = quest() + child_group(QUEST_FORMID, 10, children)
-    blob = group('GLOB', persona_global() + public_global() + enabled_global()) + group('QUST', quest_blob)
+    blob = group('GLOB', persona_global() + public_global() + enabled_global() + opening_global()) + group('QUST', quest_blob)
     blob += group('AVIF', next_day_av() + stage_reached_av())
 
     return finish(blob), topic_ids
