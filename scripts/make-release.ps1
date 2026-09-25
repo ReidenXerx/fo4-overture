@@ -121,4 +121,4 @@ Write-Host ''
 Write-Host ("  {0}" -f $item.FullName)
 Write-Host ("  {0:N0} bytes, {1} file(s), {2} of them voice" -f $item.Length, $files.Count, $voiceFiles.Count)
 Write-Host ''
-Write-Host 'Requires Rapport 0.2.1 or newer (API 201), XDI.esm and AAF. Against an older Rapport it stays idle and says so.'
+Write-Host 'Requires Rapport 0.2.1 or newer (API 201), XDI.esm and AAF. Against an older Rapport it runs without narration, names or lovers, and says so.'

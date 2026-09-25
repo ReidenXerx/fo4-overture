@@ -6,7 +6,7 @@ The first release. Overture is a way of approaching people: you walk up to someo
 lands depends on who they are.
 
 **Requires** Rapport 0.2.1 or newer, XDI (Extended Dialogue Interface) and AAF. Against an older Rapport
-Overture stays idle and says so once in `Rapport.log`.
+Overture still runs, without narration, names or lovers, and a notification says it needs 0.2.1.
 
 ### Approaching people
 - **Talking to someone opens it.** Adults, humans and ghouls, once a game day each. Then their own
