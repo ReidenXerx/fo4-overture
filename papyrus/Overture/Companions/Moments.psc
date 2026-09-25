@@ -81,6 +81,9 @@ Bool[] _owedEach
 Float[] _openUntilEach
 Float[] _cooldownEach
 Bool[] _inCombatEach
+; The last gate each one was logged under. SetMoment's "changed" missed the first
+; answer: a companion already at 0 who a gate refuses logged nothing (Ivy, 2026-09-25).
+String[] _whyEach
 Float _askedAt = 0.0
 
 Overture:Companions:Registry Function Registry()
@@ -114,6 +117,10 @@ Function EnsureArrays()
 		_openUntilEach = new Float[0]
 		_cooldownEach = new Float[0]
 		_inCombatEach = new Bool[0]
+	EndIf
+	; A save from before _whyEach: one entry per watched companion, all unsaid.
+	If _whyEach == None || _whyEach.Length != _watched.Length
+		_whyEach = new String[_watched.Length]
 	EndIf
 EndFunction
 
@@ -177,6 +184,7 @@ Function Poll()
 			_openUntilEach.Remove(i)
 			_cooldownEach.Remove(i)
 			_inCombatEach.Remove(i)
+			_whyEach.Remove(i)
 		EndIf
 		i -= 1
 	EndWhile
@@ -189,6 +197,13 @@ Function Poll()
 			_openUntilEach.Add(0.0)
 			_cooldownEach.Add(0.0)
 			_inCombatEach.Add(False)
+			_whyEach.Add("")
+			Overture:Companions:Adapter joined = Self.Registry().AdapterFor(now[i])
+			String adapterName = "none"
+			If joined != None
+				adapterName = joined.Name()
+			EndIf
+			Debug.Trace("Overture companions: " + now[i].GetFormID() + " is a companion now (adapter " + adapterName + ")", 0)
 			Self.RegisterForRemoteEvent(now[i], "OnCombatStateChanged")
 			Self.Feeders().Joined(now[i])
 		EndIf
@@ -307,9 +322,8 @@ Function Evaluate(Int aiIndex)
 		no = "they refuse right now (Adapter.Refuses)"
 	EndIf
 	If no != ""
-		If Self.SetMoment(akWho, MOMENT_NOT_OURS)
-			Debug.Trace("Overture companions: " + akWho.GetFormID() + " - no moment, no 'Ask for a moment': " + no, 0)
-		EndIf
+		Self.SetMoment(akWho, MOMENT_NOT_OURS)
+		Self.SayWhy(aiIndex, akWho, "no moment, no 'Ask for a moment': " + no)
 		Return
 	EndIf
 	Float now = Utility.GetCurrentGameTime()
@@ -343,9 +357,16 @@ Function Evaluate(Int aiIndex)
 	If _openUntilEach[aiIndex] > now && private
 		Self.SetMoment(akWho, MOMENT_OPEN)
 	Else
-		If Self.SetMoment(akWho, MOMENT_VOUCHED)
-			Debug.Trace("Overture companions: " + akWho.GetFormID() + " - vouched: 'Ask for a moment' is offered", 0)
-		EndIf
+		Self.SetMoment(akWho, MOMENT_VOUCHED)
+		Self.SayWhy(aiIndex, akWho, "vouched: 'Ask for a moment' is offered")
+	EndIf
+EndFunction
+
+; Once per change of answer, per companion -- the first answer included.
+Function SayWhy(Int aiIndex, Actor akWho, String asWhy)
+	If aiIndex < _whyEach.Length && _whyEach[aiIndex] != asWhy
+		_whyEach[aiIndex] = asWhy
+		Debug.Trace("Overture companions: " + akWho.GetFormID() + " - " + asWhy, 0)
 	EndIf
 EndFunction
 
