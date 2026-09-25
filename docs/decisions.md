@@ -738,3 +738,14 @@ chose to voice them.
 - Their vanilla lines keep their own actor. Only Overture's lines borrow, and only when the companion's
   own voice type has no file (O-43).
 - stage-voice.py now banks the companion lines like any other: 96 INFOs, 891 files, with lip sync.
+
+## O-48 — A companion's orientation refusal is explained by the Narrator (owner poll, 2026-09-25)
+
+A companion who is not into the player's sex turns them down with the plain refusal of the companion lane,
+not an ordinary NPC's "not my type" line. The owner chose that the Narrator gives the reason, so the player
+knows it is not bond or mood and does not keep asking. This is what the code already does: `Decide` leaves
+`WHY_NOT_TYPE`, and `TalkLine` → `WhyNot` narrates "{second} turned you down - you're not {their} type."
+A companion like that never asks for a moment either (`CompanionOpenable`).
+
+Rapport now refuses such a pair at its own scene request too (Rapport R-27, "Enforced at the door"), so a
+scene cannot start by any addon route even if a check here were missed.
