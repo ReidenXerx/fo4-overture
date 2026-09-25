@@ -168,7 +168,12 @@ def main():
     player_path = ROOT / "voice" / "player-lines.json"
     player_bank = json.loads(player_path.read_text(encoding="utf-8"))["lines"] if player_path.is_file() else []
     player_ids = {ln["id"] for ln in player_bank}
-    bank = bank + player_bank
+    # O-47 (owner, 2026-09-25): the companions' own lines are VOICED now, in our voices; each
+    # companion borrows the nearest same-sex one through Rapport's dialogue hook (O-43), exactly
+    # as the Mayor does. They were subtitles by design while no voice of ours could speak for
+    # a unique voice type.
+    companion_bank_lines = json.loads((ROOT / "voice" / "companion-lines.json").read_text(encoding="utf-8"))["lines"]
+    bank = bank + player_bank + companion_bank_lines
     line_of = {ln["text"]: ln["id"] for ln in bank}
     if len(line_of) != len(bank):
         raise SystemExit("two bank lines share a text: a spoken text no longer names one line")
@@ -181,17 +186,12 @@ def main():
     # fallbacks), not a line somebody forgot to voice.
     npc = [i for i in infos if not i[2] and any(c.isalpha() for c in i[1])]
     silent = [i for i in infos if not i[2] and not any(c.isalpha() for c in i[1])]
-    # The companion module's lines are SUBTITLES BY DESIGN: every companion speaks in a
-    # voice type of their own, which the six core renders do not cover, and the owner
-    # picks every voice by ear (V-9). Counted apart, so a real miss still shows.
-    companion_bank = json.loads((ROOT / "voice" / "companion-lines.json").read_text(encoding="utf-8"))
-    companion_texts = {ln["text"] for ln in companion_bank["lines"]}
+    # The companion module's lines were subtitles by design until O-47; they are in the bank
+    # above now, so a companion INFO resolves like any other. (`companion` stays for the report.)
     registry, unmatched, companion = {}, [], []
     for fid, text, _ in npc:
         lid = line_of.get(text)
-        if lid is None and text in companion_texts:
-            companion.append((fid, text))
-        elif lid is None:
+        if lid is None:
             unmatched.append((fid, text))
         else:
             registry[f"{fid:08X}"] = {"line": lid, "file": f"{fid & 0x00FFFFFF:08X}_1.fuz"}

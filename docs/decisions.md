@@ -725,3 +725,16 @@ the old line plus four new ones, all approved by the owner.
   stay wordless menu actions.
 - UNVERIFIED in game: that the menu shows the rolled version. The Papyrus trace line "player lines vN" says
   which version was rolled.
+
+## O-47 — Companions speak their Overture lines, in a borrowed voice (owner poll, 2026-09-25)
+
+A sweep against the approaches the owner has proven in game found one line family still on the old way:
+the 36 companion lines were subtitle-only, "by design", from before O-43's borrowing existed. The owner
+chose to voice them.
+- They are rendered in all 11 voices: 341 renders, 16k characters, each transcribed back and checked.
+- Each companion borrows the nearest same-sex voice by fingerprint: Piper FemaleRough, Cait FemaleGhoul,
+  Hancock RaiderMale02, Danse and Preston MaleOld, MacCready MaleEvenToned, X6-88, Deacon and Gage
+  MaleRough, Ivy FemaleEvenToned (the owner's override).
+- Their vanilla lines keep their own actor. Only Overture's lines borrow, and only when the companion's
+  own voice type has no file (O-43).
+- stage-voice.py now banks the companion lines like any other: 96 INFOs, 891 files, with lip sync.
