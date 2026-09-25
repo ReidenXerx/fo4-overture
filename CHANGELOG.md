@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (unreleased)
+
+- **Not during the game's opening.** Talking to your spouse, a neighbour or the Vault-Tec rep in
+  pre-war Sanctuary, or anyone in Vault 111, no longer opens an approach. Overture starts when you
+  leave the vault. Alternate starts and MS Skip Prewar Sanctuary work as expected.
+
 ## 0.1.0 (unreleased)
 
 The first release. Overture is a way of approaching people: you walk up to someone and try, and whether it

@@ -591,6 +591,9 @@ PLAYER_REF = 0x00000014
 # ActorBase.GetSex() returns. Not 130, the index first recalled from memory: 130 has 5 uses,
 # all run on the Target, none in this shape.
 FUNC_GET_IS_SEX = 70
+FUNC_GET_STAGE = 58                # param1 a quest: 2,007 vanilla INFO conditions use it (e.g. MQ102 >= 130)
+QUEST_MQ101 = 0x0001ED86           # MQ101 "War Never Changes", the game's opening (Fallout4.esm)
+MQ101_OVER = 1000                  # its log entry here completes it: the player has left Vault 111
 SEX_PARAM = {'m': 0, 'f': 1}
 # FollowersScript.SetCompanion adds it and DismissCompanion takes it away: the CURRENT
 # companion. The companion greeting's own test (the strangers' is its opposite).
@@ -749,6 +752,14 @@ def greeting_info(form_id, text, enam, extra, companion=False):
         g += field('CTDA', condition(func, param, value=value, runon=RUNON_SUBJECT))
     g += field('CTDA', condition(FUNC_GET_VALUE, NEXT_DAY_AV, runon=RUNON_SUBJECT,
                                  op=CTDA_OP_LE, value_global=GLOB_GAME_DAYS_PASSED))
+    # NOT DURING THE GAME'S OPENING (owner poll, 2026-09-25): MQ101 "War Never Changes"
+    # runs from character creation to the vault door, and its stage 1000 completes it.
+    # Stage 0 is an opening never played (an alternate start); MS Skip Prewar Sanctuary
+    # jumps to 900 and plays on to 1000. So: GetStage(MQ101) < 1 OR >= 1000. The two
+    # are one OR group (CTDA_OR on the first), ANDed with everything above. Rapport's
+    # RequestScene refuses on the same rule (fo4-rapport src/Story.h).
+    g += field('CTDA', condition(FUNC_GET_STAGE, QUEST_MQ101, value=1.0, op=CTDA_OP_LT | CTDA_OR))
+    g += field('CTDA', condition(FUNC_GET_STAGE, QUEST_MQ101, value=float(MQ101_OVER), op=CTDA_OP_GE))
     g += extra
     g += field('TSCE', struct.pack('<I', SCENE_FORMID))   # <- starts the scene
     # FORCED ALIAS: the engine puts whoever says this line into alias 0 as the
