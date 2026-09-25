@@ -1,0 +1,65 @@
+=== STICKY: How Overture works inside (1 of 2): the conversation ===
+[b]How Overture works inside, part 1: the conversation[/b]
+For players and modders who want the mechanism. The features and settings are in the other stickies. Numbers are the shipped defaults; the scripts are Approach.psc and Companions/*.psc, on GitHub.
+
+[b]The way in[/b]
+You press E on someone. Overture's greeting only competes for adults who are human or ghoul, have never been your companion, are not in combat or in a scene, and have not been approached today (one stamp per person per game day). It never competes during the game's opening, from character creation to the Vault 111 door; "Start now" on the MCM page overrides that in a save where an alternate start left the opening unfinished.
+
+[b]Four ways, four kinds of people[/b]
+Offer, charm, be blunt, or linger. Each way lands on exactly one of Rapport's four personas and misses the other three, and nothing ever tells you who is which. A persona is derived from the NPC, so the same person is the same on every playthrough.
+
+[b]The stages[/b]
+[list]
+[*][b]Stage 1[/b]: a line that lands opens the next wheel; a miss ends the talk until tomorrow.
+[*][b]Stage 2[/b]: the same again, one step closer. Someone who has already warmed to you starts here next time.
+[*][b]Stage 3[/b]: the proposition. Here the words matter less than the bond: a verdict is taken against that persona's bar.
+[/list]
+Place overrides the words. With more than Rapport's crowd tolerance watching (2 people), an intimate line goes nowhere: someone it would have landed with says "not here" (nothing gained, nothing lost), anyone else recoils.
+
+[b]What the numbers mean[/b]
+Every outcome moves the relationship Rapport keeps for the two of you, as a share of the distance left: a gain adds w x (1 - bond), a loss takes w x (1 + bond). So the same line matters less the further along you are.
+[list]
+[*]A land: [b]+0.05[/b] at stage 1, [b]+0.07[/b] after.
+[*]A recoil in public: [b]-0.06[/b]. Taken badly: [b]-0.04[/b] (built, not yet seen in game).
+[*]At the proposition: refused [b]-0.03[/b], not yet [b]+0.02[/b] (built, not yet seen in game). A miss and a yes write nothing: a yes is written by the scene itself.
+[/list]
+
+[b]The verdict at stage 3[/b] (Approach.psc Decide)
+In order, the first that applies:
+[list]
+[*]not their type (orientation, a hard line; they say so in their own words);
+[*]fallen out (a bond at [b]-0.25[/b] or lower): refused;
+[*]spoken for and faithful at [b]0.80[/b] or more: refused. A less faithful one raises the bar by 0.40 x faithfulness;
+[*]the bond under the persona's bar ([b]0.08[/b] to [b]0.30[/b], a different bar for each kind): under half of it is refused, the rest is "not yet";
+[*]in public: "not here". The romantic kind also wants indoors or night: "not now";
+[*]Rapport busy, or no installed animation fits: "not now";
+[*]otherwise yes. The scene itself starts only with "A yes starts a scene" on in the MCM; it is off by default.
+[/list]
+"Not now" and "not here" can be asked again an hour later, the same day.
+
+=== STICKY: How Overture works inside (2 of 2): narrator, names, voices, companions ===
+[b]How Overture works inside, part 2: narrator, names, voices, companions[/b]
+
+[b]The Narrator's line[/b]
+When a conversation ends, Rapport's Narrator shows one sentence chosen from what happened and why: what your words did, and a hint of what to try ("catch them alone", "indoors, or after dark", "later today"). It gives the reason when it is one you should know (someone else, bad blood, not your type) and never names the persona.
+
+[b]Names[/b]
+The first time you approach someone whose name is only a label (a name shared by 5 or more NPC records, not all unique: Settler, Drifter, Raider), Rapport gives them a name of their own, keeps it in the save, and the Narrator introduces them. Anyone with a real name keeps it.
+
+[b]Voices[/b]
+[list]
+[*]11 voices were recorded for the people you approach, 423 files each, and two for you, a woman's and a man's: 4,749 files, shipped loose.
+[*]Anyone whose own voice was not recorded borrows the nearest recorded one, measured from the game's own recordings by a speaker-recognition model: 482 voice types. Rapport does the borrowing when the line's own file is missing, so the files must stay loose, not packed.
+[*]Every option on the wheel has five versions and a conversation picks one (built, not yet seen in game).
+[/list]
+
+[b]Lovers[/b] (built, not yet seen in game)
+A bond of 0.75 and a scene together make you lovers, and Rapport tells every addon: Chemistry then treats your lover as spoken for. A lover hears about your other scenes and takes it the way their persona would.
+
+[b]Companions[/b] (built, not yet seen in game)
+[list]
+[*]Each companion is read through an adapter: the game's companion framework (any follower on it, base game or mod), or a companion's own system where it has one (Ivy). An adapter reports their affinity, romance and mood; their own state outranks Overture's numbers.
+[*]Days on the road together build a wanting of their own. When it turns, they find a private moment and ask you for a minute, and the window stays open for two game hours.
+[*]"Ask for a moment" sits beside Talk on their prompt whenever a conversation could open. Their answer comes from their own gates, not from the words you pick.
+[*]Ivy keeps her own route: her own dialogue starts her scene, and with scenes switched on Overture animates her fade to black.
+[/list]
