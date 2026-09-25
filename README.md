@@ -51,7 +51,7 @@ the proposition, and then any way you ask gets their real answer. A bond of 0.75
 treats your lover as spoken for), and falling out ends it. A lover hears about your other scenes, takes it the way
 their persona would, and tells you so in their own words the next time you talk. "Not now" and "not here" mean you can ask again later that day.
 Every number is on the MCM page. Every stranger's line is voiced in the six core voices, with lip sync.
-36 of them are DRAFTS, written without the owner, and wait for their review (`docs/methodology.md` §10).
+All of them were reviewed and approved by the owner (O-39, O-40).
 
 Built, not yet run in game: **the companion module** (O-19, `companions/README.md`). A base-game companion
 you travel with gets wanting of their own, which builds with days on the road together. When it
@@ -59,7 +59,7 @@ turns, a *moment* opens and they ask you for a minute. You can also ask yourself
 prompt, whenever a conversation could open. Their answer is their own state and their own romance, never the words you picked.
 Their days, fights and affinity levels feed Rapport's bond. Ivy keeps her own scenes, which now count,
 and with scenes on her fade to black becomes a Rapport scene. Companion lines are voiced too, each
-companion in the nearest voice Overture has (O-47). Ivy keeps only her own route (O-49). 26 more DRAFTS.
+companion in the nearest voice Overture has (O-47). Ivy keeps only her own route (O-49).
 
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, and the
 owner's open questions.
