@@ -1,0 +1,104 @@
+=== STICKY: Every feature in Overture 0.1.0 ===
+[b]Every feature in Overture 0.1.0[/b]
+The page tells the story; this is the complete list. Companions and settings have their own sticky posts.
+
+[b]Approaching someone[/b]
+[list]
+[*]Just talk to them. The game itself decides who is eligible: adult humans and ghouls, not gen-1 or gen-2 synths, not in combat or a scene, and never anyone who has ever been a companion.
+[*]Once per person per game day; after that they have only their own dialogue until tomorrow. A talk that crosses midnight does not reopen at once.
+[*]Overture plays first, and their own dialogue follows when it hands back.
+[/list]
+[b]The conversation[/b]
+[list]
+[*]Four ways to try: offer, charm, blunt, linger. Each lands with one of the four kinds of people and misses the other three. Their kind is fixed for the character; the game never tells you.
+[*]A blunt line in a crowded room recoils, even on the one who would have liked it in private. You never count as the crowd.
+[*]Step 1, first words. Step 2, the same four again, and the place matters most here. Step 3, the question, shown only when it has a chance.
+[*]Come back on a later day and you start at step 2.
+[*]Each option on the wheel has five versions; one is picked per conversation.
+[/list]
+[b]The answers[/b]
+[list]
+[*][b]Not my type[/b] is decided first: orientation, which nothing changes.
+[*][b]Yes[/b]; [b]not yet[/b] (close, keep coming back); [b]not here[/b] (it would be yes, but people are watching); [b]not now[/b] (the wrong time or setting, or Rapport is busy); [b]no[/b] (spoken for and faithful, the wrong approach, or too far off).
+[*]"Not here" and "not now" reopen the same day, no sooner than two game hours later, straight at the question, with no bond paid twice.
+[*]The romantic kind needs a private room, or anywhere private after dark. The shy kind never goes past the first step on the first day.
+[/list]
+[b]The bond[/b] (between you and them, in Rapport)
+[list]
+[*]First thing that lands +0.05, the second +0.07, "not yet" +0.02. Blunt at the wrong person −0.04, crude in public −0.06, a refusal −0.03. A yes writes nothing; the scene does.
+[*]A yes needs a bond of 0.08 from the crude kind, 0.15 from the dealmaker, 0.25 from the romantic, 0.30 from the shy one. A faithful partner (0.8 and up) always refuses; a less faithful one needs more.
+[/list]
+[b]Lovers[/b]
+[list]
+[*]A bond of 0.75 and a scene together makes you lovers to everyone, and Chemistry treats them as taken. A bond falling to −0.25 ends it.
+[*]With a lover, any of the four ways gets their real answer.
+[*]Your other lovers notice when you are with someone else: the romantic and the shy are hurt, the crude one is thrilled, the dealmaker shrugs.
+[/list]
+[b]The narrator and names[/b]
+[list]
+[*]One line after each conversation: what your words did, a hint of what to try, and the bond change if there was one. Never their type.
+[*]A Settler or Drifter you talk to gets a permanent name.
+[/list]
+[b]Voice[/b]: 196 NPC lines in 11 voices, your own lines in two designed voices, 4,749 files, lip sync generated for every line. Characters with their own actor borrow the closest voice through Rapport.
+
+=== STICKY: Overture settings and debug ===
+[b]Overture settings and debug[/b]
+MCM is optional; without it these defaults apply.
+
+[b]Switches[/b]
+[list]
+[*][i]Approaches[/i] on: off leaves every NPC with only their own dialogue.
+[*][i]A yes starts a scene[/i] [b]off[/b]: on, Rapport starts the scene after a yes.
+[*][i]Ivy: her fade becomes a scene[/i] on: only acts when scenes are on.
+[/list]
+[b]What words are worth[/b]: first land +0.05 · second land +0.07 · blunt at the wrong person −0.04 · crude in public −0.06 · asked too soon +0.02 · asked the wrong way −0.03
+[b]How close before a yes[/b]: mercantile 0.15 · romantic 0.25 · vulgar 0.08 · reticent 0.30 · lovers from a bond of 0.75
+[b]Spoken for[/b]: faithful enough to always refuse 0.80 · how much being spoken for raises the bar 0.40
+[b]Jealousy[/b]: when it hurts −0.06 · when it thrills +0.03
+[b]Companions[/b]: wanting before a yes (mercantile 0.50 · romantic 0.50 · vulgar 0.30 · reticent 0.70) · romanced lowers the bar by 0.20 · affinity needed without a romance 1.00 (their top level) · wanting per day together 0.10 · a day together adds to the bond 0.01 · a new affinity level +0.08 · falling to Disdain or Hatred −0.08 · days between moments 2
+
+[b]Debug page[/b] (face the NPC, then click, or bind a key)
+[list]
+[*][i]Approach - REAL[/i] talks to them exactly as in play; [i]FORCED[/i] starts the approach regardless of eligibility.
+[*][i]Straight to a yes - REAL[/i] runs the real verdict and says on the HUD why if it is not a yes; [i]FORCED[/i] gives a yes with everything a real yes does.
+[*]Even FORCED never works on a child, the dead, someone not loaded or someone in combat.
+[/list]
+
+=== STICKY: Companions in Overture ===
+[b]Companions in Overture[/b]
+Companions get their own system, written into Rapport's bond like everything else. Their own mods and their own state always come first: an angry companion says no whatever the numbers say.
+
+[list]
+[*][b]Who:[/b] adult humans and ghouls on the game's companion system: Cait, Curie (as a synth), Danse, Deacon, Gage, Hancock, MacCready, Old Longfellow, Piper, Preston, X6-88, and custom companions built on the same system. Not Codsworth, Strong, Nick, robot Curie or Dogmeat.
+[*][b]Getting closer:[/b] each day together adds to the bond, reaching a new affinity level adds more, and falling to Disdain or Hatred costs. Fights survived together count a little, once a day.
+[*][b]Wanting[/b] builds each day your companion travels with you, once their romance is done (or, with no romance in the game, at their top affinity). A scene together resets it.
+[*][b]A moment:[/b] when wanting is high enough, the next time you talk to them, their own moment comes first. It stays open two game hours, then there is a two-day wait.
+[*][b]Ask for a moment[/b] appears beside Talk only when a moment could really open.
+[*]The companion wheel has three ways to ask and a free "Later." Their answer depends on them, not on the words.
+[*][b]Orientation:[/b] a companion not into your sex never opens a moment, and the narrator says why.
+[*][b]Amazing Follower Tweaks:[/b] every follower counts, each with their own wanting and cooldown; only one moment is open at a time, and fellow travellers do not count as onlookers.
+[*][b]Ivy[/b] keeps her own route ("Let's make love."). Overture never opens a conversation for her, counts her scene toward your bond, and with scenes on turns her fade into a real Rapport scene before handing her back to her own story.
+[/list]
+None of this has been run in a real game yet. Please tell us how it behaves.
+
+=== STICKY: What's tested in game, and what needs you ===
+[b]What's tested in game, and what needs you[/b]
+[b]Checked in game[/b]
+[list]
+[*]Talking to people, and the greeting working on unnamed NPCs
+[*]The four ways to try with every kind of person, in public and private rooms, and the recoil in public
+[*]The bond each step writes
+[*]Every answer to the question, with the verdict set by hand
+[*]The narrator's line after a conversation, and names for the nameless across loads
+[*]A borrowed voice on an Overture line, on one character so far
+[/list]
+[b]Built, not yet run in a real game[/b]
+[list]
+[*]The answer decided live from start to finish
+[*]"Not now" and "not here" reopening the same day
+[*]Lovers, jealousy, and a faithful partner's refusal
+[*]A yes starting a scene with you (that is why it is off by default)
+[*]The whole companion module, "Ask for a moment" and Ivy's scene
+[*]Lip sync, and the wheel's five versions showing up
+[/list]
+Reply here with what you saw, and Rapport.log. Good news counts as much as bad.
