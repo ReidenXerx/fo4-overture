@@ -234,12 +234,14 @@ Int Function IndexOf(Actor akWho)
 	Return _watched.Find(akWho)
 EndFunction
 
-Function SetMoment(Actor akWho, Int aiValue)
+; True when the value CHANGED -- the only moment worth a log line.
+Bool Function SetMoment(Actor akWho, Int aiValue)
 	ActorValue av = Self.OurAV(MOMENT_AV_ID)
 	If akWho == None || av == None || akWho.GetValue(av) == aiValue as Float
-		Return
+		Return False
 	EndIf
 	akWho.SetValue(av, aiValue as Float)
+	Return True
 EndFunction
 
 ; Somewhere nobody is watching, by Rapport's own count against its own tolerance.
@@ -288,8 +290,26 @@ Function Evaluate(Int aiIndex)
 	Actor akWho = _watched[aiIndex]
 	Overture:Companions:Registry reg = Self.Registry()
 	Overture:Companions:Adapter a = reg.AdapterFor(akWho)
-	If a == None || !a.OpensMoments(akWho) || a.OwnIntimateScene(akWho) != None || !reg.Eligible(akWho) || a.Closed(akWho) || a.Refuses(akWho)
-		Self.SetMoment(akWho, MOMENT_NOT_OURS)
+	; WHICH gate said no, said once each time it changes: the owner saw no "Ask for a moment"
+	; on Ivy (2026-09-25) and the log could not say why (six gates, none of them traced).
+	String no = ""
+	If a == None
+		no = "no adapter vouches for them"
+	ElseIf !a.OpensMoments(akWho)
+		no = "their adapter does not open moments"
+	ElseIf a.OwnIntimateScene(akWho) != None
+		no = "their own intimate scene is running"
+	ElseIf !reg.Eligible(akWho)
+		no = "not eligible (Registry.Eligible)"
+	ElseIf a.Closed(akWho)
+		no = "their state is closed (Adapter.Closed)"
+	ElseIf a.Refuses(akWho)
+		no = "they refuse right now (Adapter.Refuses)"
+	EndIf
+	If no != ""
+		If Self.SetMoment(akWho, MOMENT_NOT_OURS)
+			Debug.Trace("Overture companions: " + akWho.GetFormID() + " - no moment, no 'Ask for a moment': " + no, 0)
+		EndIf
 		Return
 	EndIf
 	Float now = Utility.GetCurrentGameTime()
@@ -323,7 +343,9 @@ Function Evaluate(Int aiIndex)
 	If _openUntilEach[aiIndex] > now && private
 		Self.SetMoment(akWho, MOMENT_OPEN)
 	Else
-		Self.SetMoment(akWho, MOMENT_VOUCHED)
+		If Self.SetMoment(akWho, MOMENT_VOUCHED)
+			Debug.Trace("Overture companions: " + akWho.GetFormID() + " - vouched: 'Ask for a moment' is offered", 0)
+		EndIf
 	EndIf
 EndFunction
 
