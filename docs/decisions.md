@@ -749,3 +749,19 @@ A companion like that never asks for a moment either (`CompanionOpenable`).
 
 Rapport now refuses such a pair at its own scene request too (Rapport R-27, "Enforced at the door"), so a
 scene cannot start by any addon route even if a check here were missed.
+
+## O-49 — Ivy stays on her own route: no "Ask for a moment" (owner poll, 2026-09-25)
+
+The owner expected "Ask for a moment" on Ivy and saw only her own prompt ("E) COMMAND"). That is by design:
+`IvyAdapter.OpensMoments` is False (O-19 D, O-41), so the perk's condition (Moment value 1 or more) never
+holds for her. Asked whether to change it (both routes / ask only / only her own), the owner chose
+**only her own route**:
+- Ivy's intimacy goes through her own dialogue: "Let's make love." (INFO 010059B8) starts her Favor: Sex scene.
+  Overture turns its fade into an animated Rapport scene (D.3; `bIvyFade:Ivy`, with "A yes starts a scene"
+  on).
+- Her Overture companion lines, voiced in O-47 with FemaleEvenToned, stay unreachable. They are kept in the
+  bank, not deleted, in case the owner reopens this.
+
+Found along the way, fixed in 8e23ab7: the gate log in Moments only spoke when the Moment value CHANGED,
+so a companion refused from 0 logged nothing. It now logs every companion's first answer and every
+change, and names the adapter when someone becomes a companion.
