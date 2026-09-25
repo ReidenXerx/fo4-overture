@@ -684,6 +684,6 @@ Romanceable companions are playersexual. Overture's side:
   that."
 - **The player learns it by asking.** Flirts still land, and nothing is said before the question.
 - **Eight lines,** one per persona and player sex (`outcome: nottype`, `player_gender`), in all six core
-  voices. DRAFTS: the owner reviews them before they are voiced.
+  voices. The owner approved them as written, 2026-09-25.
 - **Companions:** one who is not into the player never opens a moment. If the player asks anyway, it is
   a plain refusal, because the companion wheel has no set for this.
