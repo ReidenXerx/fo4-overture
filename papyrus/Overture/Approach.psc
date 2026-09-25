@@ -142,11 +142,6 @@ Int Property YES_RETRIES = 12 AutoReadOnly
 ; a stuck OnTimer (fo4-rapport docs/two-lifetimes.md). Nothing here calls AAF.
 Int Property END_TIMER = 3 AutoReadOnly
 Float Property END_FALLBACK = 3.0 AutoReadOnly
-; MCM reads mod settings on its own load, which can come after ours: 2 of 3 loads on
-; 2026-09-25 said "has not read Overture's settings" with the right settings.ini in
-; Data. So the warning waits and asks again; HasSettings() is read live everywhere.
-Int Property SETTINGS_TIMER = 4 AutoReadOnly
-Float Property SETTINGS_GRACE = 10.0 AutoReadOnly
 
 ; Rapport 0.2.1: NarrateLine, Introduce, ObserversNear, the priority lane and
 ; lovers. Older, and none of them is bound -- every call would be a Papyrus
@@ -373,8 +368,8 @@ Function Hook()
 		Debug.Trace("Overture: Rapport's ApiVersion is " + _api + ", Overture needs " + NEEDS_API + " - no narration, no names, no lovers, and nobody counts as watching", 2)
 		Debug.Notification("Overture needs Rapport 0.2.1 or newer.")
 	EndIf
-	If MCM.IsInstalled() && !Self.HasSettings()
-		Self.StartTimer(SETTINGS_GRACE, SETTINGS_TIMER)
+	If !Self.HasSettings()
+		Debug.Trace("Overture: MCM/Config/Overture/settings.ini is not there - the built-in numbers, and no scenes", 1)
 	EndIf
 
 	; A yes still waiting for its scene when the game was saved: Rapport forgets
@@ -535,10 +530,6 @@ EndEvent
 Event OnTimer(Int aiTimerID)
 	If aiTimerID == YES_TIMER
 		Self.AskForTheScene()
-	ElseIf aiTimerID == SETTINGS_TIMER
-		If MCM.IsInstalled() && !Self.HasSettings()
-			Debug.Trace("Overture: MCM is installed but has not read Overture's settings " + SETTINGS_GRACE + " s after the load (MCM/Config/Overture/settings.ini missing?) - the built-in numbers, and no scenes", 1)
-		EndIf
 	ElseIf aiTimerID == END_TIMER
 		; Only the conversation that started it: one that has begun since is not over.
 		Conversation c = _current
@@ -942,12 +933,14 @@ EndFunction
 
 ; ---- the numbers --------------------------------------------------------------
 
-; MCM has Overture's settings: installed, AND the shipped settings.ini read.
-; iDefaults:Meta is in that file and on no control, so no slider a player moved
-; can fake it -- MCM answers 0 for every key of a file it never read, and one
-; moved slider used to pass for all of them (microscope pass 2).
+; Overture's settings can be read: the shipped settings.ini is there. iDefaults:Meta is in
+; that file and on no control, so no slider a player moved can fake it.
+; Read through RAPPORT, from the files, not from MCM's own store: on the owner's game
+; (2026-09-25) MCM.GetModSettingInt answered 0 for this key on 3 loads of 4, even 10 s
+; after the load, and Overture ran with scenes off. The player's choices still come from
+; MCM's own ini (Data/MCM/Settings/Overture.ini), which is where MCM writes them.
 Bool Function HasSettings()
-	Return MCM.IsInstalled() && MCM.GetModSettingInt("Overture", "iDefaults:Meta") == 1
+	Return Rapport:Core.ModSettingInt("Overture", "iDefaults:Meta", 0) == 1
 EndFunction
 
 ; A number the MCM page tunes, or the default without Overture's settings.
@@ -955,19 +948,13 @@ EndFunction
 ; and the ini from it, and refuses to if a call here names a key it lacks or falls
 ; back to a different default.
 Float Function Tuned(String asKey, Float afDefault)
-	If !Self.HasSettings()
-		Return afDefault
-	EndIf
-	Return MCM.GetModSettingFloat("Overture", asKey)
+	Return Rapport:Core.ModSettingFloat("Overture", asKey, afDefault)
 EndFunction
 
 ; "A yes starts a scene" -- an MCM setting, like the numbers, so a new default
 ; reaches every save. Off without Overture's settings, which is its default.
 Bool Function ScenesOn()
-	If !Self.HasSettings()
-		Return False
-	EndIf
-	Return MCM.GetModSettingBool("Overture", "bScenes:Switches")
+	Return Rapport:Core.ModSettingBool("Overture", "bScenes:Switches", False)
 EndFunction
 
 ; What a reply is worth to the bond (docs/methodology.md 3): a fraction of the

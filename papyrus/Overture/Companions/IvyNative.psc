@@ -158,7 +158,7 @@ Bool Function Armed()
 		Return False
 	EndIf
 	; The switch's own default is ON (O-20); without Overture's settings, the default.
-	If approach.HasSettings() && !MCM.GetModSettingBool("Overture", "bIvyFade:Ivy")
+	If !Rapport:Core.ModSettingBool("Overture", "bIvyFade:Ivy", True)
 		Return False
 	EndIf
 	Return True
