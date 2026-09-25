@@ -58,8 +58,8 @@ you travel with gets wanting of their own, which builds with days on the road to
 turns, a *moment* opens and they ask you for a minute. You can also ask yourself: "Ask for a moment" on their
 prompt, whenever a conversation could open. Their answer is their own state and their own romance, never the words you picked.
 Their days, fights and affinity levels feed Rapport's bond. Ivy keeps her own scenes, which now count,
-and with scenes on her fade to black becomes a Rapport scene. Companion lines are subtitles, since every
-companion has a voice of their own. 26 more DRAFTS.
+and with scenes on her fade to black becomes a Rapport scene. Companion lines are voiced too, each
+companion in the nearest voice Overture has (O-47). Ivy keeps only her own route (O-49). 26 more DRAFTS.
 
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, and the
 owner's open questions.
