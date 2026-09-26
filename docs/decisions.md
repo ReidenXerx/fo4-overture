@@ -800,3 +800,22 @@ Asked what Overture should give her (romance only / full like vanilla / leave he
   is not mapped (`KnowsAffinity` False).
 - O-41's list is corrected here: Heather was never on the framework. The other mod companions it
   names (Dr Cabbage, Leer, Frost, Hosea) are unchecked.
+
+## O-52 — "Follow me": the full version, bounded by place (owner poll, 2026-09-27)
+
+A Nexus player (ItzJustAlvin) asked for a way to have NPCs follow you, "bc not all npcs will go to private
+areas by default". O-13's "not here" follow was settled but never built. The owner chose the full version,
+with one condition: "think about immersive bc such functionality in old analogue mods was completely dumb
+and they could go with you like on the opposite of the map".
+- **Both ways in**: someone who answers "not here" (would have said yes, but too many are watching) follows
+  you; and a "Follow me" line can be asked of anyone warm enough, before any yes.
+- **Leash = their own place**: they go anywhere inside the location they are in (a town or settlement and
+  its buildings), never out of it; at its edge they stop ("This is as far as I go") and go back. In the
+  open, where there is no location, a short radius (about 60 m). Fast travel or leaving the area: they
+  stay behind.
+- **Patience = two game hours** (about 6 real minutes at timescale 20). Then they give up and walk back
+  to what they were doing. The player running off, or a fight, ends it at once.
+- **Arrival**: once somewhere private (Rapport's own crowd rule), they stop and speak first, and the
+  conversation opens at the proposition, as the "not here" invitation already does (O-30).
+- **Voiced**: every new line goes through the voice pipeline (transcribed back, checked word for word).
+  The character count and cost are shown to the owner before anything is spent.
