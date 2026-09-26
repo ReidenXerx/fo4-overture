@@ -128,6 +128,24 @@ COMPANION_SCRIPTS = ('Overture:Companions:Registry', 'Overture:Companions:Engine
                      'Overture:Companions:VanillaAdapter', 'Overture:Companions:IvyAdapter',
                      'Overture:Companions:HeatherAdapter', 'Overture:Companions:Feeders', 'Overture:Companions:Moments',
                      'Overture:Companions:IvyNative')
+# O-52 (owner, 2026-09-27): "Follow me". Ids 0x940-0x9BF (make_overture_esp's map).
+# A quest whose one alias carries vanilla's FollowPlayer package (PACK 0002A105, its
+# target the player, 0x14): whoever the script puts in the alias follows, through
+# doors, by the engine's own procedure, and goes back to their day when let go.
+FOLLOW_QUEST = 0x01000940
+FOLLOW_QUEST_EDID = 'OvertureFollowQuest'
+FOLLOW_SCRIPT = 'Overture:Follow'
+FOLLOW_BRANCH = 0x01000941
+FOLLOW_PERK = 0x01000942
+FOLLOW_PERK_EDID = 'OvertureFollowPerk'
+FOLLOW_FRAGMENT = 'Overture:Fragments:FollowPerk'
+FOLLOW_LABEL = 'Follow me'
+FOLLOWING_AV = 0x01000943          # 1 while they follow: hides the choice on them
+FOLLOW_PLAYER_INFO = 0x01000950    # the player's five versions, 0x950-0x954
+FOLLOW_NPC_INFO = 0x01000958       # + kind * 8 + persona * 2 + version, to 0x97F
+FOLLOW_TOPIC_OFFSET = 0x30         # a line's topic is its INFO + this (Rapport's make_dialogue rule)
+FOLLOW_KINDS = ('agree', 'decline', 'too_far', 'give_up', 'arrival')   # Overture:Follow's KIND_*
+VANILLA_FOLLOW_PLAYER_PACKAGE = 0x0002A105
 # OvertureCompanionMoment. 0: not ours to open (C6 -- no adapter vouches, their own
 # scene, their state says no). 1: vouched, so the player may ask (O-23, O-35). 2: a
 # moment is open (C), so the companion speaks first. 3: the player has just ASKED
@@ -528,6 +546,7 @@ def build_staged():
     companion_topics, companion_children = companion_wheel(companion_bank, ids)
     children += companion_children
     companion_infos, companion_count = companion_greetings(companion_bank['lines'], ids)
+    follow_quest, follow_perk, following_av = follow_records(ids)   # O-52
     m.check_unique(ids)
 
     lover_lines = [l for l in bank['lines'] if l.get('kind') == 'lover_greeting']
@@ -547,8 +566,8 @@ def build_staged():
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(PLAYER_VARIANT_GLOBAL, 'OverturePlayerVariant', 0.0)
              + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
-    blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest())
-    blob += m.group('PERK', ask_perk())
+    blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest() + follow_quest)
+    blob += m.group('PERK', ask_perk() + follow_perk)
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
@@ -561,7 +580,8 @@ def build_staged():
                     + m.actor_value(COMPANION_FALL_AV, 'OvertureCompanionFall')
                     + m.actor_value(COMPANION_PAIR_SEEN_AV, 'OvertureCompanionPairSeen')
                     + m.actor_value(COMPANION_SEEN_SCENE_AV, 'OvertureCompanionSeenScene')
-                    + m.actor_value(COMPANION_TIER_AV, 'OvertureCompanionAffinityTier'))
+                    + m.actor_value(COMPANION_TIER_AV, 'OvertureCompanionAffinityTier')
+                    + following_av)
 
     # The header, and the uniqueness check, from the bytes actually written.
     return m.finish(blob), topics
@@ -816,6 +836,130 @@ def companions_quest():
     f += m.field('DNAM', bytes.fromhex('110064670000000000000000'))
     f += m.field('NEXT', b'')
     return m.record('QUST', COMPANIONS_QUEST, f)
+
+
+def follow_topic(topic_id, edid):
+    """A Say() topic: Rapport's make_dialogue.topic, byte for byte (CUST DIAL 0002B96F's
+    shape plus the branch -- without the branch, Say resolved and spoke nothing)."""
+    f = m.field('EDID', m.zstring(edid))
+    f += m.field('PNAM', struct.pack('<f', 50.0))
+    f += m.field('BNAM', struct.pack('<I', FOLLOW_BRANCH))
+    f += m.field('QNAM', struct.pack('<I', FOLLOW_QUEST))
+    f += m.field('DATA', struct.pack('<I', 0))
+    f += m.field('SNAM', b'CUST')
+    f += m.field('TIFC', struct.pack('<I', 1))
+    return m.record('DIAL', topic_id, f)
+
+
+def follow_line(info_id, text):
+    """A Say() line: Rapport's make_dialogue.line, byte for byte (INFO 00083C0B's shape:
+    ENAM 0x02, no conditions, TRDA's response number 1 -- the "_1" in <INFO>_1.fuz)."""
+    trda = bytes.fromhex('ffffffff' '01000000' '00010000' 'ffffffff' 'ffffffff')
+    f = m.field('ENAM', struct.pack('<I', 2))
+    f += m.field('TRDA', trda)
+    f += m.field('NAM1', m.zstring(text))
+    f += m.field('NAM2', b'\0')
+    f += m.field('NAM3', b'\0')
+    f += m.field('NAM4', b'\0')
+    f += m.field('NAM0', b'\0')
+    f += m.field('INAM', struct.pack('<I', 1))
+    return m.record('INFO', info_id, f)
+
+
+def follow_records(ids):
+    """O-52: the follow quest (its alias carries vanilla's FollowPlayer), its Say() topics,
+    the "Follow me" perk, and the Following actor value. Returns (quest, perk, avif)."""
+    bank = json.loads((m.ROOT / 'voice' / 'follow-lines.json').read_text(encoding='utf-8'))
+    player = bank['player']
+    if len(player) != 5:
+        raise SystemExit(f'follow-lines.json: {len(player)} player lines; O-46 wants exactly five')
+    entries = [(FOLLOW_PLAYER_INFO + v, l, f'follow player {v}') for v, l in enumerate(player)]
+    table = {}
+    for l in bank['lines']:
+        table.setdefault((l['kind'], l['persona']), []).append(l)
+    for k, kind in enumerate(FOLLOW_KINDS):
+        for p, persona in enumerate(m.PERSONAS):
+            lines = table.get((kind, persona), [])
+            if len(lines) != 2:
+                raise SystemExit(f'follow-lines.json: {kind}/{persona} has {len(lines)} lines; the layout holds exactly 2')
+            for v, l in enumerate(lines):
+                entries.append((FOLLOW_NPC_INFO + k * 8 + p * 2 + v, l, f'follow {kind}/{persona} {v}'))
+    for iid, l, label in entries:
+        if not 0x01000950 <= iid <= 0x0100097F:
+            raise SystemExit(f'{label}: {iid:08X} is outside the follow lines range 0x950-0x97F')
+        ids += [(iid, label), (iid + FOLLOW_TOPIC_OFFSET, label + ' topic')]
+    ids += [(FOLLOW_QUEST, 'follow quest'), (FOLLOW_BRANCH, 'follow branch'),
+            (FOLLOW_PERK, 'follow perk'), (FOLLOWING_AV, 'following actor value')]
+
+    # The branch: DLBR FollowersSayTopics' shape (Rapport's make_dialogue.branch).
+    branch = m.field('EDID', m.zstring('OvertureFollowSayTopics'))
+    branch += m.field('QNAM', struct.pack('<I', FOLLOW_QUEST))
+    branch += m.field('TNAM', struct.pack('<I', 0))
+    branch += m.field('DNAM', struct.pack('<I', 1))
+    branch += m.field('SNAM', struct.pack('<I', entries[0][0] + FOLLOW_TOPIC_OFFSET))
+    children = m.record('DLBR', FOLLOW_BRANCH, branch)
+    for iid, l, _label in entries:
+        tid = iid + FOLLOW_TOPIC_OFFSET
+        children += follow_topic(tid, 'OvertureFollow_' + l['id'])
+        children += m.child_group(tid, 7, follow_line(iid, l['text']))
+
+    # The quest: start game enabled (the known-good DNAM), the script, and ONE alias --
+    # the measured script-filled shape (make_overture_esp.quest) plus ALPC, the alias
+    # package field, where vanilla writes it: after the fill fields, before VTCK
+    # (QUST 000179F3 DialogueConcordArea, aliases 2-15, read 2026-09-27).
+    q = m.field('EDID', m.zstring(FOLLOW_QUEST_EDID))
+    q += m.field('VMAD', m.vmad_scripts([(FOLLOW_SCRIPT, ())]))
+    q += m.field('DNAM', bytes.fromhex('110064670000000000000000'))
+    q += m.field('NEXT', b'')
+    q += m.field('ANAM', struct.pack('<I', 1))
+    q += m.field('ALST', struct.pack('<I', 0))
+    q += m.field('ALID', m.zstring('Follower'))
+    q += m.field('FNAM', struct.pack('<I', 0x00000002))
+    q += m.field('ALPC', struct.pack('<I', VANILLA_FOLLOW_PLAYER_PACKAGE))
+    q += m.field('VTCK', struct.pack('<I', 0))
+    q += m.field('ALED', b'')
+    quest = m.record('QUST', FOLLOW_QUEST, q) + m.child_group(FOLLOW_QUEST, 10, children)
+
+    # The choice beside Talk: ask_perk's shape, its own conditions. Shown only for an
+    # adult human or ghoul who is not a companion, not fighting, not in a scene, not
+    # already following, outside the game's opening, and WARM -- landed with the player
+    # before, said yes once, or invited back today (O-30). Every condition runs on the
+    # target (PRKC tab 1).
+    def c(func, param, value, op=m.CTDA_OP_EQ, glob=None):
+        return m.field('CTDA', m.condition(func, param, value=value, op=op, runon=m.RUNON_SUBJECT,
+                                           value_global=glob))
+    target = (c(m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_NPC, 1.0)
+              + c(m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_SYNTH, 0.0)
+              + c(m.FUNC_IS_CHILD, 0, 0.0)
+              + c(m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, 0.0)
+              + c(m.FUNC_IS_IN_COMBAT, 0, 0.0)
+              + c(m.FUNC_IS_IN_SCENE, 0, 0.0)
+              + c(m.FUNC_GET_VALUE, FOLLOWING_AV, 0.0)
+              + c(m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0)
+              # greeting_info's opening OR group
+              + c(m.FUNC_GET_STAGE, m.QUEST_MQ101, 1.0, m.CTDA_OP_LT | m.CTDA_OR)
+              + c(m.FUNC_GET_STAGE, m.QUEST_MQ101, float(m.MQ101_OVER), m.CTDA_OP_GE | m.CTDA_OR)
+              + c(m.FUNC_GET_GLOBAL_VALUE, m.OPENING_GLOBAL, 1.0)
+              # warm: one OR group
+              + c(m.FUNC_GET_VALUE, m.STAGE_REACHED_AV, 2.0, m.CTDA_OP_GE | m.CTDA_OR)
+              + c(m.FUNC_GET_VALUE, m.SAID_YES_AV, 1.0, m.CTDA_OP_EQ | m.CTDA_OR)
+              + c(m.FUNC_GET_VALUE, m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, m.GLOB_GAME_DAYS_PASSED))
+    p = m.field('EDID', m.zstring(FOLLOW_PERK_EDID))
+    p += m.field('VMAD', perk_vmad(FOLLOW_FRAGMENT, [(0, 'Fragment_Entry_00')]))
+    p += m.field('DESC', m.zstring(''))
+    p += m.field('DATA', bytes([0x00, 0x00, 0x01, 0x00, 0x01]))
+    p += m.field('PRKE', bytes([0x02, 0x00, 0x00]))
+    p += m.field('DATA', bytes([0x0E, 0x09, 0x02]))
+    p += m.field('PRKC', bytes([0x01]))
+    p += target
+    p += m.field('EPFT', bytes([0x04]))
+    p += m.field('EPFB', struct.pack('<H', 0))
+    p += m.field('EPF2', m.zstring(FOLLOW_LABEL))
+    p += m.field('EPF3', struct.pack('<H', 0))
+    p += m.field('PRKF', b'')
+    perk = m.record('PERK', FOLLOW_PERK, p)
+
+    return quest, perk, m.actor_value(FOLLOWING_AV, 'OvertureFollowing')
 
 
 def not_at_proposition():

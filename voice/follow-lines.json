@@ -1,0 +1,58 @@
+{
+  "_": "O-52 'Follow me' (owner, 2026-09-27). DRAFT - every line here waits for the owner's review before a single render. Said through Say(), one topic per line, the script picks the exact line by persona and variant, so no line carries a condition and any voice type may say it. The player's five versions are spoken in the player's own voice (O-45, O-46).",
+  "_kinds": "player = the player asks. agree = they will come. decline = not now. too_far = the player led them to the edge of their own place (a town, a settlement), or 60 m out in the open. give_up = two game hours passed, or the player ran off. arrival = somewhere private: they speak first, and the next talk opens at the proposition (O-30).",
+  "_rules": "Vulgar lines swear, degrade the listener and name something filthy (O-6, O-40), with no sex-specific word: these lines have no sex condition. Reticent lines stay shy. Two versions per persona and kind; the index is kind*8 + persona*2 + version (make_overture_esp map, 0x958-0x97F).",
+  "player": [
+    { "id": "fl_player_01", "text": "Come with me. Somewhere quieter." },
+    { "id": "fl_player_02", "text": "Walk with me a while?" },
+    { "id": "fl_player_03", "text": "Let's get out of here for a bit." },
+    { "id": "fl_player_04", "text": "Come on. I know a better spot." },
+    { "id": "fl_player_05", "text": "Not here. Follow me." }
+  ],
+  "lines": [
+    { "id": "fl_mercantile_agree_01", "kind": "agree", "persona": "mercantile", "text": "Lead the way. Make it worth the walk." },
+    { "id": "fl_mercantile_agree_02", "kind": "agree", "persona": "mercantile", "text": "Fine. I can spare you a little time." },
+    { "id": "fl_romantic_agree_01", "kind": "agree", "persona": "romantic", "text": "Anywhere you like. Lead on." },
+    { "id": "fl_romantic_agree_02", "kind": "agree", "persona": "romantic", "text": "I was hoping you'd ask." },
+    { "id": "fl_vulgar_agree_01", "kind": "agree", "persona": "vulgar", "text": "Fuck yes. Move that ass before I grab it right here." },
+    { "id": "fl_vulgar_agree_02", "kind": "agree", "persona": "vulgar", "text": "About fucking time, you slow little slut. Lead on." },
+    { "id": "fl_reticent_agree_01", "kind": "agree", "persona": "reticent", "text": "Oh... all right. I'll come." },
+    { "id": "fl_reticent_agree_02", "kind": "agree", "persona": "reticent", "text": "Okay. Just... not too far." },
+
+    { "id": "fl_mercantile_decline_01", "kind": "decline", "persona": "mercantile", "text": "I've got a living to make. Another time." },
+    { "id": "fl_mercantile_decline_02", "kind": "decline", "persona": "mercantile", "text": "Not today. I don't walk off for nothing." },
+    { "id": "fl_romantic_decline_01", "kind": "decline", "persona": "romantic", "text": "Not today... but ask me again sometime." },
+    { "id": "fl_romantic_decline_02", "kind": "decline", "persona": "romantic", "text": "I can't, not now. Don't give up on me." },
+    { "id": "fl_vulgar_decline_01", "kind": "decline", "persona": "vulgar", "text": "Piss off. I don't chase every horny little ass that winks at me." },
+    { "id": "fl_vulgar_decline_02", "kind": "decline", "persona": "vulgar", "text": "Fuck off. Beg dirtier than that and maybe I'll follow your filthy ass." },
+    { "id": "fl_reticent_decline_01", "kind": "decline", "persona": "reticent", "text": "I... I'd rather not. Sorry." },
+    { "id": "fl_reticent_decline_02", "kind": "decline", "persona": "reticent", "text": "Maybe some other time." },
+
+    { "id": "fl_mercantile_too_far_01", "kind": "too_far", "persona": "mercantile", "text": "This is as far as I go. I've got business back there." },
+    { "id": "fl_mercantile_too_far_02", "kind": "too_far", "persona": "mercantile", "text": "No further. I'm not leaving my patch." },
+    { "id": "fl_romantic_too_far_01", "kind": "too_far", "persona": "romantic", "text": "I shouldn't go any further. I'm sorry." },
+    { "id": "fl_romantic_too_far_02", "kind": "too_far", "persona": "romantic", "text": "This is as far as I go. Come find me." },
+    { "id": "fl_vulgar_too_far_01", "kind": "too_far", "persona": "vulgar", "text": "Fuck that, I'm not hiking across the wasteland for your sorry ass." },
+    { "id": "fl_vulgar_too_far_02", "kind": "too_far", "persona": "vulgar", "text": "This is as far as I go, slut. Want a fuck? Come back for it." },
+    { "id": "fl_reticent_too_far_01", "kind": "too_far", "persona": "reticent", "text": "I can't go any further. I'm sorry." },
+    { "id": "fl_reticent_too_far_02", "kind": "too_far", "persona": "reticent", "text": "This is too far from home for me." },
+
+    { "id": "fl_mercantile_give_up_01", "kind": "give_up", "persona": "mercantile", "text": "Time's money, and you're wasting both. I'm heading back." },
+    { "id": "fl_mercantile_give_up_02", "kind": "give_up", "persona": "mercantile", "text": "I've waited long enough. Maybe another time." },
+    { "id": "fl_romantic_give_up_01", "kind": "give_up", "persona": "romantic", "text": "I guess the moment passed. Maybe next time." },
+    { "id": "fl_romantic_give_up_02", "kind": "give_up", "persona": "romantic", "text": "I'll head back. Find me later?" },
+    { "id": "fl_vulgar_give_up_01", "kind": "give_up", "persona": "vulgar", "text": "Fuck this. I'm done waiting on your slow, useless ass." },
+    { "id": "fl_vulgar_give_up_02", "kind": "give_up", "persona": "vulgar", "text": "Too slow, slut. Go fuck yourself instead." },
+    { "id": "fl_reticent_give_up_01", "kind": "give_up", "persona": "reticent", "text": "I should get back. I'm sorry." },
+    { "id": "fl_reticent_give_up_02", "kind": "give_up", "persona": "reticent", "text": "Maybe it's better this way. I'll go." },
+
+    { "id": "fl_mercantile_arrival_01", "kind": "arrival", "persona": "mercantile", "text": "Quiet enough. So, what's this about?" },
+    { "id": "fl_mercantile_arrival_02", "kind": "arrival", "persona": "mercantile", "text": "This'll do. What did you have in mind?" },
+    { "id": "fl_romantic_arrival_01", "kind": "arrival", "persona": "romantic", "text": "Just the two of us. Finally." },
+    { "id": "fl_romantic_arrival_02", "kind": "arrival", "persona": "romantic", "text": "This is perfect. Now... where were we?" },
+    { "id": "fl_vulgar_arrival_01", "kind": "arrival", "persona": "vulgar", "text": "Nobody's watching. Get on your fucking knees." },
+    { "id": "fl_vulgar_arrival_02", "kind": "arrival", "persona": "vulgar", "text": "Good enough. Now strip, you filthy little slut." },
+    { "id": "fl_reticent_arrival_01", "kind": "arrival", "persona": "reticent", "text": "It's... quiet here. Good." },
+    { "id": "fl_reticent_arrival_02", "kind": "arrival", "persona": "reticent", "text": "Okay. Nobody can see us here." }
+  ]
+}

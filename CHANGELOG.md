@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **"Follow me."** Someone who tells you "not here" now follows you somewhere quieter. And for anyone
+  you've warmed up (a line landed, a yes before, or an invitation today), "Follow me" sits beside Talk.
+  They answer in their own voice and come along if they would. They keep to their own place: anywhere in
+  their town or settlement, never out of it ("This is as far as I go"); in the open, about 60 m. After two
+  game hours without somewhere private, or if you run off, they head back. Once you're alone, they speak
+  first, and your next talk opens at the proposition.
 - **Heather Casdin: her romance counts.** Overture now recognises Heather, who runs her own companion
   system rather than the game's. Once her own story makes you a couple, the Narrator says so, other
   NPCs treat her as spoken for, and she hears about your other scenes like any lover. Moments and

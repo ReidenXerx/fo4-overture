@@ -68,6 +68,7 @@ Int Property STAGE_REACHED_AV_ID = 0x00000844 AutoReadOnly
 Int Property TIER_AV_ID = 0x00000848 AutoReadOnly
 Int Property SAID_YES_AV_ID = 0x00000849 AutoReadOnly
 Int Property INVITED_UNTIL_AV_ID = 0x0000084A AutoReadOnly
+Int Property FOLLOW_QUEST_ID = 0x00000940 AutoReadOnly   ; O-52, Overture:Follow
 Int Property JEALOUSY_MARK_AV_ID = 0x0000084B AutoReadOnly
 ; OvertureJealousPending: the persona + 1 of a lover who heard, at the player's
 ; scene with someone else, and has not said it yet -- the greeting reads it (O-33).
@@ -641,6 +642,17 @@ Function Finish(Conversation c, Bool abTidy)
 	Debug.Trace("Overture: the conversation with " + who.GetFormID() + " ended - last reply stage " + c.stage + " outcome " + c.outcome + note, 0)
 	If abTidy
 		Self.Tidy(who)
+	EndIf
+	; O-52: "not here" -- they would, just not in front of everyone -- and they follow the
+	; player somewhere quieter. Any other end lets a follower go: a yes goes on to its scene
+	; below, anything else back to their day. Companions follow by their own framework.
+	Overture:Follow follow = Game.GetFormFromFile(FOLLOW_QUEST_ID, "Overture.esp") as Overture:Follow
+	If follow != None
+		If c.outcome == OUTCOME_NOT_HERE && !c.companion
+			follow.BeginAfterNotHere(who)
+		Else
+			follow.Release(who)
+		EndIf
 	EndIf
 	; The yes's scene, asked for now that the dialogue has closed. O-16's hold has
 	; kept the slot since the verdict.

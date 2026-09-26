@@ -62,7 +62,9 @@ TOPIC_BASE = 0x01000810   # one DIAL per register
 #                is PUBLISHED: fo4-anatomy reads it (companions/README.md). Never renumber.
 #                0x850, 0x852 and 0x854 stay reserved for the variants not built (B's Trust and
 #                Devotion, A's mirror); 0x859 and 0x85C-0x85F are unused.
-#   0x900-0x90B  the player's lines, stages 1-3
+#   0x900-0x90B  the player's lines, stages 1-3 (their versions to 0x93B, PLAYER_VARIANT_BASE)
+#   0x940-0x9BF  O-52 "Follow me" (overture_stages.FOLLOW_*): quest 0x940, branch 0x941, perk
+#                0x942, OvertureFollowing 0x943; lines 0x950-0x97F, each topic at +0x30 (0x980-0x9AF)
 #   0xA00-0xA9F  stage 1 replies and recoils       0xB00-0xB9F  stage 2
 #   0xC00-0xCFF  stage 3                            0xD00-0xD5F  fallbacks
 #   0xE10-0xEFF  the companion wheel's answers
