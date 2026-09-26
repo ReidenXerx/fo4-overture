@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **"Ask for a moment" shows only where it can open a conversation.** The choice on a companion's
+  prompt could appear during the game's opening, or while they were in a scene, where Overture's
+  conversation cannot start; picking it then just opened their own talk. It now follows the same
+  rules as the conversation it opens.
+- **The log says what happened to an "Ask for a moment".** Papyrus.0.log now says whether the
+  conversation opened, and if it did not, why not (lines start "Overture companions:").
+
 ## 0.1.1 (2026-09-26)
 
 - **Not during the game's opening.** Talking to your spouse, a neighbour or the Vault-Tec rep in

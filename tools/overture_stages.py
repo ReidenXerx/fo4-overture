@@ -766,7 +766,13 @@ def ask_perk():
                               spirit)
     Shown only when a conversation could really open: their Moment value vouched (1-3),
     the day's stamp open, their own conversation not waiting, not in combat. Touches no
-    record of theirs (C1). Moments.Hook gives the perk to the player."""
+    record of theirs (C1). Moments.Hook gives the perk to the player.
+
+    Every gate of the greeting it opens (greeting_info) that the Moment value does not
+    already carry is repeated here: not in a scene, and not during the game's opening
+    (the same OR group). Without them the choice could show where the greeting cannot
+    pass, and the talk it asked for fell through to their own (a Nexus report,
+    2026-09-26: "asking a companion for a moment does nothing")."""
     target = b''
     for func, param, value, op, glob in (
             (m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, 1.0, m.CTDA_OP_EQ, None),
@@ -774,7 +780,12 @@ def ask_perk():
             (m.FUNC_GET_VALUE, m.NEXT_DAY_AV, 0.0, m.CTDA_OP_LE, m.GLOB_GAME_DAYS_PASSED),
             (m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
-            (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None)):
+            (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None),
+            # greeting_info's opening OR group: CTDA_OR on all but the last, ANDed with the above.
+            (m.FUNC_GET_STAGE, m.QUEST_MQ101, 1.0, m.CTDA_OP_LT | m.CTDA_OR, None),
+            (m.FUNC_GET_STAGE, m.QUEST_MQ101, float(m.MQ101_OVER), m.CTDA_OP_GE | m.CTDA_OR, None),
+            (m.FUNC_GET_GLOBAL_VALUE, m.OPENING_GLOBAL, 1.0, m.CTDA_OP_EQ, None)):
         target += m.field('CTDA', m.condition(func, param, value=value, op=op, runon=m.RUNON_SUBJECT,
                                               value_global=glob))
     f = m.field('EDID', m.zstring(COMPANION_ASK_PERK_EDID))
