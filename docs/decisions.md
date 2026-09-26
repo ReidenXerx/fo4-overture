@@ -819,3 +819,9 @@ and they could go with you like on the opposite of the map".
   conversation opens at the proposition, as the "not here" invitation already does (O-30).
 - **Voiced**: every new line goes through the voice pipeline (transcribed back, checked word for word).
   The character count and cost are shown to the owner before anything is spent.
+- **Amended the same day: "Follow me" is asked beside Talk, not on the wheel.** Every stage's wheel fills
+  all four slots with the registers (O-4), and XDI adds none: its DLL only reads and presents the engine's
+  options (GetDialogueOptions / SelectDialogueOption), and its Papyrus API has no way to add one. So the
+  owner chose an extra choice on the NPC's activation prompt, the "Ask for a moment" mechanism (O-35).
+  It shows only for someone warm (landed before, or invited). The player says the line, and the NPC
+  answers in their own voice and follows if willing.
