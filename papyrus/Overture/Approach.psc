@@ -962,9 +962,11 @@ Float Function Tuned(String asKey, Float afDefault)
 EndFunction
 
 ; "A yes starts a scene" -- an MCM setting, like the numbers, so a new default
-; reaches every save. Off without Overture's settings, which is its default.
+; reaches every save: a player who never touched it gets the shipped default, one who
+; set it keeps their own (MCM\Settings\Overture.ini is read before the shipped
+; settings.ini). ON by default (O-50), and on without Overture's settings too.
 Bool Function ScenesOn()
-	Return Rapport:Core.ModSettingBool("Overture", "bScenes:Switches", False)
+	Return Rapport:Core.ModSettingBool("Overture", "bScenes:Switches", True)
 EndFunction
 
 ; What a reply is worth to the bond (docs/methodology.md 3): a fraction of the

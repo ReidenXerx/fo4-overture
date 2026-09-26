@@ -501,7 +501,7 @@ whose last reply never ends.
 | stage-3 verdict | `Overture:Approach.Decide(npc, bond, public)` at the stage-2 land's `OnBegin`, on the bond that land will write (`AfterLand`), into `OvertureVerdict` | built; the gate and every answer set **VERIFIED** with the verdict set by console |
 | no line ends the scene | no reply carries ENAM `0x40` — XDI turns it into the option's `endsScene` for its menu (xdi `DialogueEx.cpp` 301), and the yes showed as `[ends scene]` on the wheel | **VERIFIED** (G2b) |
 | failed, do not retry | `0x40` on the ending replies (it ended the scene before HandBack); a TSCE + NAM0 phase jump (the engine restarted the scene from phase 1, with and without Start Scene on End) | measured 2026-09-23 |
-| stage 4 | the conversation's end, after a yes → `RequestScene(player, npc, scenario)` re-checked and retried, then `NoteAffair` if it took, behind the MCM setting "A yes starts a scene" (off by default; `approach scenes on`) | built, OFF; to prove: the player in a Rapport scene (and Rapport's barks, §5) |
+| stage 4 | the conversation's end, after a yes → `RequestScene(player, npc, scenario)` re-checked and retried, then `NoteAffair` if it took, behind the MCM setting "A yes starts a scene" (ON by default since 0.1.2, O-50; `approach scenes off`) | built, ON; to prove: the player in a Rapport scene (and Rapport's barks, §5) |
 | scenario | vulgar → `quickie` outdoors, `athome` indoors; romantic → `tender`; mercantile and reticent → `athome` indoors, `tender` outdoors — ASSUMED | |
 | the follow | a second alias with a follow package, filled by the "not here" reply's script, cleared on scene or lapse | to prove; poll |
 

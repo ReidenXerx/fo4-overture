@@ -765,3 +765,15 @@ holds for her. Asked whether to change it (both routes / ask only / only her own
 Found along the way, fixed in 8e23ab7: the gate log in Moments only spoke when the Moment value CHANGED,
 so a companion refused from 0 logged nothing. It now logs every companion's first answer and every
 change, and names the adapter when someone becomes a companion.
+
+## O-50 — "A yes starts a scene" is ON by default (owner, 2026-09-26)
+
+A Nexus player (hibashehadeh) reported that asking a companion for a moment "does nothing". One reading of
+that report is the default: with `bScenes:Switches` off, a yes only records markers. Asked about the default,
+the owner answered: **"ofc always on"**, and shipped a hotfix (0.1.2).
+- The MCM default (`SWITCHES` in `overture_stages.py`, hence `settings.ini`) and the script's own fallback
+  (`Approach.ScenesOn`) are both true.
+- Existing saves: MCM keeps a player's value in `MCM\Settings\Overture.ini`, which Rapport's reader tries
+  before the shipped `settings.ini`. A player who never touched the switch gets ON after updating. One who
+  set it keeps their value, OFF included. MCM settings are per install, not per save.
+- This supersedes the earlier "off until a player scene is proven end to end" (methodology stage 4).

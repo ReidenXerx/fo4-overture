@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-09-26)
 
+- **"A yes starts a scene" is now on by default.** When someone says yes, Rapport starts the scene.
+  Updating flips it on for everyone who never touched the setting; if you switched it yourself in
+  MCM, your choice is kept.
 - **"Ask for a moment" shows only where it can open a conversation.** The choice on a companion's
   prompt could appear during the game's opening, or while they were in a scene, where Overture's
   conversation cannot start; picking it then just opened their own talk. It now follows the same

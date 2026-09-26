@@ -239,10 +239,12 @@ SETTINGS = [
 # The switches that are MCM settings (the other, OvertureEnabled, is a global: the
 # greeting's own conditions read it).  (key, ini section, default, label, help)
 SWITCHES = [
-    ('bScenes', 'Switches', False, 'A yes starts a scene',
+    # O-50 (owner, 2026-09-26): ON by default -- "ofc always on". Off, a yes started
+    # nothing, and a Nexus player read that as the mod doing nothing.
+    ('bScenes', 'Switches', True, 'A yes starts a scene',
      'When someone says yes, Rapport starts the scene. Off: they say yes and nothing more happens.'),
     # O-20 (owner, 2026-09-23): ON by default -- and it acts only with "A yes starts a
-    # scene" on, which is how "after a player scene is proven end to end" is kept.
+    # scene" on.
     ('bIvyFade', 'Ivy', True, "Ivy: her fade becomes a scene",
      "When Ivy's own Favor: Sex scene fades to black, Rapport plays the scene, then hers carries on. "
      "Needs 'A yes starts a scene'."),

@@ -88,6 +88,10 @@ Get-ChildItem $pex -Recurse -Filter *.pex | ForEach-Object {
     New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null
     Copy-Item $_.FullName $dst -Force
 }
+# The staged copies only (build\papyrus keeps its own): no .pex in a stranger's
+# download names this machine's folders, user or computer.
+& python (Join-Path $PSScriptRoot 'strip-pex.py') (Join-Path $stage 'Scripts') 'Overture'
+if ($LASTEXITCODE -ne 0) { throw 'strip-pex.py failed - nothing packaged.' }
 
 $mcm = Join-Path $root 'data\MCM'
 if (-not (Test-Path $mcm)) { throw "No data\MCM. Run tools/make_mcm.py." }
