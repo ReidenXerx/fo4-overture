@@ -109,6 +109,12 @@ Overture:Companions:Adapter Function AdapterFor(Actor akWho)
 	If ivy != None && ivy.IsHers(akWho)
 		Return Self.Named("Overture:Companions:EngineAdapter")
 	EndIf
+	; Heather is not on the framework (her actor script extends Actor), so the framework
+	; adapter never claims her either way; hers reads her romance (O-51).
+	a = Self.Named("Overture:Companions:HeatherAdapter")
+	If a != None && a.Claims(akWho)
+		Return a
+	EndIf
 	a = Self.Named("Overture:Companions:VanillaAdapter")
 	If a != None && a.Claims(akWho)
 		Return a

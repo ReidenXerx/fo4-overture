@@ -140,6 +140,10 @@ Function Hook()
 	If ivyAdapter != None
 		ivyAdapter.Revalidate()
 	EndIf
+	Overture:Companions:HeatherAdapter heatherAdapter = (Self as Quest) as Overture:Companions:HeatherAdapter
+	If heatherAdapter != None
+		heatherAdapter.Revalidate()
+	EndIf
 	Int i = 0
 	While i < _watched.Length
 		If _watched[i] != None

@@ -777,3 +777,26 @@ the owner answered: **"ofc always on"**, and shipped a hotfix (0.1.2).
   before the shipped `settings.ini`. A player who never touched the switch gets ON after updating. One who
   set it keeps their value, OFF included. MCM settings are per install, not per save.
 - This supersedes the earlier "off until a player scene is proven end to end" (methodology stage 4).
+
+## O-51 — Heather: romance only, through an adapter of her own (owner poll, 2026-09-26)
+
+alasdairn (Discord) reported that Heather never gets "you and Heather are a couple now" while other
+companions do. The cause: O-41 listed Heather among the companions "on the game's own framework", and
+she is not. Her actor script, `llama_:llama_HeatherActorScript`, extends `Actor`, not
+`CompanionActorScript`, so `VanillaAdapter.Claims` never held for her and she fell through to the engine
+fallback, which reports no romance. She keeps her own affinity points and her own quests (291 scripts in
+her archive, v2.7). The one thing she shares with the framework is its romance flag: the relationship
+stage of her core quest runs `HeatherActor.SetValue(Ca_isRomantic, 1.0)`, "added in v2.4 for
+compatibility with various other mods" (her source, shipped in her BA2).
+
+Asked what Overture should give her (romance only / full like vanilla / leave her out), the owner chose
+**romance only**:
+- `HeatherAdapter` claims her by her plugin's NPC (00AB33, validated with her core quest 00C9BA and
+  its script once per load) and reads `CA_IsRomantic` on her actor.
+- Romanced, she becomes the player's lover to the world through the path every companion takes
+  (`Feeders.OwnRomance`): the Narrator's line, Chemistry's "spoken for", Rapport's lovers. A lover's
+  jealousy (O-29) applies to her as to anyone.
+- No moments and no "Ask for a moment": her voiced content is hers, as Ivy's is (O-49). Her affinity
+  is not mapped (`KnowsAffinity` False).
+- O-41's list is corrected here: Heather was never on the framework. The other mod companions it
+  names (Dr Cabbage, Leer, Frost, Hosea) are unchecked.

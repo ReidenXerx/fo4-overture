@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Heather Casdin: her romance counts.** Overture now recognises Heather, who runs her own companion
+  system rather than the game's. Once her own story makes you a couple, the Narrator says so, other
+  NPCs treat her as spoken for, and she hears about your other scenes like any lover. Moments and
+  "Ask for a moment" stay off for her: her own voiced content is hers.
+
 ## 0.1.2 (2026-09-26)
 
 - **"A yes starts a scene" is now on by default.** When someone says yes, Rapport starts the scene.

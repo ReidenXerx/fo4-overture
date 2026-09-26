@@ -126,7 +126,7 @@ COMPANION_FALLBACK = 0x28            # within a slot: + 0 no persona, + 1 no ver
 COMPANION_GENDERED_BASE = 0x01000D60
 COMPANION_SCRIPTS = ('Overture:Companions:Registry', 'Overture:Companions:EngineAdapter',
                      'Overture:Companions:VanillaAdapter', 'Overture:Companions:IvyAdapter',
-                     'Overture:Companions:Feeders', 'Overture:Companions:Moments',
+                     'Overture:Companions:HeatherAdapter', 'Overture:Companions:Feeders', 'Overture:Companions:Moments',
                      'Overture:Companions:IvyNative')
 # OvertureCompanionMoment. 0: not ours to open (C6 -- no adapter vouches, their own
 # scene, their state says no). 1: vouched, so the player may ask (O-23, O-35). 2: a
