@@ -167,13 +167,20 @@ def main():
     # O-45 (owner, 2026-09-25): the player's own lines, in the two designed player voices only.
     player_path = ROOT / "voice" / "player-lines.json"
     player_bank = json.loads(player_path.read_text(encoding="utf-8"))["lines"] if player_path.is_file() else []
+    # O-52 (owner, 2026-09-27): "Follow me". Its NPC lines join the bank; the player's five
+    # join the player's bank, so only the two player voices stage them. They are Say() lines
+    # with no prompt (RNAM), so read_infos files them with the NPC INFOs, and the bank they
+    # belong to is what keeps each in the right voices.
+    follow_path = ROOT / "voice" / "follow-lines.json"
+    follow = json.loads(follow_path.read_text(encoding="utf-8")) if follow_path.is_file() else {"lines": [], "player": []}
+    player_bank = player_bank + [{"id": ln["id"], "kind": "player", "text": ln["text"]} for ln in follow["player"]]
     player_ids = {ln["id"] for ln in player_bank}
     # O-47 (owner, 2026-09-25): the companions' own lines are VOICED now, in our voices; each
     # companion borrows the nearest same-sex one through Rapport's dialogue hook (O-43), exactly
     # as the Mayor does. They were subtitles by design while no voice of ours could speak for
     # a unique voice type.
     companion_bank_lines = json.loads((ROOT / "voice" / "companion-lines.json").read_text(encoding="utf-8"))["lines"]
-    bank = bank + player_bank + companion_bank_lines
+    bank = bank + player_bank + companion_bank_lines + follow["lines"]
     line_of = {ln["text"]: ln["id"] for ln in bank}
     if len(line_of) != len(bank):
         raise SystemExit("two bank lines share a text: a spoken text no longer names one line")

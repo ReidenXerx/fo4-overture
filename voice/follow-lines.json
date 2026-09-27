@@ -13,7 +13,7 @@
     { "id": "fl_mercantile_agree_01", "kind": "agree", "persona": "mercantile", "text": "Lead the way. Make it worth the walk." },
     { "id": "fl_mercantile_agree_02", "kind": "agree", "persona": "mercantile", "text": "Fine. I can spare you a little time." },
     { "id": "fl_romantic_agree_01", "kind": "agree", "persona": "romantic", "text": "Anywhere you like. Lead on." },
-    { "id": "fl_romantic_agree_02", "kind": "agree", "persona": "romantic", "text": "I was hoping you'd ask." },
+    { "id": "fl_romantic_agree_02", "kind": "agree", "persona": "romantic", "text": "I was hoping you'd ask me." },
     { "id": "fl_vulgar_agree_01", "kind": "agree", "persona": "vulgar", "text": "Fuck yes. Move that ass before I grab it right here." },
     { "id": "fl_vulgar_agree_02", "kind": "agree", "persona": "vulgar", "text": "About fucking time, you slow little slut. Lead on." },
     { "id": "fl_reticent_agree_01", "kind": "agree", "persona": "reticent", "text": "Oh... all right. I'll come." },
@@ -33,7 +33,7 @@
     { "id": "fl_romantic_too_far_01", "kind": "too_far", "persona": "romantic", "text": "I shouldn't go any further. I'm sorry." },
     { "id": "fl_romantic_too_far_02", "kind": "too_far", "persona": "romantic", "text": "This is as far as I go. Come find me." },
     { "id": "fl_vulgar_too_far_01", "kind": "too_far", "persona": "vulgar", "text": "Fuck that, I'm not hiking across the wasteland for your sorry ass." },
-    { "id": "fl_vulgar_too_far_02", "kind": "too_far", "persona": "vulgar", "text": "This is as far as I go, slut. Want a fuck? Come back for it." },
+    { "id": "fl_vulgar_too_far_02", "kind": "too_far", "persona": "vulgar", "text": "This is as far as I go, slut. Want my ass? Come back and fucking beg." },
     { "id": "fl_reticent_too_far_01", "kind": "too_far", "persona": "reticent", "text": "I can't go any further. I'm sorry." },
     { "id": "fl_reticent_too_far_02", "kind": "too_far", "persona": "reticent", "text": "This is too far from home for me." },
 
