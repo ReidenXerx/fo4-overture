@@ -61,6 +61,12 @@ Their days, fights and affinity levels feed Rapport's bond. Ivy keeps her own sc
 and with scenes on her fade to black becomes a Rapport scene. Companion lines are voiced too, each
 companion in the nearest voice Overture has (O-47). Ivy keeps only her own route (O-49).
 
+Built, not yet run in game: **"Follow me"** (O-52). Someone who says "not here" follows you somewhere
+quieter, and anyone you've warmed up can be asked with "Follow me" beside Talk. They keep to their own
+place (their town or settlement; about 60 m in the open), give up after two game hours or if you run
+off, and once you're alone they speak first and the talk opens at the proposition. Heather Casdin's own
+romance counts as a couple (O-51).
+
 What it is becoming: `docs/methodology.md` — the whole design, the numbers it writes and why, and the
 owner's open questions.
 

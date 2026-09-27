@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 (2026-09-27)
 
 - **"Follow me."** Someone who tells you "not here" now follows you somewhere quieter. And for anyone
   you've warmed up (a line landed, a yes before, or an invitation today), "Follow me" sits beside Talk.
@@ -12,6 +12,8 @@
   system rather than the game's. Once her own story makes you a couple, the Narrator says so, other
   NPCs treat her as spoken for, and she hears about your other scenes like any lover. Moments and
   "Ask for a moment" stay off for her: her own voiced content is hers.
+- **New and not yet played at length.** Both are new in this release. If someone follows you
+  somewhere odd, or won't come, Papyrus.0.log says why (lines start "Overture follow:"). Please tell us.
 
 ## 0.1.2 (2026-09-26)
 
