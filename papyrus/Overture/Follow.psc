@@ -4,9 +4,10 @@ owner asked for it because "in old analogue mods [they] could go with you like o
 opposite of the map".
 
 TWO WAYS IN. Someone who answers "not here" (they would have said yes, but too many are
-watching) follows you, from Approach.Finish. And "Follow me" beside Talk (the perk,
-Overture:Fragments:FollowPerk) asks anyone warm -- landed with you before, said yes
-once, or invited back today -- and they answer in their own voice.
+watching) follows you, from Approach.Finish. And "Follow me" on Overture's menu (O-53;
+it was a perk choice beside Talk until 0.1.4) asks anyone warm -- landed with you before,
+said yes once, or invited back today -- and they answer in their own voice: Willing
+decides as the conversation opens, and a yes begins it from Approach.Finish.
 
 HOW THEY FOLLOW. Alias 0 of this quest carries vanilla's FollowPlayer package (Fallout4.esm
 PACK 0002A105, its target the player): the engine walks them after you, through doors,
@@ -82,13 +83,20 @@ Event OnQuestInit()
 	Self.GivePerk()
 EndEvent
 
-; "Follow me" beside Talk: the perk is the player's, given on start and on every load
-; (as Moments gives "Ask for a moment"). Its own conditions decide where it shows.
+; O-53 (owner, 2026-09-30): the prompt shows one choice, "Overture" (OvertureTryPerk), and
+; Follow me lives on the menu that choice opens. Given on start and on every load (as
+; Moments gives "Ask for a moment"); its own conditions decide where it shows. The old
+; "Follow me" perk is taken back from a save that has it -- two choices beside Talk were
+; never measured to both show.
 Function GivePerk()
 	Actor player = Game.GetPlayer()
 	Perk follow = Game.GetFormFromFile(0x00000942, "Overture.esp") as Perk
-	If follow != None && !player.HasPerk(follow)
-		player.AddPerk(follow, False)
+	If follow != None && player.HasPerk(follow)
+		player.RemovePerk(follow)
+	EndIf
+	Perk tryPerk = Game.GetFormFromFile(0x00000944, "Overture.esp") as Perk
+	If tryPerk != None && !player.HasPerk(tryPerk)
+		player.AddPerk(tryPerk, False)
 	EndIf
 EndFunction
 

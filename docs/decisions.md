@@ -825,3 +825,39 @@ and they could go with you like on the opposite of the map".
   owner chose an extra choice on the NPC's activation prompt, the "Ask for a moment" mechanism (O-35).
   It shows only for someone warm (landed before, or invited). The player says the line, and the NPC
   answers in their own voice and follows if willing.
+- **Moved again in 0.1.4 (O-53): onto Overture's menu.** The prompt now carries one choice, "Overture",
+  and its conversation begins with a menu that has room for Follow me.
+
+## O-53 — Overture opens by its own key; R opens a menu (owner, 2026-09-28 and 2026-09-30)
+
+alasdairn found that a plain Talk on a quest NPC opened Overture instead of their quest: the greeting
+runs at priority 100, above most quest greetings, and it also opened on NPCs who had not noticed the
+player yet. The owner: "we will do it at wednesday". This retires O-7's "no hotkey".
+- **Plain E is always theirs.** Every stranger greeting (the plain one, the lovers', the jealous ones)
+  now also needs OvertureTryUntil > GameDaysPassed, a stamp the prompt's "Overture" choice writes, OR a
+  running invitation (O-30: "not now", "not here", a Follow me arrival), which still opens on E.
+- **R = "Overture"**, a perk choice beside Talk (OvertureTryPerk 0x944, AskPerk's shape, the stranger
+  greeting's own gates). It stamps them for about half a game hour and activates them.
+- **R opens a menu, not two prompt choices.** The first plan put "Try your luck" beside "Follow me" on
+  the prompt, and whether the prompt shows two extra choices was never measured. Asked, the owner chose:
+  "lets make R that go to dialogue which has try your luck and follow me". The scene's new first phase
+  (Menu, for a conversation that carries the stamp) offers Try your luck (on to the stages), Follow me
+  (warm people only; the answer is decided by Follow.Willing as the conversation opens, in the persona's
+  own recorded lines), Later. (closes) and Just talk (HandBack's re-greet: their own dialogue). Ending on
+  the menu costs no day stamp and says nothing through the Narrator. The "Follow me" perk is taken back
+  from older saves.
+- **Not asleep.** GetSleeping (condition function 49, == 0; measured on Fallout4.esm, where raider idle
+  lines test == 0 and MisterSandman01 == 3; 175 is IsPCSleeping) on every greeting and both perks.
+- **Found on the way: "Ask for a moment" never opened for any companion.** The fragment activated them
+  with Activate(player, True), default processing only, and got a bare hello (owner and alasdairn,
+  2026-09-28: "R just does nothing", "every companion"). The only scripted activation ever seen to open
+  a greeting flagged Requires Player Activation is Activate(player, False), F4MCP's talk verb, which is how
+  O-7 was verified. Both Ask and the new "Overture" use False.
+- **Not a change: the 0x08 flag.** A general-mods measurement said Overture's greetings lack Requires
+  Player Activation. The shipped 0.1.3 ESP has it on every greeting (0x831 = 0x08, the rest 0x0A/0x2A).
+- **AFT's Nora.** AFT's spouse joins CurrentCompanionFaction and HasBeenCompanionFaction only at the end
+  of its vault-exit scene (TweakCOMSpouseScript.ExitVaultReactionFinished, SetCompanion). Before that she
+  is a stranger to every framework, so she met the stranger's approach. With O-53 she gets it only when
+  the player picks "Overture" on her.
+- **Heather** has no R by design (O-51).
+

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.4 (2026-09-30)
+
+- **Overture has its own button now.** Pressing E on someone always gets you their own talk: their
+  quest, their shop, their story. Overture is **R, "Overture"**, beside Talk. It opens a short menu:
+  **Try your luck** (the approach, as before), **Follow me** (for anyone you've warmed up; it used to sit
+  on the prompt), **Just talk** (their own dialogue) and **Later.** Someone who invited you back
+  ("not now", "not here", or a Follow me arrival) still opens Overture on a plain E.
+- **Nobody is approached in their sleep.** No greeting, no "Overture" choice and no companion moment
+  while someone is asleep.
+- **"Ask for a moment" works on companions.** Picking it made them say a short hello and nothing
+  else, on every companion. It now opens the conversation it asks for.
+- Following the menu and ending there ("Later.", "Just talk", Follow me) no longer uses up the
+  day's approach with that person.
+
 ## 0.1.3 (2026-09-27)
 
 - **"Follow me."** Someone who tells you "not here" now follows you somewhere quieter. And for anyone

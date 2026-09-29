@@ -595,6 +595,11 @@ FUNC_GET_PLAYER_TEAMMATE = 453   # the player's current companion(s)
 FUNC_HAS_KEYWORD = 560
 FUNC_IS_IN_SCENE = 590
 FUNC_IS_SNEAKING = 286
+# GetSleeping, 0 = awake (O-53: nobody is approached asleep). MEASURED 2026-09-30 with a
+# CTDA scan of Fallout4.esm: 49 is compared == 0 on raider idle INFOs and == 3 (asleep) on
+# MisterSandman01's perk; xEdit's wbDefinitionsFO4 names it. NOT 175, the index recalled
+# from Skyrim: 175 is IsPCSleeping.
+FUNC_GET_SLEEPING = 49
 RUNON_REFERENCE = 2
 PLAYER_REF = 0x00000014
 # GetIsSex, for O-40c's male and female versions of a line. MEASURED 2026-09-24 with
@@ -626,7 +631,7 @@ CTDA_OR = 0x01                    # OR with the NEXT condition -- and OR binds t
 CTDA_USE_GLOBAL = 0x04            # the compared value is a GLOB form id
 
 
-def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_count=0):
+def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_count=0, opens_when=b''):
     """The GREE topic, and the line that starts the scene.
 
     THIS IS THE PIECE THAT MAKES IT WORK. Measured on FFGoodneighbor02: its
@@ -644,6 +649,11 @@ def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_co
     eligibility conditions land, the only gate is OvertureArmed. (It used to be
     GetIsAliasRef on a hand-filled alias, which is what the dev verb existed to
     fill.)
+
+    `opens_when`: more conditions on every STRANGER line (the plain, lover and
+    jealous greetings; the companion's come prebuilt). The staged build passes
+    O-53's -- the player chose "Try your luck", or an invitation still runs -- so
+    a plain E on anyone else gets their own talk.
     """
     f = field('EDID', zstring('OvertureGreeting'))
     f += field('PNAM', struct.pack('<f', 50.0))
@@ -708,7 +718,8 @@ def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_co
                                    ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
                                    sex_conditions(l)
                                    + field('CTDA', condition(FUNC_GET_VALUE, JEALOUS_PENDING_AV,
-                                                             value=float(persona_index + 1), runon=RUNON_SUBJECT)))
+                                                             value=float(persona_index + 1), runon=RUNON_SUBJECT))
+                                   + opens_when)
     for i, l in enumerate(lover_lines):
         if gendered(l):
             # 0x832..0x835 has no room for a gendered layout, and nothing needs one yet.
@@ -716,8 +727,8 @@ def greeting(lover_lines=(), jealous_lines=(), companion_infos=b'', companion_co
         last = i == len(lover_lines) - 1
         infos += greeting_info(LOVER_GREET_BASE + i, l['text'],
                                ENAM_REQUIRES_PLAYER_ACTIVATION | ENAM_RANDOM | (ENAM_RANDOM_END if last else 0),
-                               lover_when)
-    infos += greeting_info(GREET_INFO, '...', ENAM_REQUIRES_PLAYER_ACTIVATION, b'')
+                               lover_when + opens_when)
+    infos += greeting_info(GREET_INFO, '...', ENAM_REQUIRES_PLAYER_ACTIVATION, opens_when)
     return topic + child_group(GREET_TOPIC, 7, infos)
 
 

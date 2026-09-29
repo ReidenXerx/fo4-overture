@@ -400,9 +400,15 @@ EndFunction
 
 ; O-35: the player chose "Ask for a moment" on the companion's prompt (the perk's
 ; fragment, Overture:Fragments:AskPerk). Marked ASKED, then activated the way a talk
-; is -- default processing only, so no perk choice runs again -- and Overture's
-; greeting, whose second run needs ASKED, opens the conversation. Its conditions still
-; decide: the perk shows only where they would pass.
+; is, and Overture's greeting, whose second run needs ASKED, opens the conversation.
+; Its conditions still decide: the perk shows only where they would pass.
+;
+; Activate(player, FALSE). It was True ("default processing only, so no perk choice runs
+; again") through 0.1.3, and every companion answered R with a bare bark: owner and
+; alasdairn, 2026-09-28, "R just does nothing". The only scripted activation ever seen to
+; open a greeting that Requires Player Activation is False -- F4MCP's talk verb (Bridge.psc,
+; kUse), which is how O-7 was verified on Charlie and Harold Roach, 2026-09-23. A
+; non-replacing Activate choice only adds a button, so False runs no perk choice either.
 ;
 ; Every way this can come to nothing is said in the log: a Nexus report (2026-09-26)
 ; read "asking a companion for a moment does nothing", and the first build said
@@ -420,7 +426,7 @@ Function Ask(Actor akWho)
 	akWho.SetValue(av, MOMENT_ASKED as Float)
 	_askedAt = Utility.GetCurrentGameTime()
 	Debug.Trace("Overture companions: the player asked " + akWho.GetFormID() + " for a moment", 0)
-	akWho.Activate(Game.GetPlayer(), True)
+	akWho.Activate(Game.GetPlayer() as ObjectReference, False)
 	; Did Overture's greeting take it? Its scene holds them once it has.
 	Utility.Wait(2.0)
 	Scene ours = Game.GetFormFromFile(0x00000801, "Overture.esp") as Scene

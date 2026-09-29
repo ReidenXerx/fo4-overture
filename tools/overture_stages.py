@@ -156,6 +156,34 @@ MOMENT_VOUCHED, MOMENT_OPEN, MOMENT_ASKED = 1, 2, 3
 # Registers decide nothing here: a companion's answer is their state and their
 # wanting, never the player's choice of words (O-22, B-lite).
 COMPANION_WHEEL = (('PTOP', 'charm'), ('NETO', 'later'), ('NTOP', 'blunt'), ('QTOP', 'linger'))
+# O-53 (owner, 2026-09-30): Overture opens by its own key. Plain E on a stranger is always
+# their own talk; R -- "Overture", a perk choice beside Talk -- stamps OvertureTryUntil and
+# activates them, and the greeting requires that stamp (or a running invitation). The
+# conversation it opens starts on a MENU wheel (the owner: "R that go to dialogue which has
+# try your luck and follow me"): Try your luck goes on to the stages, Follow me is O-52's
+# ask, moved here off the prompt so the prompt never needs two choices. Ids in O-52's range.
+TRY_PERK = 0x01000944
+TRY_PERK_EDID = 'OvertureTryPerk'
+TRY_FRAGMENT = 'Overture:Fragments:TryPerk'
+TRY_LABEL = 'Overture'
+TRY_UNTIL_AV = 0x01000945        # the game time the R stamp lasts until (Approach.TryYourLuck)
+FOLLOW_WILLING_GLOBAL = 0x01000946   # 1 if they would follow: Approach.Opening decides it
+MENU_PLAYER_TOPIC = 0x01000947   # four, one per slot, 0x947-0x94A
+MENU_NPC_TOPIC = 0x0100094B      # four, 0x94B-0x94E
+MENU_PLAYER_INFO = 0x010009B0    # try 0x9B0, follow's five versions 0x9B1-0x9B5, later 0x9B6, talk 0x9B7
+MENU_BEAT = 0x010009B8           # the NPC's "..." after try / talk / later, 0x9B8-0x9BA; 0x9BB no persona
+MENU_FOLLOW_ANSWER = 0x01000DE0  # + (0 agree, 1 decline) * 8 + persona * 2 + version, to 0xDEF
+# What a menu reply records (Overture:Reply's Outcome). Approach.OUTCOME_* must match.
+# Stages 1-3 start only below OUTCOME_FOLLOW_AGREE, so every menu outcome but "try" stops them.
+OUTCOME_TRY, OUTCOME_FOLLOW_AGREE, OUTCOME_FOLLOW_DECLINE, OUTCOME_MENU_LATER, OUTCOME_MENU_TALK = 13, 14, 15, 16, 17
+MENU_STAGE = 0                   # the Reply Stage of a menu line: no bond, no stage reached
+# The menu's four options: (slot, key, prompt, spoken, the NPC's outcome). Follow me's words
+# are follow-lines.json's player versions and "Later." the companion wheel's, so their voice
+# files are the ones already rendered (stage-voice matches INFOs by their text).
+MENU_WHEEL = (('PTOP', 'try', 'Try your luck', None, OUTCOME_TRY),
+              ('QTOP', 'follow', 'Follow me', None, None),
+              ('NETO', 'later', 'Later.', 'Later.', OUTCOME_MENU_LATER),
+              ('NTOP', 'talk', 'Just talk', 'Something else.', OUTCOME_MENU_TALK))
 
 # Overture:Reply's Outcome, continued from make_overture_esp's 1..5.
 OUTCOME_ACCEPT, OUTCOME_NOTYET, OUTCOME_REFUSE, OUTCOME_NOT_HERE, OUTCOME_NOT_NOW = 6, 7, 8, 9, 10
@@ -547,6 +575,10 @@ def build_staged():
     children += companion_children
     companion_infos, companion_count = companion_greetings(companion_bank['lines'], ids)
     follow_quest, follow_perk, following_av = follow_records(ids)   # O-52
+    menu_topics, menu_children = menu_wheel(ids)                    # O-53
+    children += menu_children
+    ids += [(TRY_PERK, 'try perk'), (TRY_UNTIL_AV, 'try-until actor value'),
+            (FOLLOW_WILLING_GLOBAL, 'follow-willing global')]
     m.check_unique(ids)
 
     lover_lines = [l for l in bank['lines'] if l.get('kind') == 'lover_greeting']
@@ -559,15 +591,18 @@ def build_staged():
     # refused a bank that fit (tools/check_gendered.py caught it).
     if sum(1 for _p, l in jealous_lines if not m.gendered(l)) > 10:
         raise SystemExit('more plain jealous greetings than 0x836..0x83F holds')
-    children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count)
-    children += scene_staged(topics, companion_topics)
+    children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count, opens_when())
+    children += scene_staged(topics, companion_topics, menu_topics)
     quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global() + m.opening_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(PLAYER_VARIANT_GLOBAL, 'OverturePlayerVariant', 0.0)
-             + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0))
+             + glob(LAST_OUTCOME_GLOBAL, 'OvertureLastOutcome', 0.0)
+             + glob(FOLLOW_WILLING_GLOBAL, 'OvertureFollowWilling', 0.0))
     blob = m.group('GLOB', globs) + m.group('QUST', quest_blob + companions_quest() + follow_quest)
-    blob += m.group('PERK', ask_perk() + follow_perk)
+    # The "Follow me" perk stays in the plugin, given to nobody (Follow.GivePerk takes it
+    # back from an older save): its choice lives on the menu now (O-53).
+    blob += m.group('PERK', ask_perk() + follow_perk + try_perk())
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
@@ -581,7 +616,8 @@ def build_staged():
                     + m.actor_value(COMPANION_PAIR_SEEN_AV, 'OvertureCompanionPairSeen')
                     + m.actor_value(COMPANION_SEEN_SCENE_AV, 'OvertureCompanionSeenScene')
                     + m.actor_value(COMPANION_TIER_AV, 'OvertureCompanionAffinityTier')
-                    + following_av)
+                    + following_av
+                    + m.actor_value(TRY_UNTIL_AV, 'OvertureTryUntil'))
 
     # The header, and the uniqueness check, from the bytes actually written.
     return m.finish(blob), topics
@@ -633,6 +669,141 @@ def at_proposition():
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED))
 
 
+def awake():
+    """O-53: nobody is approached asleep. On the SPEAKER (a greeting, a perk's target)."""
+    return m.field('CTDA', m.condition(m.FUNC_GET_SLEEPING, 0, value=0.0, runon=m.RUNON_SUBJECT))
+
+
+def opens_when():
+    """O-53: a stranger's greeting opens only when the player chose "Overture" on the
+    prompt (the stamp is still running) OR an invitation still runs (O-30: a "not now",
+    "not here" or a Follow me arrival opens on plain E). One OR group, on the speaker,
+    ANDed with the rest -- and awake."""
+    return (m.field('CTDA', m.condition(m.FUNC_GET_VALUE, TRY_UNTIL_AV, value=0.0, op=m.CTDA_OP_GT | m.CTDA_OR,
+                                        runon=m.RUNON_SUBJECT, value_global=m.GLOB_GAME_DAYS_PASSED))
+            + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, m.INVITED_UNTIL_AV, value=0.0, op=m.CTDA_OP_GT,
+                                          runon=m.RUNON_SUBJECT, value_global=m.GLOB_GAME_DAYS_PASSED))
+            + awake())
+
+
+def warm_to_follow():
+    """Who "Follow me" shows for, on whoever is in the alias -- the old perk's test:
+    not already following, and warm (landed before, said yes once, or invited back today)."""
+    return (alias_value(FOLLOWING_AV, 0.0, m.CTDA_OP_EQ)
+            + alias_value(m.STAGE_REACHED_AV, 2.0, m.CTDA_OP_GE | m.CTDA_OR)
+            + alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_EQ | m.CTDA_OR)
+            + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED))
+
+
+def menu_wheel(ids):
+    """O-53's first wheel. Try your luck, Follow me (warm people only), Later. (the
+    conversation closes) and Just talk (their own dialogue, through HandBack's re-greet).
+    Every NPC answer carries Overture:Reply with MENU_STAGE, so it pays and reaches
+    nothing; what it records is the branch the next phases read."""
+    follow = json.loads((m.ROOT / 'voice' / 'follow-lines.json').read_text(encoding='utf-8'))
+    versions = [l['text'] for l in follow['player']]
+    if len(versions) != PLAYER_VARIANTS:
+        raise SystemExit(f'follow-lines.json: {len(versions)} player lines; the menu shows {PLAYER_VARIANTS} versions')
+    answers = {}
+    for l in follow['lines']:
+        answers.setdefault((l['kind'], l['persona']), []).append(l['text'])
+    topics, children = {}, b''
+    beat = MENU_BEAT
+    for n, (slot, key, prompt, spoken, outcome) in enumerate(MENU_WHEEL):
+        tid, rtid = MENU_PLAYER_TOPIC + n, MENU_NPC_TOPIC + n
+        topics[slot], topics[m.NPC_SLOT[slot]] = tid, rtid
+        ids += [(tid, f'menu player topic {key}'), (rtid, f'menu reply topic {key}')]
+        block = b''
+        if key == 'follow':
+            # O-46's versions: the conversation's roll picks exactly one.
+            for v, text in enumerate(versions):
+                pid = MENU_PLAYER_INFO + 1 + v
+                ids.append((pid, f'menu player follow version {v}'))
+                block += m.line(pid, prompt, text, enam=0,
+                                extra=m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, PLAYER_VARIANT_GLOBAL,
+                                                                  value=float(v)))
+                                + warm_to_follow())
+            n_player = len(versions)
+        else:
+            pid = MENU_PLAYER_INFO + (0 if key == 'try' else 6 if key == 'later' else 7)
+            ids.append((pid, f'menu player {key}'))
+            # "Try your luck" is a choice, not words: the player says nothing and the
+            # stage-1 wheel that follows is theirs.
+            block += m.line(pid, prompt, spoken if spoken is not None else '', enam=0)
+            n_player = 1
+        children += m.topic(tid, f'OvertureMenu{key.capitalize()}', infos=n_player)
+        children += m.child_group(tid, 7, block)
+
+        block, n_infos = b'', 0
+        if key == 'follow':
+            for kind_index, (kind, code, willing) in enumerate((('agree', OUTCOME_FOLLOW_AGREE, 1.0),
+                                                                ('decline', OUTCOME_FOLLOW_DECLINE, 0.0))):
+                for k, persona in enumerate(m.PERSONAS):
+                    texts = answers.get((kind, persona), [])
+                    if len(texts) != 2:
+                        raise SystemExit(f'follow-lines.json: {kind}/{persona} has {len(texts)} lines; the menu holds 2')
+                    for v, text in enumerate(texts):
+                        iid = MENU_FOLLOW_ANSWER + kind_index * 8 + k * 2 + v
+                        ids.append((iid, f'menu follow {kind}/{persona} {v}'))
+                        block += m.line(iid, None, text, persona_index=k,
+                                        enam=m.ENAM_RANDOM | (m.ENAM_RANDOM_END if v == 1 else 0),
+                                        reply=(MENU_STAGE, code),
+                                        extra=m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE,
+                                                                          FOLLOW_WILLING_GLOBAL, value=willing)))
+                        n_infos += 1
+            # No persona from Rapport: nobody's voice fits, so a beat that declines.
+            fid = MENU_BEAT + 3
+            ids.append((fid, 'menu follow no-persona fallback'))
+            block += m.line(fid, None, '...', enam=0, reply=(MENU_STAGE, OUTCOME_FOLLOW_DECLINE),
+                            extra=no_persona_condition())
+            n_infos += 1
+        else:
+            ids.append((beat, f'menu beat {key}'))
+            block += m.line(beat, None, '...', enam=0, reply=(MENU_STAGE, outcome))
+            beat += 1
+            n_infos = 1
+        children += m.topic(rtid, f'OvertureMenuReply{key.capitalize()}', infos=n_infos)
+        children += m.child_group(rtid, 7, block)
+    return topics, children
+
+
+def try_perk():
+    """O-53: "Overture" on the prompt, beside Talk -- ask_perk's shape (CC_PetDogs_PetPerk's),
+    with the stranger greeting's own gates, so it shows only where the greeting can open."""
+    target = b''
+    for func, param, value, op, glob in (
+            (m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_NPC, 1.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_SYNTH, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_IS_CHILD, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_PLAYER_TEAMMATE, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_IN_FACTION, m.FACTION_HAS_BEEN_COMPANION, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_SLEEPING, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_VALUE, m.NEXT_DAY_AV, 0.0, m.CTDA_OP_LE, m.GLOB_GAME_DAYS_PASSED),
+            # greeting_info's opening OR group: CTDA_OR on all but the last, ANDed with the above.
+            (m.FUNC_GET_STAGE, m.QUEST_MQ101, 1.0, m.CTDA_OP_LT | m.CTDA_OR, None),
+            (m.FUNC_GET_STAGE, m.QUEST_MQ101, float(m.MQ101_OVER), m.CTDA_OP_GE | m.CTDA_OR, None),
+            (m.FUNC_GET_GLOBAL_VALUE, m.OPENING_GLOBAL, 1.0, m.CTDA_OP_EQ, None)):
+        target += m.field('CTDA', m.condition(func, param, value=value, op=op, runon=m.RUNON_SUBJECT,
+                                              value_global=glob))
+    f = m.field('EDID', m.zstring(TRY_PERK_EDID))
+    f += m.field('VMAD', perk_vmad(TRY_FRAGMENT, [(0, 'Fragment_Entry_00')]))
+    f += m.field('DESC', m.zstring(''))
+    f += m.field('DATA', bytes([0x00, 0x00, 0x01, 0x00, 0x01]))
+    f += m.field('PRKE', bytes([0x02, 0x00, 0x00]))
+    f += m.field('DATA', bytes([0x0E, 0x09, 0x02]))
+    f += m.field('PRKC', bytes([0x01]))
+    f += target
+    f += m.field('EPFT', bytes([0x04]))
+    f += m.field('EPFB', struct.pack('<H', 0))
+    f += m.field('EPF2', m.zstring(TRY_LABEL))
+    f += m.field('EPF3', struct.pack('<H', 0))
+    f += m.field('PRKF', b'')
+    return m.record('PERK', TRY_PERK, f)
+
+
 def companion_here(value=1.0):
     """Whoever is in the alias IS the player's current companion (1.0), or is not
     (0.0). Only the companion greeting can put a current companion there: every
@@ -657,7 +828,7 @@ def companion_greetings(lines, ids):
     if not moment or not start or len(moment) + len(start) > 4:
         raise SystemExit('companion greetings: one to four in all, and at least one of each kind')
     theirs_first = m.field('CTDA', m.condition(m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, value=0.0,
-                                               runon=m.RUNON_SUBJECT))
+                                               runon=m.RUNON_SUBJECT)) + awake()
     open_now = theirs_first + m.field('CTDA', m.condition(m.FUNC_GET_VALUE, COMPANION_MOMENT_AV,
                                                           value=float(MOMENT_OPEN), runon=m.RUNON_SUBJECT))
     # O-35: the player asked through the perk's choice, which marks them ASKED and
@@ -803,6 +974,7 @@ def ask_perk():
             (m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_SLEEPING, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None),
             # greeting_info's opening OR group: CTDA_OR on all but the last, ANDed with the above.
             (m.FUNC_GET_STAGE, m.QUEST_MQ101, 1.0, m.CTDA_OP_LT | m.CTDA_OR, None),
@@ -970,14 +1142,15 @@ def not_at_proposition():
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_LE, value_global=m.GLOB_GAME_DAYS_PASSED))
 
 
-def scene_staged(topics, companion_topics):
-    """Six phases: 0 empty (the alias settles), 1 stage 1 (first meetings only),
-    2 stage 2 (after a land, or for a returning NPC), 3 stage 3 (for a verdict of
-    "not yet" or better, or a conversation that opens at the proposition), 4 the
-    COMPANION's wheel (methodology 11: the player's current companion, and only
-    them -- phases 1 to 3 refuse a companion), 5 HandBack -- the type-4 End Scene
-    Say Greeting action the one-exchange scene ends with, reached by falling
-    through after any line but a yes (nothing jumps to it).
+def scene_staged(topics, companion_topics, menu_topics):
+    """Seven phases: 0 empty (the alias settles), 1 O-53's MENU (a conversation the
+    player opened with "Overture": Try your luck, Follow me, Later., Just talk), 2
+    stage 1 (first meetings only), 3 stage 2 (after a land, or for a returning NPC),
+    4 stage 3 (for a verdict of "not yet" or better, or a conversation that opens at
+    the proposition), 5 the COMPANION's wheel (methodology 11: the player's current
+    companion, and only them -- phases 1 to 4 refuse a companion), 6 HandBack -- the
+    type-4 End Scene Say Greeting action the one-exchange scene ends with, reached by
+    falling through after any line but a yes (nothing jumps to it).
 
     OnPhaseBegin numbers them from 1 (MEASURED in the 2026-09-23 Papyrus log: an
     approach logs "phase 1" and "phase 2" as it opens -- the empty phase and stage
@@ -1007,33 +1180,56 @@ def scene_staged(topics, companion_topics):
     # dialogue closes so Rapport's scene can start, with no re-greet on top.
     not_after_yes = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
                                                 value=float(OUTCOME_ACCEPT), op=m.CTDA_OP_NE))
-    # A companion never takes phases 1-3 -- a companion's conversation is not a
-    # stranger's -- and phase 4 is theirs alone.
+    # O-53: nor after "Later." on the menu (the conversation simply closes), nor after a
+    # yes to "Follow me" (they come along; a re-greet would open their own dialogue).
+    not_after_yes += m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
+                                                 value=float(OUTCOME_FOLLOW_AGREE), op=m.CTDA_OP_NE))
+    not_after_yes += m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
+                                                 value=float(OUTCOME_MENU_LATER), op=m.CTDA_OP_NE))
+    # A companion never takes phases 1-4 -- a companion's conversation is not a
+    # stranger's -- and phase 5 is theirs alone.
     not_companion = companion_here(0.0)
-    f += (phase() + phase(first_meeting + not_companion) + phase(stage_two + not_companion)
-          + phase(stage_three + not_companion) + phase(companion_here(), name='Companion')
+    # O-53's menu: a conversation the player opened with "Overture" (the stamp is still
+    # running -- it is cleared as the conversation ENDS, never during it). An invitation
+    # opened on plain E has no stamp and goes straight to its stage, as before.
+    menu = alias_value(TRY_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED)
+    # Every stage waits on the menu: after Follow me, Later. or Just talk, none starts.
+    # Below OUTCOME_FOLLOW_AGREE is "try" (13) and every stage's own outcome (0-12).
+    not_menu_away = m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
+                                                value=float(OUTCOME_FOLLOW_AGREE), op=m.CTDA_OP_LT))
+    # And a menu left without a pick (no reply, so LastOutcome is still 0) is not "try":
+    # a stamped conversation reaches the stages only after some reply. One OR group --
+    # no stamp (an invitation on plain E) OR a reply has been said. (Review 2026-09-30.)
+    not_menu_away += alias_value(TRY_UNTIL_AV, 0.0, m.CTDA_OP_LE | m.CTDA_OR, value_global=m.GLOB_GAME_DAYS_PASSED)
+    not_menu_away += m.field('CTDA', m.condition(m.FUNC_GET_GLOBAL_VALUE, LAST_OUTCOME_GLOBAL,
+                                                 value=0.0, op=m.CTDA_OP_GT))
+    f += (phase() + phase(menu + not_companion, name='Menu')
+          + phase(first_meeting + not_companion + not_menu_away)
+          + phase(stage_two + not_companion + not_menu_away)
+          + phase(stage_three + not_companion + not_menu_away) + phase(companion_here(), name='Companion')
           + phase(not_after_yes, name=HAND_BACK))
     # The actor list: alias 0, as the one-exchange scene has it.
     f += m.field('ALID', struct.pack('<I', m.ALIAS_INDEX))
     f += m.field('LNAM', struct.pack('<I', 4))
     f += m.field('DNAM', struct.pack('<I', 10))
-    f += dialogue_action(1, 1, topics[1])
-    f += dialogue_action(2, 2, topics[2])
-    f += dialogue_action(3, 3, topics[3])
-    f += dialogue_action(4, 4, companion_topics)
+    f += dialogue_action(1, 1, menu_topics)
+    f += dialogue_action(2, 2, topics[1])
+    f += dialogue_action(3, 3, topics[2])
+    f += dialogue_action(4, 4, topics[3])
+    f += dialogue_action(5, 5, companion_topics)
     # HandBack: type 4 with HTID, "End Scene Say Greeting" -- the NPC re-greets and
     # their own dialogue takes over (O-8). The one-exchange scene's last action.
     f += m.field('ANAM', struct.pack('<H', 4))
     f += m.field('NAM0', b'\0')
     f += m.field('ALID', struct.pack('<I', m.ALIAS_INDEX))
-    f += m.field('INAM', struct.pack('<I', 5))
-    f += m.field('SNAM', struct.pack('<I', 5))
-    f += m.field('ENAM', struct.pack('<I', 5))
+    f += m.field('INAM', struct.pack('<I', 6))
+    f += m.field('SNAM', struct.pack('<I', 6))
+    f += m.field('ENAM', struct.pack('<I', 6))
     f += m.field('STSC', struct.pack('<I', 0))
     f += m.field('HTID', b'')
     f += m.field('ANAM', b'')
     f += m.field('PNAM', struct.pack('<I', m.QUEST_FORMID))
-    f += m.field('INAM', struct.pack('<I', 5))            # the highest action index, as vanilla's tails read
+    f += m.field('INAM', struct.pack('<I', 6))            # the highest action index, as vanilla's tails read
     f += m.field('VNAM', m.VNAM_DONT_SET_ALL)
     f += m.field('NNAM', m.zstring('Overture: an approach in three stages.'))
     f += m.field('XNAM', struct.pack('<I', 0))

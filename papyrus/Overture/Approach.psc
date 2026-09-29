@@ -106,6 +106,22 @@ Int Property OUTCOME_LATER = 11 AutoReadOnly
 ; R-27 (owner poll, 2026-09-25): "not my type" -- orientation, a hard line. Costs
 ; nothing: nothing the player says or does could have changed it.
 Int Property OUTCOME_NOT_TYPE = 12 AutoReadOnly
+; O-53's menu (tools/overture_stages.py MENU_WHEEL), the first wheel of a conversation the
+; player opened with "Overture". Try your luck goes on to the stages; the scene's stages
+; start only below FOLLOW_AGREE, so every other menu answer ends it there.
+Int Property OUTCOME_TRY = 13 AutoReadOnly
+Int Property OUTCOME_FOLLOW_AGREE = 14 AutoReadOnly
+Int Property OUTCOME_FOLLOW_DECLINE = 15 AutoReadOnly
+Int Property OUTCOME_MENU_LATER = 16 AutoReadOnly
+Int Property OUTCOME_MENU_TALK = 17 AutoReadOnly
+; OvertureTryUntil: the game time an "Overture" choice on the prompt lasts until. The
+; greeting needs it (or an invitation), so a plain E is always the NPC's own talk.
+Int Property TRY_UNTIL_AV_ID = 0x00000945 AutoReadOnly
+; OvertureFollowWilling: 1 if they would come along -- Follow me's answer on the menu.
+Int Property FOLLOW_WILLING_GLOBAL_ID = 0x00000946 AutoReadOnly
+; About half a game hour (a minute and a half at timescale 20): the greeting it asks for
+; comes at once, and a stamp left by an activation that opened nothing soon lapses.
+Float Property TRY_WINDOW = 0.02 AutoReadOnly
 
 ; THE STAGED BUILD (tools/overture_stages.py, --stages 3). The one-exchange
 ; plugin has none of these records: every lookup below comes back None there,
@@ -558,6 +574,20 @@ String Function Opening(Conversation c)
 		variant.SetValue(roll as Float)
 		note = note + " | player lines v" + (roll + 1)
 	EndIf
+	; O-53: Follow me's answer on the menu, decided before the player can pick it, by
+	; Follow's own rules (the ones its perk used to ask).
+	If !c.companion
+		GlobalVariable willing = Game.GetFormFromFile(FOLLOW_WILLING_GLOBAL_ID, "Overture.esp") as GlobalVariable
+		Overture:Follow follow = Game.GetFormFromFile(FOLLOW_QUEST_ID, "Overture.esp") as Overture:Follow
+		If willing != None
+			If follow != None && follow.Willing(who)
+				willing.SetValue(1.0)
+				note = note + " | would follow"
+			Else
+				willing.SetValue(0.0)
+			EndIf
+		EndIf
+	EndIf
 	If _api >= NEEDS_API
 		note = note + Self.UpdateWorldLovers(c)
 		If c.companion
@@ -650,6 +680,9 @@ Function Finish(Conversation c, Bool abTidy)
 	If follow != None
 		If c.outcome == OUTCOME_NOT_HERE && !c.companion
 			follow.BeginAfterNotHere(who)
+		ElseIf c.outcome == OUTCOME_FOLLOW_AGREE && !c.companion
+			; O-53: Follow me, from the menu -- they said they would, in their own voice.
+			follow.Begin(who, "asked")
 		Else
 			follow.Release(who)
 		EndIf
@@ -719,7 +752,36 @@ String Function BetweenConversations(Conversation c)
 	If c.companion
 		note = note + Self.CompanionEnded(c)
 	EndIf
+	; O-53: the "Overture" stamp was for this conversation -- unless the same NPC has
+	; already begun the next one, whose menu phase reads it.
+	If (_current == None || _current.who != who) && Self.ValueOf(who, TRY_UNTIL_AV_ID) > 0.0
+		Self.SetTo(who, TRY_UNTIL_AV_ID, 0.0)
+	EndIf
+	; A conversation that ended on the menu spent nothing: the day stays open, an hour
+	; ahead as after "not now", so the re-greet that closed it cannot reopen it.
+	If Self.EndedOnMenu(c)
+		Self.SetTo(who, NEXT_DAY_AV_ID, Utility.GetCurrentGameTime() + REOPEN_AFTER)
+		note = note + " | ended on the menu - the day stays open"
+	EndIf
 	Return note
+EndFunction
+
+; O-53: the last reply was the menu's -- Follow me (either answer), Later. or Just talk.
+Bool Function EndedOnMenu(Conversation c)
+	Return c.outcome >= OUTCOME_FOLLOW_AGREE && c.outcome <= OUTCOME_MENU_TALK
+EndFunction
+
+; O-53: "Overture" on the prompt (Overture:Fragments:TryPerk). Stamped, then activated
+; as a talk is -- Activate(player, False), the one scripted activation seen to open a
+; greeting that Requires Player Activation (F4MCP's talk verb, O-7's verification) --
+; and the greeting, which now needs the stamp or an invitation, opens the menu.
+Function TryYourLuck(Actor akWho)
+	If akWho == None
+		Return
+	EndIf
+	Self.SetTo(akWho, TRY_UNTIL_AV_ID, Utility.GetCurrentGameTime() + TRY_WINDOW)
+	Debug.Trace("Overture: the player chose Overture on " + akWho.GetFormID(), 0)
+	akWho.Activate(Game.GetPlayer() as ObjectReference, False)
 EndFunction
 
 ; ---- companions (methodology 11) ---------------------------------------------
@@ -1447,7 +1509,9 @@ Function Narrate(Conversation c)
 		headline = Self.Then(headline, Self.Subject(named) + " heard you've been with someone else, and didn't mind.")
 		named = True
 	EndIf
-	If !yes
+	; O-53: a conversation that ended on the menu was no approach, so there is no line on
+	; how the words did -- but a new name, a couple or a lover's jealousy above still is.
+	If !yes && !Self.EndedOnMenu(c)
 		headline = Self.Then(headline, Self.TalkLine(c, named))
 	EndIf
 	If headline == ""
@@ -1835,8 +1899,9 @@ String Function DebugApproach(Actor akWho, Bool abForce)
 	; once the MCM page has been closed, and the dialogue opens in the world.
 	Utility.Wait(0.1)
 	If !abForce
-		akWho.Activate(Game.GetPlayer(), false)
-		Return "Overture debug (real): talking to " + akWho.GetFormID() + " - the engine picks whose greeting wins"
+		; As the prompt's "Overture" does (O-53): a plain talk is always theirs now.
+		Self.TryYourLuck(akWho)
+		Return "Overture debug (real): Overture on " + akWho.GetFormID() + " - the engine picks whose greeting wins"
 	EndIf
 	Scene sc = Self.ApproachScene()
 	ReferenceAlias target = Self.TargetAlias()
