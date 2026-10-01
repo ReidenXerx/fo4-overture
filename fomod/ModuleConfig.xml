@@ -19,39 +19,104 @@
   </requiredInstallFiles>
 
   <installSteps order="Explicit">
-    <installStep name="What Overture adds">
+    <installStep name="Checking your setup">
       <optionalFileGroups order="Explicit">
-        <group name="Everything below is installed" type="SelectAll">
+        <group name="Your setup" type="SelectAll">
+          <plugins order="Explicit">
+            <plugin name="Rapport.esp: found">
+              <description>Rapport runs the scenes and keeps the bond between you and everyone you talk to. Overture needs version 0.2.1 or newer, and tells you in game if yours is older.</description>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
+              <typeDescriptor><type name="Required"/></typeDescriptor>
+            </plugin>
+            <plugin name="XDI.esm: found">
+              <description>Extended Dialogue Interface shows Overture's four-way dialogue wheel.</description>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
+              <typeDescriptor><type name="Required"/></typeDescriptor>
+            </plugin>
+            <plugin name="AAF.esm: found">
+              <description>Advanced Animation Framework plays the scene when someone says yes.</description>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
+              <typeDescriptor><type name="Required"/></typeDescriptor>
+            </plugin>
+            <plugin name="F4SE: check this yourself">
+              <description>Rapport is an F4SE plugin, so start the game through f4se_loader.exe (Fallout 4 Script Extender, f4se.silverlock.org). An installer cannot see it.</description>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
+              <typeDescriptor><type name="Required"/></typeDescriptor>
+            </plugin>
+            <plugin name="MCM: check this yourself">
+              <description>Optional. Mod Configuration Menu (Nexus) gives Overture its settings page. Without it Overture runs on its defaults.</description>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
+              <typeDescriptor><type name="Required"/></typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Its own button">
+      <optionalFileGroups order="Explicit">
+        <group name="Its own button" type="SelectAll">
           <plugins order="Explicit">
             <plugin name="Its own button">
               <description>E is always their own talk: their quest, their shop, their story. R, "Overture", opens a short menu: Try your luck, Follow me, Just talk, Later. Someone who invited you back still opens on E.</description>
               <image path="fomod/images/hero.jpg"/>
-              <conditionFlags><flag name="overture_features">shown</flag></conditionFlags>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Four ways to try">
+      <optionalFileGroups order="Explicit">
+        <group name="Four ways to try" type="SelectAll">
+          <plugins order="Explicit">
             <plugin name="Four ways to try">
               <description>Offer, Charm, Blunt or Linger. Every NPC is one of four kinds of people, and each way lands with exactly one of them. The game never says who is which: you learn it from how they answer. The place matters too: with more than two people watching, even the right line only gets "not here".</description>
               <image path="fomod/images/conversation.jpg"/>
-              <conditionFlags><flag name="overture_features">shown</flag></conditionFlags>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Both sides are voiced">
+      <optionalFileGroups order="Explicit">
+        <group name="Both sides are voiced" type="SelectAll">
+          <plugins order="Explicit">
             <plugin name="Both sides are voiced">
               <description>Every NPC line is spoken in 11 voices, and you speak too, in one of two voices designed for this mod. Characters with their own actor answer in the closest voice there is, through Rapport.
 Keep Sound\Voice\Overture.esp loose: packed into an archive, lines go silent or borrow the wrong voice.</description>
               <image path="fomod/images/voiced.jpg"/>
-              <conditionFlags><flag name="overture_features">shown</flag></conditionFlags>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Companions: Ask for a moment">
+      <optionalFileGroups order="Explicit">
+        <group name="Companions: Ask for a moment" type="SelectAll">
+          <plugins order="Explicit">
             <plugin name="Companions: Ask for a moment">
               <description>Companions have a system of their own: days together, fights survived and their own affinity bring you closer, and a companion who wants you may find a moment to say so. You can ask them for a moment too. Works with the game's own companions and Amazing Follower Tweaks.</description>
               <image path="fomod/images/askmoment.jpg"/>
-              <conditionFlags><flag name="overture_features">shown</flag></conditionFlags>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Follow me">
+      <optionalFileGroups order="Explicit">
+        <group name="Follow me" type="SelectAll">
+          <plugins order="Explicit">
             <plugin name="Follow me">
               <description>Someone who says "not here" follows you somewhere quieter, and anyone you've warmed up can be asked from the Overture menu. They keep to their own place: anywhere in their town or settlement, about 60 m in the open. Once you're alone they speak first.</description>
               <image path="fomod/images/followme.jpg"/>
-              <conditionFlags><flag name="overture_features">shown</flag></conditionFlags>
+              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>
           </plugins>
