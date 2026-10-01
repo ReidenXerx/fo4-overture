@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.6 (2026-10-01)
+
+- **"Try your luck" shows on the Overture menu.** Extended Dialogue Interface lists an option by the
+  words you say, and leaves out any option with no words. "Try your luck" has none, so R opened a menu
+  with only "Something else." and "Later." The same hid every silent option: **Linger** ("Say nothing.
+  Stay where you are." and its versions) and **"Take their hand"**, so the quiet kind of person could
+  never be won. Each silent option now shows its own description. Thanks to azurestrand for the report.
+- **The installer** now opens with a "Checking your setup" page, then gives each feature a page of its
+  own.
+
 ## 0.1.5 (2026-10-01)
 
 - **R / X "Overture" and "Ask for a moment" now actually do something.** Since 0.1.2, every choice

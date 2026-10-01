@@ -23,28 +23,12 @@
       <optionalFileGroups order="Explicit">
         <group name="Your setup" type="SelectAll">
           <plugins order="Explicit">
-            <plugin name="Rapport.esp: found">
-              <description>Rapport runs the scenes and keeps the bond between you and everyone you talk to. Overture needs version 0.2.1 or newer, and tells you in game if yours is older.</description>
-              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
-              <typeDescriptor><type name="Required"/></typeDescriptor>
-            </plugin>
-            <plugin name="XDI.esm: found">
-              <description>Extended Dialogue Interface shows Overture's four-way dialogue wheel.</description>
-              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
-              <typeDescriptor><type name="Required"/></typeDescriptor>
-            </plugin>
-            <plugin name="AAF.esm: found">
-              <description>Advanced Animation Framework plays the scene when someone says yes.</description>
-              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
-              <typeDescriptor><type name="Required"/></typeDescriptor>
-            </plugin>
-            <plugin name="F4SE: check this yourself">
-              <description>Rapport is an F4SE plugin, so start the game through f4se_loader.exe (Fallout 4 Script Extender, f4se.silverlock.org). An installer cannot see it.</description>
-              <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
-              <typeDescriptor><type name="Required"/></typeDescriptor>
-            </plugin>
-            <plugin name="MCM: check this yourself">
-              <description>Optional. Mod Configuration Menu (Nexus) gives Overture its settings page. Without it Overture runs on its defaults.</description>
+            <plugin name="Requirements">
+              <description>Rapport.esp: found. Rapport runs the scenes and keeps the bond between you and everyone you talk to. Overture needs 0.2.1 or newer and tells you in game if yours is older.
+XDI.esm: found. Extended Dialogue Interface shows the dialogue wheel.
+AAF.esm: found. Advanced Animation Framework plays the scene when someone says yes.
+F4SE: check this yourself. Rapport is an F4SE plugin, so start the game through f4se_loader.exe (Fallout 4 Script Extender, f4se.silverlock.org).
+MCM: check this yourself. Optional: Mod Configuration Menu gives Overture its settings page; without it Overture runs on its defaults.</description>
               <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
             </plugin>

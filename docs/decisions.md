@@ -881,3 +881,21 @@ moment" does nothing on companions.
   False may still matter, but it was never what broke Ask: the fragment never reached Activate at all.
   The bare hello the owner saw was the prompt's plain default activation.
 - Not yet run in the game: 0.1.5 ships it, and the testers' next log is the proof (the "chose Overture" line).
+
+## O-55 — A silent player option carries its prompt as its words (fix, 2026-10-01)
+
+azurestrand (Discord, 0.1.5): R opens the menu, but it holds only "2 Something else" and "3 Later" --
+"Try your luck" is missing, and Follow me (not warm yet, by design).
+- **XDI's menu, decompiled** (DialogueMenu.swf from XDI - Main.ba2, JPEXS): it builds each option from
+  the player INFO's RESPONSE text (NAM1), not the prompt, and skips an option whose response is ""
+  (`if (response != "" && enabled)`), keeping the others' numbers. The "2" and "3" in the report are
+  exactly that, and so is "Something else." (the RESPONSE of the prompt "Just talk").
+- **17 player lines had an empty NAM1**: "Try your luck", all ten Linger versions, and the five "take
+  their hand" touches (including the companion wheel's 0x86B). So no XDI player has EVER seen Linger,
+  which is the reticent persona's only landing register. The 09-24 run "chose" linger through F4MCP,
+  which picks by index and never sees the list. An F4MCP pick is not evidence that an option is visible.
+- **Fix:** `make_overture_esp.line` gives a player line with no words its prompt as NAM1. The rebuilt
+  ESP differs from 0.1.5 in exactly those 17 INFOs. Voice staging is unchanged (5,387 files): the new
+  texts match no recording, so they stay silent. In-game effect: the subtitle shows the stage direction
+  while the silent line plays.
+- Vanilla's 1,853 wordless player lines carry NO NAM1 at all. By XDI's code (read, not run), it hides those too.

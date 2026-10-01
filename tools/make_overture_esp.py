@@ -418,6 +418,14 @@ def line(info_id, player_prompt, spoken, persona_index=None, public=None,
     # 17,269); of lines carrying 0, only 31% do. tools/info_enam.py is the check.
     f += field('ENAM', struct.pack('<HH', enam, 0))
     f += field('TRDA', trda)
+    # XDI lists a player option by its RESPONSE text and DROPS one whose response is ""
+    # (its DialogueMenu.swf, decompiled 2026-10-01: `if (response != "" && enabled)`),
+    # keeping the others' numbers. So a silent player line -- Linger, "Take their hand",
+    # "Try your luck" -- carries its prompt as its words, or no player ever sees it.
+    # Found by azurestrand on 0.1.5: the menu showed only options 2 and 3. F4MCP picks by
+    # index, which is how the 09-24 run "chose" linger without anyone seeing it.
+    if player_prompt is not None and not spoken:
+        spoken = player_prompt
     f += field('NAM1', zstring(spoken))
     f += field('NAM2', b'\0')
     f += field('NAM3', b'\0')
