@@ -43,7 +43,7 @@ if ((Test-Path $zip) -and -not $Force) {
 # ---- the source must be a commit -------------------------------------------------
 Push-Location $root
 try {
-    $dirty = @(git status --porcelain -- papyrus tools voice data VERSION 2>$null)
+    $dirty = @(git status --porcelain -- papyrus tools voice data fomod VERSION 2>$null)
 } finally {
     Pop-Location
 }
@@ -79,25 +79,33 @@ $stage = Join-Path $OutDir "Overture-$version"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-Copy-Item $esp $stage -Force
+# A FOMOD at the zip root, the mod itself under Core (nexus-tools/docs/FOMOD-STANDARD.md, owner
+# 2026-10-01): Vortex and MO2 refuse the install without Rapport.esp, XDI.esm and AAF.esm active.
+$fomod = Join-Path $root 'fomod'
+if (-not (Test-Path (Join-Path $fomod 'ModuleConfig.xml'))) { throw 'No fomod\ModuleConfig.xml.' }
+Copy-Item $fomod $stage -Recurse -Force
+$core = Join-Path $stage 'Core'
+New-Item -ItemType Directory -Force -Path $core | Out-Null
+
+Copy-Item $esp $core -Force
 
 # Every compiled script, namespace folders included (Overture:Companions:*,
 # Overture:Fragments:AskPerk): a folder copied by name is the next namespace missing.
 Get-ChildItem $pex -Recurse -Filter *.pex | ForEach-Object {
-    $dst = Join-Path (Join-Path $stage 'Scripts\Overture') $_.FullName.Substring($pex.Length + 1)
+    $dst = Join-Path (Join-Path $core 'Scripts\Overture') $_.FullName.Substring($pex.Length + 1)
     New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null
     Copy-Item $_.FullName $dst -Force
 }
 # The staged copies only (build\papyrus keeps its own): no .pex in a stranger's
 # download names this machine's folders, user or computer.
-& python (Join-Path $PSScriptRoot 'strip-pex.py') (Join-Path $stage 'Scripts') 'Overture'
+& python (Join-Path $PSScriptRoot 'strip-pex.py') (Join-Path $core 'Scripts') 'Overture'
 if ($LASTEXITCODE -ne 0) { throw 'strip-pex.py failed - nothing packaged.' }
 
 $mcm = Join-Path $root 'data\MCM'
 if (-not (Test-Path $mcm)) { throw "No data\MCM. Run tools/make_mcm.py." }
-Copy-Item $mcm $stage -Recurse -Force
+Copy-Item $mcm $core -Recurse -Force
 
-$voiceOut = Join-Path $stage 'Sound\Voice\Overture.esp'
+$voiceOut = Join-Path $core 'Sound\Voice\Overture.esp'
 New-Item -ItemType Directory -Force $voiceOut | Out-Null
 Copy-Item (Join-Path $voice '*') $voiceOut -Recurse -Force
 
@@ -105,7 +113,7 @@ foreach ($doc in 'LICENSE', 'README.md', 'CHANGELOG.md') {
     $p = Join-Path $root $doc
     # Under Docs\Overture, never the Data root: every mod's LICENSE and README would collide
     # there (fallout-collection, 2026-09-27: Overture's met PCL's in Vortex).
-    $docs = Join-Path $stage 'Docs\Overture'
+    $docs = Join-Path $core 'Docs\Overture'
     if (Test-Path $p) { New-Item -ItemType Directory -Force $docs | Out-Null; Copy-Item $p $docs -Force }
 }
 
