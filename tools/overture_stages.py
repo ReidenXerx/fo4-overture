@@ -931,13 +931,22 @@ def perk_vmad(fragment_script, fragments):
     """A PERK's VMAD: no scripts of its own, then the perk-fragment block -- MEASURED on
     CC_PetDogs_PetPerk 0024A158, MisterSandman01 0004B258 and RoboticsExpert01 0004D889:
     a version byte (3), the fragment script as a script entry (name, status 0, its
-    properties -- none here), the fragment count, and per fragment its entry index, an
-    int16 0, an int8 0, a byte 1, the script name again and the function's name."""
+    properties -- none here), the fragment count, and per fragment its entry index (u16), an
+    int16 0, a byte 1, the script name again and the function's name: FIVE bytes before the
+    names.
+
+    FIXED 2026-10-01. Through 0.1.4 this wrote SIX -- an extra int8 0 before the 1 -- so the
+    engine read the script name one byte off and no fragment ever bound or ran, silently: no
+    Papyrus error, no trace. Every perk choice was inert ("Ask for a moment" since 0.1.2,
+    "Follow me" in 0.1.3, "Overture" in 0.1.4; reports from alasdairn, MrN79, lordgmlp,
+    Daergil). Re-measured byte for byte against all three vanilla records: RoboticsExpert01's
+    "01 00 | 00 00 | 00 00 | 01 | 2e 00 Fragments:Perks:PRKF_..."; MisterSandman01's two
+    entries "00 00 00 00 01" and "02 00 00 00 01"."""
     f = struct.pack('<hhH', 6, 2, 0)
     f += bytes([3]) + m.wstring(fragment_script) + bytes([0]) + struct.pack('<H', 0)
     f += struct.pack('<H', len(fragments))
     for entry, function in fragments:
-        f += struct.pack('<Hhb', entry, 0, 0) + bytes([1]) + m.wstring(fragment_script) + m.wstring(function)
+        f += struct.pack('<Hh', entry, 0) + bytes([1]) + m.wstring(fragment_script) + m.wstring(function)
     return f
 
 

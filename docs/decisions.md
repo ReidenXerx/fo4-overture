@@ -861,3 +861,23 @@ player yet. The owner: "we will do it at wednesday". This retires O-7's "no hotk
   the player picks "Overture" on her.
 - **Heather** has no R by design (O-51).
 
+
+## O-54 — Every perk fragment was one byte long; none ever ran (fix, 2026-10-01)
+
+Daergil (Nexus, log attached), MrN79 (Nexus, Xbox controller: "X does nothing") and lordgmlp (Discord)
+reported the same thing on 0.1.4: R / X "Overture" shows on the prompt and does nothing, and "Ask for a
+moment" does nothing on companions.
+- **The log, not a theory.** Daergil's Papyrus log has Overture's companion vouching ("'Ask for a moment'
+  is offered") but not one "the player chose Overture on" or "the player asked ... for a moment" line.
+  Both are the first thing the fragment's function does, so the fragment never ran. No Overture binding
+  error either: it failed silently.
+- **The diff (rule #3).** Against three vanilla perk fragments (RoboticsExpert01 0004D889,
+  MisterSandman01 0004B258, CC_PetDogs_PetPerk), each fragment entry is u16 index, int16 0, byte 1, then
+  the script name and the function name. `perk_vmad` wrote an extra int8 0 before the 1, so the engine
+  read every name one byte off. Fixed in tools/overture_stages.py; the rebuilt AskPerk 0x859, TryPerk
+  0x944 and FollowPerk 0x942 now match vanilla's shape byte for byte. Form ids unchanged (763 records).
+- **This explains every "does nothing" since 0.1.2**: "Ask for a moment" (0.1.2), the prompt's "Follow
+  me" (0.1.3), "Overture" (0.1.4). O-53's "Found on the way" bullet is half wrong. Activate(True) vs
+  False may still matter, but it was never what broke Ask: the fragment never reached Activate at all.
+  The bare hello the owner saw was the prompt's plain default activation.
+- Not yet run in the game: 0.1.5 ships it, and the testers' next log is the proof (the "chose Overture" line).

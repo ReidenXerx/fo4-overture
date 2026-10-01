@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5 (2026-10-01)
+
+- **R / X "Overture" and "Ask for a moment" now actually do something.** Since 0.1.2, every choice
+  Overture adds beside Talk was silently inert: the record that tells the game which script to run had
+  one byte too many, so the script never started. That was "Ask for a moment" on companions, "Follow me"
+  in 0.1.3, and "Overture" with its menu in 0.1.4. Thanks to Daergil, MrN79 and lordgmlp for the reports
+  and the log that found it.
+
 ## 0.1.4 (2026-09-30)
 
 - **Overture has its own button now.** Pressing E on someone always gets you their own talk: their
