@@ -17,9 +17,13 @@ INFO id.
 
 ## 0. World state
 
-- **The build under test:** Overture 0d22347 + O-40 (c7da227). In Data, `Overture.esp` is `61350D05612E48EE`
-  and `Sound\Voice\Overture.esp` holds 1,860 `*.fuz`. Check both before step 1: a different esp means a
-  different test.
+- **The build under test:** Overture 0.1.6 (be1482c). In Data, `Overture.esp` is 224,024 bytes, sha256
+  `65f9131c2eef...`, and `Sound\Voice\Overture.esp` holds 5,387 `*.fuz`. Check both before step 1: a different
+  esp means a different test. **On 2026-10-02 both AE and GOG Data still held 0.1.3** (211,826 B,
+  `cde6aab8fab8`): 0.1.6 has to be installed and deployed (the owner's click) before anything below.
+- **Read the wheel as the player SEES it** (XDI's displayed entries), never only the options the scene
+  holds. XDI drops any option whose spoken text is empty or whose conditions fail, and keeps the others'
+  numbers (O-55). An option picked by index that is not displayed is a FAIL, not a PASS.
 - **Save:** the owner's current one (Autosave2 loads cleanly). Anywhere with at least four adult human NPCs
   standing about: Goodneighbor, the Diamond City market or a settlement.
 - **Before anything else:**
@@ -234,6 +238,54 @@ Both are FAILs. Hearing the audio and the lip sync is the owner's.
   have passed them all.
 - It is one pass over the folder and needs no game. On 2026-09-24 it read Overture.esp 1,860/1,860 and
   Rapport.esp 6,656/6,656 with lip data.
+
+## 8. Overture's own key and its menu (0.1.4-0.1.6: O-53, O-54, O-55)
+
+Since 0.1.4 a plain talk is ALWAYS the NPC's own. Overture opens only from R, "Overture", a perk choice
+beside Talk, or for someone who invited the player back. fo4-mcp cannot press R, so the doors are the
+functions the perk fragments call. Each one stamps or marks exactly as the key does, then runs
+`Activate(player, False)`:
+- **R on a stranger:** `cqf OvertureDialogueQuest "Overture:Approach.TryYourLuck" <ref>`. It sets
+  `OvertureTryUntil` (AV 0x945) to now + 0.02 days (about 29 game minutes) and activates them.
+- **"Ask for a moment" on the current companion:** `cqf OvertureCompanionsQuest
+  "Overture:Companions:Moments.Ask" <ref>`. It needs their moment vouched first (`approach companion` must
+  say a moment could open).
+- **Not a door:** `approach <ref>` forces the scene with NO stamp, so it skips the menu and goes straight to
+  the stages. Use it for steps 1-3, never for this step.
+
+Proof that a fragment ran is its first log line in Papyrus.0.log: "the player chose Overture on <id>" or
+"the player asked <id> for a moment". Neither line ever appeared before 0.1.5 (O-54).
+
+1. **Plain talk on a stranger** (`approach forget <ref>`, then activate). Their own greeting plays, NOT
+   Overture's `...` (INFO 01000831). FAIL if Overture's greeting opens.
+2. **R on a cold stranger** (`approach forget <ref>`, then TryYourLuck). Expect:
+   - the fragment's log line and Overture's greeting `...`, then the menu;
+   - exactly THREE entries displayed, in this order: "Try your luck", "Something else.", "Later.". "Follow
+     me" is hidden on purpose: they are not warm yet.
+   - Picking "Try your luck" gives the beat `...` (010009B8), then the stage-1 wheel with FOUR entries
+     displayed, one per register. Linger shows as its own description, e.g. "(Say nothing. Stay where you
+     are.)". That is the 0.1.6 fix; before it, Linger was never displayed.
+3. **"Later." from the menu.** Beat 010009B9, then the conversation closes with no Narrator line. The log
+   says "ended on the menu - the day stays open". TryYourLuck again at once: the greeting must NOT open
+   (NextApproachDay is an hour ahead); their own dialogue does. `approach status` shows the day open an hour
+   from now, not tomorrow.
+4. **"Something else."** (prompt "Just talk"). Beat 010009BA, then the hand-back re-greet opens THEIR OWN
+   dialogue, not Overture's menu again. A loop back into the menu is a FAIL.
+5. **R on a warm stranger:** stage reached >= 2 (after a stage-2 land on an earlier day), or said yes once,
+   or invited back today. The menu displays FOUR entries, with "Follow me" first: one of the five versions
+   from voice/follow-lines.json `player`. The log at the open says " | would follow" when they will.
+   - Willing: an agree line (01000DE0-DE7 for their persona), then `Overture follow:` lines as they come
+     along.
+   - Not willing: a decline line (01000DE8-DEF), then the hand-back.
+6. **Invited back, plain talk.** After a "not now" or "not here", activate within the day WITHOUT
+   TryYourLuck. Overture's greeting opens with no menu, straight at the proposition (stage 3).
+7. **Asleep.** TryYourLuck on a sleeping NPC: Overture's greeting must not open.
+8. **Companion, "Ask for a moment".** On a recruited companion with a vouched moment, call Moments.Ask.
+   Expect its log line, the `companion_start` greeting ("That look again. What's on your mind?"), then FOUR
+   entries displayed, "(Take their hand.)" among them (hidden before 0.1.6).
+9. **OWNER, or fo4-mcp if it can read the activation prompt:** "Overture" shows beside Talk on an eligible
+   stranger, and is absent on a child, a companion, a sleeper, in combat, or after today's approach. "Ask for
+   a moment" shows on a companion with a vouched moment.
 
 ## Not in this plan
 
