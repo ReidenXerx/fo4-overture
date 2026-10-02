@@ -780,6 +780,7 @@ def try_perk():
             (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_SLEEPING, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_DEAD, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_VALUE, m.NEXT_DAY_AV, 0.0, m.CTDA_OP_LE, m.GLOB_GAME_DAYS_PASSED),
             # greeting_info's opening OR group: CTDA_OR on all but the last, ANDed with the above.
@@ -984,6 +985,7 @@ def ask_perk():
             (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_SLEEPING, 0, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_DEAD, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_GLOBAL_VALUE, m.ENABLED_GLOBAL, 1.0, m.CTDA_OP_EQ, None),
             # greeting_info's opening OR group: CTDA_OR on all but the last, ANDed with the above.
             (m.FUNC_GET_STAGE, m.QUEST_MQ101, 1.0, m.CTDA_OP_LT | m.CTDA_OR, None),

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 (2026-10-02)
+
+- **No "Overture" on corpses.** The R choice, and a companion's "Ask for a moment", showed on dead bodies
+  and did nothing there. Both now need the person to be alive. Thanks to alasdairn.
+
 ## 0.1.6 (2026-10-01)
 
 - **"Try your luck" shows on the Overture menu.** Extended Dialogue Interface lists an option by the

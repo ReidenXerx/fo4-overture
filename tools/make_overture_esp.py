@@ -608,6 +608,9 @@ FUNC_IS_SNEAKING = 286
 # MisterSandman01's perk; xEdit's wbDefinitionsFO4 names it. NOT 175, the index recalled
 # from Skyrim: 175 is IsPCSleeping.
 FUNC_GET_SLEEPING = 49
+# GetDead, 0 = alive. MEASURED 2026-10-02: vanilla Intimidation01 (an Add Activate Choice perk like
+# ours) ends its tab with GetDead == 0. Without it "Overture" showed on corpses (alasdairn, 0.1.6).
+FUNC_GET_DEAD = 46
 RUNON_REFERENCE = 2
 PLAYER_REF = 0x00000014
 # GetIsSex, for O-40c's male and female versions of a line. MEASURED 2026-09-24 with

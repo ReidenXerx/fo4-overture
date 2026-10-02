@@ -899,3 +899,11 @@ azurestrand (Discord, 0.1.5): R opens the menu, but it holds only "2 Something e
   texts match no recording, so they stay silent. In-game effect: the subtitle shows the stage direction
   while the silent line plays.
 - Vanilla's 1,853 wordless player lines carry NO NAM1 at all. By XDI's code (read, not run), it hides those too.
+
+## O-56 — The perk choices need the person alive (fix, 2026-10-02)
+
+alasdairn (0.1.6): "I get the Overture command on corpses". The perks' conditions tested a person
+(ActorTypeNPC, not a child, awake...) but never whether they were alive. GetDead (function 46) == 0 is now on
+OvertureTryPerk 0x944 and OvertureAskPerk 0x859, measured on vanilla Intimidation01, an Add Activate Choice
+perk whose tab ends with exactly that condition. The greetings need no such condition: the dead do not talk.
+Only those two records differ from 0.1.6.
