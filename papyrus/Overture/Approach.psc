@@ -259,6 +259,9 @@ Struct Conversation
 	; The player's current companion: the scene's phase 4, the companion's verdict,
 	; and CompanionEnded (methodology 11).
 	Bool companion = False
+	; O-53: it opened on the menu -- the player's "Overture" stamp was running. One
+	; that ends with no pick at all is then ended on the menu too (EndedOnMenu).
+	Bool menu = False
 EndStruct
 
 Conversation _current = None
@@ -495,6 +498,7 @@ Event Scene.OnBegin(Scene akSender)
 	c.serial = _serial
 	_current = c
 	c.companion = Self.IsCompanionTalk(who)
+	c.menu = !c.companion && Self.ValueOf(who, TRY_UNTIL_AV_ID) > Utility.GetCurrentGameTime()
 	; What the NPC's first reply reads -- chosen seconds from now.
 	String note = Self.Prepare(who)
 	; The last conversation, if its end is still owed (a reply still out, or an OnEnd
@@ -503,6 +507,14 @@ Event Scene.OnBegin(Scene akSender)
 	; of the same NPC cannot lower it.
 	If last != None
 		Self.Finish(last, False)
+	EndIf
+	; Prepare yields, and the scene can end inside it: out of range, the NPC walked off
+	; (fo4-mcp, 2026-10-03: 04:34:31 logged "ended" before "opened"). That end has
+	; already written what it should; stamping the day now would spend it on a
+	; conversation that never happened.
+	If _current != c
+		Debug.Trace("Overture: the conversation with " + who.GetFormID() + " ended before it opened - the day is not spent", 0)
+		Return
 	EndIf
 	Self.Stamp(who)
 	; O-10: a nameless NPC gets a name on their first approach. Rapport decides who
@@ -766,8 +778,13 @@ String Function BetweenConversations(Conversation c)
 	Return note
 EndFunction
 
-; O-53: the last reply was the menu's -- Follow me (either answer), Later. or Just talk.
+; O-53: the last reply was the menu's -- Follow me (either answer), Later. or Just talk --
+; or a menu conversation ended with no reply at all (the player left the menu, or it
+; closed under them): as free as "Later." (fo4-mcp run, 2026-10-03).
 Bool Function EndedOnMenu(Conversation c)
+	If c.menu && c.outcome == 0
+		Return True
+	EndIf
 	Return c.outcome >= OUTCOME_FOLLOW_AGREE && c.outcome <= OUTCOME_MENU_TALK
 EndFunction
 

@@ -255,6 +255,35 @@ Event MCP:Bridge.OnVerb(MCP:Bridge akSender, Var[] akArgs)
 		If app.HasApi()
 			s = s + " | lovers=" + Rapport:Core.AreLovers(player.GetFormID(), who.GetFormID()) + " scenesTogether=" + Rapport:Core.PairSceneCount(player.GetFormID(), who.GetFormID()) + " jealousyMark=" + app.ValueOf(who, app.JEALOUSY_MARK_AV_ID) + " jealousPending=" + app.ValueOf(who, app.JEALOUS_PENDING_AV_ID)
 		EndIf
+		; The greeting's own gates, as the GREETING reads them: its day and stamp
+		; compare against the GameDaysPassed GLOBAL, not GetCurrentGameTime (fo4-mcp run
+		; 2026-10-03: greetings stopped opening for everyone until a reload, with the
+		; line above clean).
+		GlobalVariable gdp = Game.GetFormFromFile(0x00000039, "Fallout4.esm") as GlobalVariable
+		Float daysGlobal = -1.0
+		If gdp != None
+			daysGlobal = gdp.GetValue()
+		EndIf
+		s = s + " | GREETING: daysGlobal=" + daysGlobal + " tryUntil=" + app.ValueOf(who, app.TRY_UNTIL_AV_ID)
+		s = s + " sleep=" + who.GetSleepState() + " sit=" + who.GetSitState()
+		Faction hbc = Game.GetFormFromFile(0x000A1B85, "Fallout4.esm") as Faction
+		If hbc != None
+			s = s + " hasBeenCompanion=" + who.IsInFaction(hbc)
+		EndIf
+		GlobalVariable skipped = Game.GetFormFromFile(0x0000084E, "Overture.esp") as GlobalVariable
+		Quest mq101 = Game.GetFormFromFile(0x0001ED86, "Fallout4.esm") as Quest
+		If skipped != None && mq101 != None
+			s = s + " openingSkipped=" + skipped.GetValue() + " mq101=" + mq101.GetStage()
+		EndIf
+		Scene approachSc = app.ApproachScene()
+		If approachSc != None
+			s = s + " | approachScenePlaying=" + approachSc.IsPlaying()
+		EndIf
+		ReferenceAlias targetAl = app.TargetAlias()
+		If targetAl != None
+			s = s + " aliasHolds=" + targetAl.GetReference()
+		EndIf
+		s = s + " | playerScene=" + player.GetCurrentScene()
 		MCP:Core.Reply(tag, s)
 		Return
 	EndIf
