@@ -907,3 +907,20 @@ alasdairn (0.1.6): "I get the Overture command on corpses". The perks' condition
 OvertureTryPerk 0x944 and OvertureAskPerk 0x859, measured on vanilla Intimidation01, an Add Activate Choice
 perk whose tab ends with exactly that condition. The greetings need no such condition: the dead do not talk.
 Only those two records differ from 0.1.6.
+
+## O-57 — A conversation that never really happened costs no day (fix, 2026-10-03)
+
+From fo4-mcp's first full in-game run (AE, 0.1.7; section 8 all PASS, stage 1 30/32 PASS):
+- **A menu left with no pick is ended on the menu.** `Conversation.menu` records that the Overture stamp
+  was running as it opened; EndedOnMenu now also covers outcome 0 on such a conversation, so escaping the
+  menu (or the NPC walking off) reopens the day in an hour, like "Later.".
+- **An end inside OnBegin no longer stamps the day.** Prepare yields, and the scene can end inside it
+  (04:34:31 logged "ended" before "opened"); OnBegin now returns before Stamp when `_current` is no longer
+  its conversation.
+- **`approach status` prints the greeting's own gates** (the GameDaysPassed global it compares to, the R
+  stamp, sleep/sit, HasBeenCompanion, the opening gate, whether the approach scene plays, the alias holder,
+  the player's own scene). In the run the stranger greeting stopped opening for EVERY NPC after ~04:41
+  until a reload, with every gate the old status printed clean; not explained yet. The next repro names it.
+- Settled by the run, not changes: an audience changes only Blunt (the intimate register) at stage 1 --
+  Offer/Charm/Linger land or miss the same in public; Blunt at a non-vulgar in private is "offend"
+  (outcome 3, a small bond cost) by design; the NPC faces the player during the wheel.

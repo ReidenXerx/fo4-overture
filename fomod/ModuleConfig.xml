@@ -55,7 +55,7 @@ MCM: check this yourself. Optional: Mod Configuration Menu gives Overture its se
         <group name="Four ways to try" type="SelectAll">
           <plugins order="Explicit">
             <plugin name="Four ways to try">
-              <description>Offer, Charm, Blunt or Linger. Every NPC is one of four kinds of people, and each way lands with exactly one of them. The game never says who is which: you learn it from how they answer. The place matters too: with more than two people watching, even the right line only gets "not here".</description>
+              <description>Offer, Charm, Blunt or Linger. Every NPC is one of four kinds of people, and each way lands with exactly one of them. The game never says who is which: you learn it from how they answer. The place matters too: in front of an audience the intimate ways recoil, and someone who would say yes answers "not here" until you find somewhere private.</description>
               <image path="fomod/images/conversation.jpg"/>
               <conditionFlags><flag name="overture_shown">shown</flag></conditionFlags>
               <typeDescriptor><type name="Required"/></typeDescriptor>
