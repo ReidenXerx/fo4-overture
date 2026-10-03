@@ -2,14 +2,10 @@
 
 ## 0.1.8 (2026-10-03)
 
-- **Leaving the menu costs nothing.** Closing the Overture menu without picking anything, or the
-  conversation closing under you (they walked off), no longer uses up the day with that person, the
-  same as "Later.". A conversation that closes before it really opened doesn't either.
-- Tested end to end in the game for the first time: R and its menu, Try your luck, Later., Just talk,
-  Follow me (both answers), a companion's Ask for a moment, and the four ways to try with every kind
-  of person in quiet and crowded places. Every option shows.
-- The installer's line about crowded places now says what really happens: the intimate ways recoil,
-  and someone who would say yes answers "not here".
+- Leaving the Overture menu without a pick, or the conversation closing under you, no longer uses up the
+  day with that person (same as "Later.").
+- Installer: the crowded-places line now says what happens: the intimate ways recoil, and someone who
+  would say yes answers "not here".
 
 ## 0.1.7 (2026-10-02)
 
