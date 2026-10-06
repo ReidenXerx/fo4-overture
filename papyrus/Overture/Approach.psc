@@ -122,6 +122,9 @@ Int Property FOLLOW_WILLING_GLOBAL_ID = 0x00000946 AutoReadOnly
 ; About half a game hour (a minute and a half at timescale 20): the greeting it asks for
 ; comes at once, and a stamp left by an activation that opened nothing soon lapses.
 Float Property TRY_WINDOW = 0.02 AutoReadOnly
+; How near a scripted talk may be: past the activation prompt's own reach (about 150
+; units) with room for a step back, short of anyone the player is not facing up close.
+Float Property TALK_REACH = 350.0 AutoReadOnly
 
 ; THE STAGED BUILD (tools/overture_stages.py, --stages 3). The one-exchange
 ; plugin has none of these records: every lookup below comes back None there,
@@ -796,9 +799,35 @@ Function TryYourLuck(Actor akWho)
 	If akWho == None
 		Return
 	EndIf
+	String why = Self.CannotTalk(akWho)
+	If why != ""
+		Debug.Trace("Overture: not opened with " + akWho.GetFormID() + " - " + why, 0)
+		Return
+	EndIf
 	Self.SetTo(akWho, TRY_UNTIL_AV_ID, Utility.GetCurrentGameTime() + TRY_WINDOW)
 	Debug.Trace("Overture: the player chose Overture on " + akWho.GetFormID(), 0)
 	akWho.Activate(Game.GetPlayer() as ObjectReference, False)
+EndFunction
+
+; Why a scripted talk must not happen now, or "". A scripted Activate is the plain
+; activation the engine would do for a press of E: while the player sneaks that is a
+; PICKPOCKET, and from a script it has no reach limit (azurestrand, 2026-10-06: "the
+; overture button at long range against hostiles ... does pickpocket"; fo4-mcp's save
+; that started sneaking hit it too). Hostile or fighting, the greeting never opens and
+; the activation is all that is left. Moments.Ask asks the same.
+String Function CannotTalk(Actor akWho)
+	Actor player = Game.GetPlayer()
+	If player.IsSneaking()
+		Debug.Notification("Overture: stand up first.")
+		Return "the player is sneaking (an activation would pickpocket)"
+	EndIf
+	If akWho.IsInCombat() || akWho.IsHostileToActor(player)
+		Return "hostile or fighting"
+	EndIf
+	If akWho.GetDistance(player as ObjectReference) > TALK_REACH
+		Return "too far (" + akWho.GetDistance(player as ObjectReference) + " units)"
+	EndIf
+	Return ""
 EndFunction
 
 ; ---- companions (methodology 11) ---------------------------------------------

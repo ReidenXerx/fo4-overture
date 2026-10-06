@@ -924,3 +924,13 @@ From fo4-mcp's first full in-game run (AE, 0.1.7; section 8 all PASS, stage 1 30
 - Settled by the run, not changes: an audience changes only Blunt (the intimate register) at stage 1 --
   Offer/Charm/Linger land or miss the same in public; Blunt at a non-vulgar in private is "offend"
   (outcome 3, a small bond cost) by design; the NPC faces the player during the wheel.
+
+## O-58 — A scripted talk is never a pickpocket (fix, 2026-10-06)
+
+azurestrand: "the overture button at long range against hostiles doesn't do overture. It does pickpocket
+... if sneaking". Both scripted talks (Approach.TryYourLuck, the R perk and the debug "Approach - real" key;
+Moments.Ask) end in Activate(player, False), the engine's plain activation: while the player sneaks that is a
+pickpocket, and a scripted Activate has no reach limit. A hostile or fighting NPC never gets Overture's
+greeting, so the activation was all that happened. Approach.CannotTalk now refuses first: sneaking (with a
+"stand up first" notification), hostile or in combat, or farther than TALK_REACH (350 units, past the
+activation prompt's ~150). Moments.Ask asks the same. Only Approach.pex and Moments.pex change.

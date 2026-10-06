@@ -423,6 +423,15 @@ Function Ask(Actor akWho)
 		Debug.Trace("Overture companions: asked " + akWho.GetFormID() + " for a moment, but no adapter vouches for them now", 0)
 		Return
 	EndIf
+	; A scripted Activate while sneaking is a pickpocket (Approach.CannotTalk).
+	Overture:Approach app = Game.GetFormFromFile(0x00000800, "Overture.esp") as Overture:Approach
+	If app != None
+		String why = app.CannotTalk(akWho)
+		If why != ""
+			Debug.Trace("Overture companions: asked " + akWho.GetFormID() + " for a moment, not opened - " + why, 0)
+			Return
+		EndIf
+	EndIf
 	akWho.SetValue(av, MOMENT_ASKED as Float)
 	_askedAt = Utility.GetCurrentGameTime()
 	Debug.Trace("Overture companions: the player asked " + akWho.GetFormID() + " for a moment", 0)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 (2026-10-06)
+
+- Overture no longer turns into a pickpocket while you sneak, and never reaches past talking distance or
+  opens on someone hostile. Sneaking, it asks you to stand up first. Thanks to azurestrand.
+
 ## 0.1.8 (2026-10-03)
 
 - Leaving the Overture menu without a pick, or the conversation closing under you, no longer uses up the
