@@ -1245,7 +1245,13 @@ Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
 	EndIf
 	; Everything but the moment has passed: take the slot BEFORE looking at it, so a
 	; request that slips in between cannot take the scene a yes was just promised
-	; (O-16, microscope pass 2).
+	; (O-16, microscope pass 2). Only when a yes will ask for a scene: with "A yes starts
+	; a scene" off nothing is asked of Rapport, so its being busy is no reason for "not
+	; now" (fo4-mcp stage-4 run 2, 2026-10-07: refused "Rapport is busy" with scenes off).
+	If !Self.ScenesOn()
+		_why = WHY_YES
+		Return VERDICT_ACCEPT
+	EndIf
 	If aiHoldFor != 0
 		Self.Hold(akWho, HOLD_AT_VERDICT, aiHoldFor)
 	EndIf

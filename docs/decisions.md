@@ -934,3 +934,20 @@ pickpocket, and a scripted Activate has no reach limit. A hostile or fighting NP
 greeting, so the activation was all that happened. Approach.CannotTalk now refuses first: sneaking (with a
 "stand up first" notification), hostile or in combat, or farther than TALK_REACH (350 units, past the
 activation prompt's ~150). Moments.Ask asks the same. Only Approach.pex and Moments.pex change.
+
+## O-59 — Stage 4 proven; with scenes off a yes does not wait on Rapport (2026-10-07)
+
+- **Stage 4 proven in game** (fo4-mcp, AE, 0.1.9, Cathy): a forced yes became Rapport request 2 (queued
+  behind a Chemistry scene), AAF played a tender scene with the player, it ended on its own in ~209 s,
+  watchers looked and none walked in, the Narrator's first-time line came, and saidYes, bond 0.15 and the
+  pair's scene count held across a save and reload. With scenes off a real yes records saidYes and asks
+  Rapport for nothing.
+- **Fix:** Decide's last gate (hold the slot, then "not now" if Rapport is busy or cannot run the scene)
+  now applies only when "A yes starts a scene" is on. With it off nothing is asked of Rapport, and run 2
+  was refused "not now - Rapport is busy" for an autonomy scene elsewhere.
+- **Found, not ours:** the player stayed first person when Rapport moved the scene to its own marker
+  (AAF switches the view itself on its own spot): Rapport's, with the owner's free-camera request.
+- **The 10-03 "greeting stops for everyone" block, explained:** the player was held in vanilla
+  JohnGreetScene (000180EC, the Diamond City barber); a player inside another scene cannot enter
+  Overture's player-dialogue scene, so the NPC's own greeting wins. Scene.Stop() frees it (it re-attaches
+  while the player stands in the salon). `approach status` prints playerScene= for exactly this.

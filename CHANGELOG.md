@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.10 (2026-10-07)
+
+- With "A yes starts a scene" off, someone who would say yes no longer answers "not now" just because
+  another scene is running somewhere: no scene is asked for, so nothing has to be free.
+
 ## 0.1.9 (2026-10-06)
 
 - Overture no longer turns into a pickpocket while you sneak, and never reaches past talking distance or
