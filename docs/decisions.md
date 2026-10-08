@@ -951,3 +951,26 @@ activation prompt's ~150). Moments.Ask asks the same. Only Approach.pex and Mome
   JohnGreetScene (000180EC, the Diamond City barber); a player inside another scene cannot enter
   Overture's player-dialogue scene, so the NPC's own greeting wins. Scene.Stop() frees it (it re-attaches
   while the player stands in the salon). `approach status` prints playerScene= for exactly this.
+
+## O-60 — Servitrons always say yes (owner, 2026-10-08)
+
+Owner, through Anatomy-specialist: "our robots should always love to have sex". Polled: straight to yes
+(no flirting stages, anywhere, any time, no once-a-day), the VULGAR persona, a borrowed human voice for now
+("in future we will add proper robotic voiceover").
+- **Who:** a Servitron (Servitron.esm 0xF99 race, a SOFT dependency) is a robot -- ActorTypeRobot, never
+  ActorTypeNPC -- and her base NPC is always flagged male. Overture:Servitrons (a new script on the
+  dialogue quest) scans robots within 4096 units every 5 s and writes her role into the new actor value
+  OvertureServitron (0x870): 1 a woman (AAF_GenderOverride_Female), 2 a man (..._Male), 0 no genitals
+  (AAF_ActorBlocked) or not a Servitron. Anatomy puts exactly one of those keywords on the actor on its
+  arousal tick; none yet = skipped. Without Servitron.esm nothing runs.
+- **Plugin:** every "a human" gate on the R perk and the stranger greetings is now "a human OR a marked
+  Servitron" (ActorTypeNPC, not a teammate, never a companion -- each one OR group), so a Servitron
+  follower takes the stranger's path; the companion greeting, the companion phase and "Ask for a moment"
+  exclude her. at_proposition() includes her, not_at_proposition() excludes her: R -> menu -> Try your
+  luck opens stage 3. A SPEAKER's male/female line version is (her sex OR a Servitron of that role) AND
+  not a Servitron of the other role, so a female-role Servitron speaks the female lines.
+- **Script:** Approach.IsServitron; PersonaIndex = 2 (vulgar); Attracted, OpensAtProposition true;
+  Decide returns ACCEPT first (holding the slot when scenes are on; the yes's retry waits out a busy
+  Rapport); Stamp and the menu-end day are skipped (no once a day); IsCompanionTalk false.
+- **Voice:** RobotAssaultron has no Overture recordings; Rapport lends a human voice (asked to pick it by
+  her role, not the male flag). Robot-voiced lines come later.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2026-10-08)
+
+- **Servitrons always say yes.** With Servitron installed, press R on a Servitron robot and she goes
+  straight to the proposition and says yes, anywhere, any time, whoever asks. She talks dirty (her
+  lines follow the body she is built with), and one without genitals is never offered.
+
 ## 0.1.10 (2026-10-07)
 
 - With "A yes starts a scene" off, someone who would say yes no longer answers "not now" just because

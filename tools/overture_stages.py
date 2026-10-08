@@ -593,7 +593,7 @@ def build_staged():
         raise SystemExit('more plain jealous greetings than 0x836..0x83F holds')
     children += m.greeting(lover_lines, jealous_lines, companion_infos, companion_count, opens_when())
     children += scene_staged(topics, companion_topics, menu_topics)
-    quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
+    quest_blob = m.quest(scripts=(m.SCRIPT_NAME, m.DEV_SCRIPT, m.SERVITRONS_SCRIPT)) + m.child_group(m.QUEST_FORMID, 10, children)
     globs = (m.persona_global() + m.public_global() + m.enabled_global() + m.opening_global()
              + glob(VERDICT_GLOBAL, 'OvertureVerdict', 0.0)
              + glob(PLAYER_VARIANT_GLOBAL, 'OverturePlayerVariant', 0.0)
@@ -604,6 +604,7 @@ def build_staged():
     # back from an older save): its choice lives on the menu now (O-53).
     blob += m.group('PERK', ask_perk() + follow_perk + try_perk())
     blob += m.group('AVIF', m.next_day_av() + m.stage_reached_av()
+                    + m.actor_value(m.SERVITRON_AV, 'OvertureServitron')
                     + m.actor_value(m.TIER_AV, 'OvertureTier')
                     + m.actor_value(m.SAID_YES_AV, 'OvertureSaidYes')
                     + m.actor_value(m.INVITED_UNTIL_AV, 'OvertureInvitedUntil')
@@ -664,7 +665,8 @@ def at_proposition():
     ONE OR group -- the flag on each but the last -- so a condition carrying the
     OR flag just before it joins the group. Approach.OpensAtProposition is the
     same test in Papyrus and must stay so."""
-    return (alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_EQ | m.CTDA_OR)
+    return (alias_value(m.SERVITRON_AV, 1.0, m.CTDA_OP_GE | m.CTDA_OR)    # O-60: always at the yes
+            + alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_EQ | m.CTDA_OR)
             + alias_value(m.TIER_AV, float(m.TIER_LOVER), m.CTDA_OP_EQ | m.CTDA_OR)
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_GT, value_global=m.GLOB_GAME_DAYS_PASSED))
 
@@ -772,11 +774,15 @@ def try_perk():
     with the stranger greeting's own gates, so it shows only where the greeting can open."""
     target = b''
     for func, param, value, op, glob in (
-            (m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_NPC, 1.0, m.CTDA_OP_EQ, None),
+            # O-60: each "OR a marked Servitron" is one OR group, as in greeting_info.
+            (m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_NPC, 1.0, m.CTDA_OP_EQ | m.CTDA_OR, None),
+            (m.FUNC_GET_VALUE, m.SERVITRON_AV, 1.0, m.CTDA_OP_GE, None),
             (m.FUNC_HAS_KEYWORD, m.KW_ACTOR_TYPE_SYNTH, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_CHILD, 0, 0.0, m.CTDA_OP_EQ, None),
-            (m.FUNC_GET_PLAYER_TEAMMATE, 0, 0.0, m.CTDA_OP_EQ, None),
-            (m.FUNC_GET_IN_FACTION, m.FACTION_HAS_BEEN_COMPANION, 0.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_PLAYER_TEAMMATE, 0, 0.0, m.CTDA_OP_EQ | m.CTDA_OR, None),
+            (m.FUNC_GET_VALUE, m.SERVITRON_AV, 1.0, m.CTDA_OP_GE, None),
+            (m.FUNC_GET_IN_FACTION, m.FACTION_HAS_BEEN_COMPANION, 0.0, m.CTDA_OP_EQ | m.CTDA_OR, None),
+            (m.FUNC_GET_VALUE, m.SERVITRON_AV, 1.0, m.CTDA_OP_GE, None),
             (m.FUNC_IS_IN_COMBAT, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_IS_IN_SCENE, 0, 0.0, m.CTDA_OP_EQ, None),
             (m.FUNC_GET_SLEEPING, 0, 0.0, m.CTDA_OP_EQ, None),
@@ -809,8 +815,15 @@ def companion_here(value=1.0):
     """Whoever is in the alias IS the player's current companion (1.0), or is not
     (0.0). Only the companion greeting can put a current companion there: every
     stranger's line requires someone who has never been one."""
-    return m.field('CTDA', m.condition(m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, value=value,
-                                       runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX))
+    # O-60: a Servitron takes the stranger's path whatever her follower status: "not a
+    # companion" is (not in the faction OR a Servitron), and the companion's phase needs both
+    # the faction and no Servitron mark.
+    faction = m.condition(m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, value=value,
+                          op=m.CTDA_OP_EQ | (m.CTDA_OR if value == 0.0 else 0),
+                          runon=RUNON_QUEST_ALIAS, alias=m.ALIAS_INDEX)
+    if value == 0.0:
+        return m.field('CTDA', faction) + alias_value(m.SERVITRON_AV, 1.0, m.CTDA_OP_GE)
+    return m.field('CTDA', faction) + alias_value(m.SERVITRON_AV, 0.0, m.CTDA_OP_EQ)
 
 
 def companion_greetings(lines, ids):
@@ -979,6 +992,7 @@ def ask_perk():
     target = b''
     for func, param, value, op, glob in (
             (m.FUNC_GET_IN_FACTION, m.FACTION_CURRENT_COMPANION, 1.0, m.CTDA_OP_EQ, None),
+            (m.FUNC_GET_VALUE, m.SERVITRON_AV, 0.0, m.CTDA_OP_EQ, None),   # O-60: she has R instead
             (m.FUNC_GET_VALUE, COMPANION_MOMENT_AV, float(MOMENT_VOUCHED), m.CTDA_OP_GE, None),
             (m.FUNC_GET_VALUE, m.NEXT_DAY_AV, 0.0, m.CTDA_OP_LE, m.GLOB_GAME_DAYS_PASSED),
             (m.FUNC_GET_VALUE, CA_WANTS_TO_TALK_AV, 0.0, m.CTDA_OP_EQ, None),
@@ -1148,7 +1162,8 @@ def follow_records(ids):
 def not_at_proposition():
     """Its negation, three conditions ANDed (De Morgan): no yes before, not the
     lover tier, and no invitation still running."""
-    return (alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_NE)
+    return (alias_value(m.SERVITRON_AV, 0.0, m.CTDA_OP_EQ)
+            + alias_value(m.SAID_YES_AV, 1.0, m.CTDA_OP_NE)
             + alias_value(m.TIER_AV, float(m.TIER_LOVER), m.CTDA_OP_NE)
             + alias_value(m.INVITED_UNTIL_AV, 0.0, m.CTDA_OP_LE, value_global=m.GLOB_GAME_DAYS_PASSED))
 

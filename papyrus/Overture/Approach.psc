@@ -117,6 +117,10 @@ Int Property OUTCOME_MENU_TALK = 17 AutoReadOnly
 ; OvertureTryUntil: the game time an "Overture" choice on the prompt lasts until. The
 ; greeting needs it (or an invitation), so a plain E is always the NPC's own talk.
 Int Property TRY_UNTIL_AV_ID = 0x00000945 AutoReadOnly
+; O-60: Overture:Servitrons' mark, 1 a woman, 2 a man, 0 not a Servitron or never offered.
+Int Property SERVITRON_AV_ID = 0x00000870 AutoReadOnly
+; O-60: the persona a Servitron speaks with (owner, 2026-10-08: "Vulgar").
+Int Property SERVITRON_PERSONA = 2 AutoReadOnly
 ; OvertureFollowWilling: 1 if they would come along -- Follow me's answer on the menu.
 Int Property FOLLOW_WILLING_GLOBAL_ID = 0x00000946 AutoReadOnly
 ; About half a game hour (a minute and a half at timescale 20): the greeting it asks for
@@ -345,6 +349,9 @@ EndFunction
 Int Function PersonaIndex(Actor akWho)
 	If akWho == None
 		Return -1
+	EndIf
+	If Self.IsServitron(akWho)
+		Return SERVITRON_PERSONA
 	EndIf
 	String name = Rapport:Core.PersonaOf(akWho.GetFormID())
 	If name == "mercantile"
@@ -647,6 +654,9 @@ EndFunction
 ; that lasts until tonight (O-30). If the two ever disagree, a conversation opens
 ; at the proposition with no verdict decided, and the fallback beat says so.
 Bool Function OpensAtProposition(Actor akWho)
+	If Self.IsServitron(akWho)
+		Return True
+	EndIf
 	If Self.ValueOf(akWho, SAID_YES_AV_ID) == 1.0
 		Return True
 	EndIf
@@ -774,7 +784,7 @@ String Function BetweenConversations(Conversation c)
 	EndIf
 	; A conversation that ended on the menu spent nothing: the day stays open, an hour
 	; ahead as after "not now", so the re-greet that closed it cannot reopen it.
-	If Self.EndedOnMenu(c)
+	If Self.EndedOnMenu(c) && !Self.IsServitron(who)
 		Self.SetTo(who, NEXT_DAY_AV_ID, Utility.GetCurrentGameTime() + REOPEN_AFTER)
 		note = note + " | ended on the menu - the day stays open"
 	EndIf
@@ -838,9 +848,15 @@ EndFunction
 
 ; The player's CURRENT companion: the scene's phase 4 reads exactly this, so the
 ; script and the scene agree on whose conversation it is.
+; O-60: a Servitron Overture:Servitrons has marked as a woman or a man (never one wearing no
+; genitals, and never before Anatomy has marked her).
+Bool Function IsServitron(Actor akWho)
+	Return akWho != None && Self.ValueOf(akWho, SERVITRON_AV_ID) >= 1.0
+EndFunction
+
 Bool Function IsCompanionTalk(Actor akWho)
 	Faction current = Game.GetFormFromFile(CURRENT_COMPANION_FACTION_ID, "Fallout4.esm") as Faction
-	Return akWho != None && current != None && akWho.IsInFaction(current)
+	Return akWho != None && !Self.IsServitron(akWho) && current != None && akWho.IsInFaction(current)
 EndFunction
 
 ; A companion's conversation has ended. The moment (Moments: "not here" and "not
@@ -1194,6 +1210,16 @@ EndFunction
 ; aiHoldFor is the conversation a yes verdict holds Rapport's slot for; 0 holds
 ; nothing (the dev verb's verdict changes nothing). Leaves the reason in _why.
 Int Function Decide(Actor akWho, Float afBond, Bool abPublic, Int aiHoldFor)
+	; O-60 (owner, 2026-10-08): a Servitron always says yes -- whoever asks, wherever she
+	; is, whatever the bond, the room or the moment. With scenes on the slot is still held
+	; for her yes, and the yes's own retry waits out a busy Rapport.
+	If Self.IsServitron(akWho)
+		If aiHoldFor != 0 && Self.ScenesOn()
+			Self.Hold(akWho, HOLD_AT_VERDICT, aiHoldFor)
+		EndIf
+		_why = WHY_YES
+		Return VERDICT_ACCEPT
+	EndIf
 	Int persona = Self.PersonaIndex(akWho)
 	If persona < 0
 		_why = WHY_NO_PERSONA
@@ -1269,6 +1295,9 @@ EndFunction
 ; R-27: would akWho have the player, by orientation? Rapport decides (derived from the
 ; form id, pinned in its personas.json; romanceable companions are open to the player).
 Bool Function Attracted(Actor akWho)
+	If Self.IsServitron(akWho)
+		Return True
+	EndIf
 	Return Rapport:Core.Attracted(akWho.GetFormID(), Game.GetPlayer().GetFormID())
 EndFunction
 
@@ -1722,6 +1751,10 @@ EndFunction
 ; and a conversation that runs past midnight must not find it open (microscope
 ; pass 2).
 Function Stamp(Actor who)
+	; O-60: a Servitron is never "once a day".
+	If Self.IsServitron(who)
+		Return
+	EndIf
 	Float now = Utility.GetCurrentGameTime()
 	Float tomorrow = (Math.Floor(now) + 1) as Float
 	If tomorrow < now + STAMP_MARGIN

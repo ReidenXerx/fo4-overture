@@ -179,8 +179,20 @@ if code == 0:
         if not in_plugin:
             continue
         check(bool(hits), f'{line["id"]}: written ({len(hits)} INFOs)')
+        # O-60: a SPEAKER's sex is one OR group with "a Servitron of this role" (op 0x01, the OR
+        # flag), then "not a Servitron of the other role" (op 0x20, !=): her base NPC is always
+        # flagged male, so the line follows the role Overture:Servitrons marks.
+        sex_op = 0x01 if key == 'gender' else 0
+
+        def servitron_pair(c):
+            if key != 'gender':
+                return True
+            role, other = (1.0, 2.0) if sex == 'f' else (2.0, 1.0)
+            marks = [(x[4], x[5]) for x in c if x[0] == 14 and x[1] == 0x01000870 and x[2] == 0]
+            return (role, 0) in marks and (other, 0x20) in marks
         bad = [(fid, sex_ctdas(c)) for _p, fid, _e, c in hits
-               if not (len(sex_ctdas(c)) == 1 and sex_ctdas(c)[0][1:] == (SEX[sex], runon, ref, 1.0, 0))]
+               if not (len(sex_ctdas(c)) == 1 and sex_ctdas(c)[0][1:] == (SEX[sex], runon, ref, 1.0, sex_op)
+                       and servitron_pair(c))]
         check(not bad, f'{line["id"]}: GetIsSex({SEX[sex]}) == 1 on runon {runon} on all {len(hits)} INFOs {bad[:2]}')
     # And no line outside that set carries one.
     gendered_texts = {l['text'] for l in gendered_lines}

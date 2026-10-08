@@ -95,6 +95,11 @@ STAGE_REACHED_AV = 0x01000844  # AVIF: how far the player has got: 1-2 landed, 3
 TIER_AV = 0x01000848           # O-14's tier: -1 fallen out, 0 stranger, 1 warm, 2 close, 3 lover
 SAID_YES_AV = 0x01000849       # 1 once they have said yes to the player (O-12)
 INVITED_UNTIL_AV = 0x0100084A  # the game day a "not now" / "not here" invitation lasts until (O-30)
+# O-60 (owner, 2026-10-08): a Servitron robot (Servitron.esm, a soft dependency) always says yes.
+# Overture:Servitrons marks each one near the player with her role, read from the AAF keyword
+# Anatomy puts on her: 1 a woman, 2 a man, 0 not a Servitron or no genitals (AAF_ActorBlocked).
+# Her base NPC is always flagged male, so lines and gates read THIS, never GetIsSex alone.
+SERVITRON_AV = 0x01000870
 JEALOUSY_MARK_AV = 0x0100084B  # O-29's count; the script alone reads it
 JEALOUS_PENDING_AV = 0x0100084C  # O-33: persona + 1 of a lover who heard and has not said it yet
 TIER_LOVER = 3                 # Approach.TIER_LOVER must match
@@ -124,6 +129,7 @@ SCRIPT_NAME = 'Overture:Approach'
 # The F4MCP dev verbs, apart from the approach: every MCP type is in it, so a
 # player without F4MCP loses the verbs and nothing else. Staged build only.
 DEV_SCRIPT = 'Overture:Dev'
+SERVITRONS_SCRIPT = 'Overture:Servitrons'   # O-60: marks Servitrons with their role
 # On every NPC reply INFO. Its OnEnd tells Overture:Approach.Replied what the
 # line did; the two Int properties say which stage and which outcome.
 REPLY_SCRIPT = 'Overture:Reply'
@@ -520,6 +526,17 @@ def sex_conditions(l):
             continue
         if sex not in SEX_PARAM:
             raise SystemExit(f'{l["id"]}: {key} must be "m" or "f", not {sex!r}')
+        if key == 'gender':
+            # O-60: a Servitron speaks the version of HER role, not of the male flag the game
+            # puts on every one: (this sex OR a Servitron of this role) AND not a Servitron
+            # of the other role. One OR group, then a plain AND.
+            role, other = (1.0, 2.0) if sex == 'f' else (2.0, 1.0)
+            f += field('CTDA', condition(FUNC_GET_IS_SEX, SEX_PARAM[sex], value=1.0, op=CTDA_OP_EQ | CTDA_OR,
+                                         runon=runon, reference=ref))
+            f += field('CTDA', condition(FUNC_GET_VALUE, SERVITRON_AV, value=role, runon=runon, reference=ref))
+            f += field('CTDA', condition(FUNC_GET_VALUE, SERVITRON_AV, value=other, op=CTDA_OP_NE,
+                                         runon=runon, reference=ref))
+            continue
         f += field('CTDA', condition(FUNC_GET_IS_SEX, SEX_PARAM[sex], value=1.0,
                                      runon=runon, reference=ref))
     return f
@@ -769,23 +786,32 @@ def greeting_info(form_id, text, enam, extra, companion=False):
     # synth, not a child), not the player's current companion (teammate), not in
     # combat, not already in a scene, and once a game day: the stamp the script
     # writes as the scene begins must be <= GameDaysPassed. Plus the master switch.
+    def subj(func, param, value, op=CTDA_OP_EQ):
+        return field('CTDA', condition(func, param, value=value, op=op, runon=RUNON_SUBJECT))
+    # O-60: a marked Servitron (a robot, so no ActorTypeNPC) is let in beside the humans and
+    # ghouls, and whatever her follower status -- each "OR a Servitron" is one OR group.
+    servitron = subj(FUNC_GET_VALUE, SERVITRON_AV, 1.0, CTDA_OP_GE)
     if companion:
-        who = ((FUNC_GET_IN_FACTION, FACTION_CURRENT_COMPANION, 1.0),)
+        g += subj(FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_NPC, 1.0)
+        g += subj(FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0)
+        g += subj(FUNC_IS_CHILD, 0, 0.0)
+        g += subj(FUNC_GET_IN_FACTION, FACTION_CURRENT_COMPANION, 1.0)
+        g += subj(FUNC_GET_VALUE, SERVITRON_AV, 0.0)          # a Servitron takes the stranger's path
     else:
-        who = ((FUNC_GET_PLAYER_TEAMMATE, 0, 0.0),
-               # Anyone who has EVER been a companion -- a dismissed Ivy standing
-               # in a settlement included. Companions get their own module (N-7),
-               # and a stranger's approach at priority 100 would talk over a
-               # companion mod's own voiced dialogue in subtitles. (Review 2026-09-23.)
-               (FUNC_GET_IN_FACTION, FACTION_HAS_BEEN_COMPANION, 0.0))
+        g += subj(FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_NPC, 1.0, CTDA_OP_EQ | CTDA_OR) + servitron
+        g += subj(FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0)
+        g += subj(FUNC_IS_CHILD, 0, 0.0)
+        g += subj(FUNC_GET_PLAYER_TEAMMATE, 0, 0.0, CTDA_OP_EQ | CTDA_OR) + servitron
+        # Anyone who has EVER been a companion -- a dismissed Ivy standing in a settlement
+        # included. Companions get their own module (N-7), and a stranger's approach at
+        # priority 100 would talk over a companion mod's own voiced dialogue in subtitles.
+        # (Review 2026-09-23.) A Servitron has none, so she is the exception.
+        g += subj(FUNC_GET_IN_FACTION, FACTION_HAS_BEEN_COMPANION, 0.0, CTDA_OP_EQ | CTDA_OR) + servitron
     for func, param, value in (
-            (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_NPC, 1.0),
-            (FUNC_HAS_KEYWORD, KW_ACTOR_TYPE_SYNTH, 0.0),
-            (FUNC_IS_CHILD, 0, 0.0)) + who + (
             (FUNC_IS_IN_COMBAT, 0, 0.0),
             (FUNC_IS_IN_SCENE, 0, 0.0),
             (FUNC_GET_GLOBAL_VALUE, ENABLED_GLOBAL, 1.0)):
-        g += field('CTDA', condition(func, param, value=value, runon=RUNON_SUBJECT))
+        g += subj(func, param, value)
     g += field('CTDA', condition(FUNC_GET_VALUE, NEXT_DAY_AV, runon=RUNON_SUBJECT,
                                  op=CTDA_OP_LE, value_global=GLOB_GAME_DAYS_PASSED))
     # NOT DURING THE GAME'S OPENING (owner poll, 2026-09-25): MQ101 "War Never Changes"
