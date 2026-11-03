@@ -974,3 +974,19 @@ Owner, through Anatomy-specialist: "our robots should always love to have sex". 
   Rapport); Stamp and the menu-end day are skipped (no once a day); IsCompanionTalk false.
 - **Voice:** RobotAssaultron has no Overture recordings; Rapport lends a human voice (asked to pick it by
   her role, not the male flag). Robot-voiced lines come later.
+
+## O-61 - Ivy's fade never comes back after her scene moved on (fix, 2026-11-03)
+
+Player arkth (through Watcher and Rapport): after a Rapport scene with Ivy the screen stayed black for
+good; mid-scene Ivy spoke her phase-3 closing lines. He had longer meters, so the Rapport scene ran long.
+- **Cause:** D.3 pauses _IvyCompQuest_Favor_Sex at phase 2 and Resume() called her StartSex
+  (FadeOutGame stay + SetPlayerAIDriven True) unconditionally. Her scene had already moved to phase 3 or
+  ended (her phase-2 timer action ran on through Scene.Pause, or something stopped her scene), so
+  nothing of hers was left to lift the fade.
+- **Fix (IvyNative):** Resume re-fades only while her scene is still playing in phase 1-2 and did not
+  end. Otherwise it unpauses if needed, lifts the fade (FadeOutGame False, no stay), hands control back,
+  and logs it. An end under Rapport's scene is deferred to Resume, which counts it once (D.1 bond only if
+  Rapport did not record it). A phase that begins while Rapport plays her scene is logged as "her pause
+  did not hold".
+- **Open:** whether Scene.Pause holds a running timer action is not measured. The logs from his next
+  run say which of the two happened.

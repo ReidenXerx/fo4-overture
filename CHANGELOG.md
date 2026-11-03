@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2026-11-03)
+
+- Fixed: after a long scene with Ivy, the screen could stay black and the controls locked. If her
+  own scene has already moved on, Overture now leaves the screen lit.
+
 ## 0.2.0 (2026-10-08)
 
 - **Servitrons always say yes.** With Servitron installed, press R on a Servitron robot and she goes

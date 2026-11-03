@@ -72,6 +72,10 @@ Bool _animating = False
 Int _requestId = 0
 Int _pairBefore = 0
 Float _animatingSince = 0.0
+; Her scene ended while Rapport played it (her pause did not hold, or something
+; stopped it): Resume decides what it counts, and must not fade the screen back.
+Bool _endedWhileHeld = False
+Int _heldEndReached = 0
 
 Overture:Companions:IvyAdapter Function Adapter()
 	Return (Self as Quest) as Overture:Companions:IvyAdapter
@@ -119,6 +123,8 @@ EndFunction
 Event Scene.OnBegin(Scene akSender)
 	_sexPhase = 0
 	_handedToRapport = False
+	_endedWhileHeld = False
+	_heldEndReached = 0
 	Debug.Trace("Overture companions: Ivy's Favor: Sex began", 0)
 EndEvent
 
@@ -126,6 +132,10 @@ Event Scene.OnPhaseBegin(Scene akSender, Int auiPhaseIndex)
 	; FIRST, before anything can yield: OnEnd reads it.
 	_sexPhase = auiPhaseIndex
 	Debug.Trace("Overture companions: Ivy's Favor: Sex phase " + auiPhaseIndex + " began", 0)
+	If _animating
+		Debug.Trace("Overture companions: Ivy's phase " + auiPhaseIndex + " began while Rapport plays her scene - her pause did not hold", 1)
+		Return
+	EndIf
 	If auiPhaseIndex == SEX_PHASE && Self.Armed()
 		Self.Animate()
 	EndIf
@@ -134,6 +144,14 @@ EndEvent
 Event Scene.OnEnd(Scene akSender)
 	Int reached = _sexPhase
 	_sexPhase = 0
+	If _animating
+		; Ended under Rapport's scene: whether Rapport recorded it is only known once
+		; our request is over, so Resume counts it (exactly one of the two counts).
+		_endedWhileHeld = True
+		_heldEndReached = reached
+		Debug.Trace("Overture companions: Ivy's Favor: Sex ended while Rapport plays it (reached phase " + reached + ")", 1)
+		Return
+	EndIf
 	; It HAPPENED if it reached the phase where her fade lifts: the sex (phase 2) ran
 	; to its timer. Played through Rapport and recorded there: Rapport's RecordScene
 	; already added its share -- adding ours too is R-10's double count.
@@ -240,12 +258,31 @@ Function Resume()
 	EndIf
 	Int p = Game.GetPlayer().GetFormID()
 	_handedToRapport = Rapport:Core.PairSceneCount(p, _ivy.GetFormID()) > _pairBefore
-	ScriptObject hers = Self.Adapter().IvyScript()
-	If hers != None
-		Var[] noArgs = new Var[0]
-		hers.CallFunction("StartSex", noArgs)
+	; Her fade goes back on ONLY while her scene still waits in the dark, before her
+	; phase 3: nothing of hers is left to lift it otherwise (black for good, 11-03).
+	If !_endedWhileHeld && _sex.IsPlaying() && _sexPhase >= FADE_PHASE && _sexPhase < LIFT_PHASE
+		ScriptObject hers = Self.Adapter().IvyScript()
+		If hers != None
+			Var[] noArgs = new Var[0]
+			hers.CallFunction("StartSex", noArgs)
+		EndIf
+		_sex.Pause(False)
+	Else
+		If _sex.IsPlaying()
+			_sex.Pause(False)
+		EndIf
+		; Her EndSex already handed control back; make sure of it, without a fade.
+		Game.FadeOutGame(False, True, 0.0, 1.0, False)
+		Game.SetPlayerAIDriven(False)
+		Debug.Trace("Overture companions: Ivy's scene moved past her dark while Rapport played it (phase " + _sexPhase + ", ended=" + _endedWhileHeld + ") - the screen stays lit", 1)
+		If _endedWhileHeld
+			_endedWhileHeld = False
+			If !_handedToRapport && _heldEndReached >= LIFT_PHASE && Self.Live() && Rapport:Core.ApiVersion() >= NEEDS_API
+				Rapport:Relations.AddBondBetween(Game.GetPlayer(), _ivy, BOND_PER_SCENE, REASON_ADDON)
+			EndIf
+		EndIf
+		Return
 	EndIf
-	_sex.Pause(False)
 	If _handedToRapport
 		Debug.Trace("Overture companions: Rapport's scene with Ivy is recorded - hers goes on, in her dark", 0)
 	Else
